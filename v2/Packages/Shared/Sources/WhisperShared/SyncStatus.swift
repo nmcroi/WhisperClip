@@ -25,7 +25,7 @@ public enum SyncStatus: Equatable, Sendable {
             return "iCloud niet beschikbaar"
         case .requiresApproval(let localCount, let accountChanged):
             if accountChanged {
-                return "Gepauzeerd — ander iCloud-account"
+                return "Gepauzeerd, ander iCloud-account"
             }
             return "Wacht op toestemming voor \(localCount) lokale items"
         case .active(let lastSync):
@@ -34,7 +34,7 @@ public enum SyncStatus: Equatable, Sendable {
             f.locale = Locale(identifier: "nl_NL")
             f.dateStyle = .none
             f.timeStyle = .short
-            return "Actief — laatst gesynchroniseerd om \(f.string(from: lastSync))"
+            return "Actief, laatst gesynchroniseerd om \(f.string(from: lastSync))"
         case .error(let message):
             return "Fout: \(message)"
         }

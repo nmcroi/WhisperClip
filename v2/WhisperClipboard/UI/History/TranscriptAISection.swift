@@ -147,7 +147,7 @@ struct TranscriptAISection: View {
                 .buttonStyle(.plain)
                 .help("Bewaar deze opdracht als een herbruikbare modus")
             } else if let name = savedAsModeName {
-                Label("Bewaard als \"\(name)\" — te vinden bij Instellingen", systemImage: "checkmark.circle.fill")
+                Label("Bewaard als \"\(name)\", te vinden bij Instellingen", systemImage: "checkmark.circle.fill")
                     .font(ThemeFont.ui(11))
                     .foregroundStyle(Theme.accentText)
             }

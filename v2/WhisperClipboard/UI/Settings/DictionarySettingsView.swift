@@ -29,7 +29,7 @@ struct DictionarySettingsView: View {
             Text.accentDotted("Woordenlijst")
             .font(ThemeFont.ui(18, weight: .bold))
 
-            Text("Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts — hele woorden, hoofdletterongevoelig.")
+            Text("Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts: hele woorden, hoofdletterongevoelig.")
                 .font(ThemeFont.ui(11))
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

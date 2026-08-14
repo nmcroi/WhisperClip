@@ -163,7 +163,7 @@ final class MeetingController: ObservableObject {
         if audioEngine.resume() {
             phase = .recording
         } else {
-            Notifications.post("Hervatten mislukt — opname wordt afgerond")
+            Notifications.post("Hervatten mislukt, de opname wordt afgerond")
             stop()
         }
     }
@@ -211,7 +211,7 @@ final class MeetingController: ObservableObject {
 
         guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             transcript = nil
-            errorMessage = "Geen spraak herkend — er is niets om te versturen."
+            errorMessage = "Geen spraak herkend, er is niets om te versturen."
             phase = .finished
             return
         }

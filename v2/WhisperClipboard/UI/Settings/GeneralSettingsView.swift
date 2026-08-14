@@ -122,7 +122,7 @@ struct GeneralSettingsView: View {
                 .foregroundStyle(Theme.text)
 
             TextField(
-                "bijv. nl, en — leeg = Nederlands",
+                "bijv. nl of en, leeg is Nederlands",
                 text: Binding(
                     get: { environment.settings.language },
                     set: { environment.settings.language = $0 }
@@ -239,7 +239,7 @@ struct GeneralSettingsView: View {
                     Text("Sprekers herkennen")
                         .font(ThemeFont.ui(13, weight: .medium))
                         .foregroundStyle(Theme.text)
-                    Text("Labelt automatisch ‘Spreker 1’, ‘Spreker 2’ enz. — zowel bij live dictaat als bij geïmporteerde gesprekken en interviews. Korte dictaten (< 10 sec.) blijven zonder labels, zodat je klembord snel gevuld wordt. Bij het eerste gebruik wordt eenmalig een klein sprekermodel gedownload (±14 MB).")
+                    Text("Labelt automatisch ‘Spreker 1’, ‘Spreker 2’ enz., zowel bij live dictaat als bij geïmporteerde gesprekken en interviews. Korte dictaten (< 10 sec.) blijven zonder labels, zodat je klembord snel gevuld wordt. Bij het eerste gebruik wordt eenmalig een klein sprekermodel gedownload (±14 MB).")
                         .font(ThemeFont.ui(11))
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

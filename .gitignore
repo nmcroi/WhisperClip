@@ -20,6 +20,12 @@ v2/DerivedData/
 # Release packaging output (built .app, DMGs, throwaway DerivedData)
 v2/Packaging/dist/
 
+# Lokale ondertekening van de Mac-app. Bevat een certificaatnaam, een team-ID en
+# een profielnaam, en zet de build op de iCloud-entitlements. Nooit committen:
+# de CI-runner en een verse checkout moeten ad-hoc blijven bouwen.
+# Zie v2/Configs/Local.xcconfig.example.
+v2/Configs/Local.xcconfig
+
 # Signing secrets — NEVER commit. The Sparkle EdDSA private key lives ONLY in
 # the login keychain; these patterns guard against an accidental exported copy,
 # and against App Store Connect API keys being dropped in the tree.
@@ -34,3 +40,6 @@ Releases/
 
 # Apple provisioning profile — niet in publieke repo
 *.provisionprofile
+
+# Gedeelde loop-skills: symlinks naar de vault, niet naar GitHub
+.claude/skills/

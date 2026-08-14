@@ -60,7 +60,7 @@ struct AutomationSettingsView: View {
                     Text("Stopwoorden verwijderen (eh, uh, ehm…)")
                         .font(ThemeFont.ui(13, weight: .medium))
                         .foregroundStyle(Theme.text)
-                    Text("Verwijdert twijfelklanken zoals ‘eh’, ‘uh’ en ‘ehm’ uit je transcripties. Betekenisvolle woorden blijven altijd staan — de lijst is bewust behoudend.")
+                    Text("Verwijdert twijfelklanken zoals ‘eh’, ‘uh’ en ‘ehm’ uit je transcripties. Betekenisvolle woorden blijven altijd staan, de lijst is bewust behoudend.")
                         .font(ThemeFont.ui(11))
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

@@ -221,7 +221,7 @@ final class DictationController: ObservableObject {
         if audioEngine.resume() {
             phase = .recording
         } else {
-            Notifications.post("Hervatten mislukt — opname wordt afgerond")
+            Notifications.post("Hervatten mislukt, de opname wordt afgerond")
             performStop()
         }
     }
@@ -533,7 +533,7 @@ final class DictationController: ObservableObject {
         let trustedDuration = audioDuration > 0 ? audioDuration : wallClock
         if audioDuration > 0, wallClock - audioDuration > max(5, wallClock * 0.05) {
             NSLog(
-                "DictationController: audio gap — klok %.1fs, opgenomen %.1fs",
+                "DictationController: audio gap, klok %.1fs, opgenomen %.1fs",
                 wallClock,
                 audioDuration
             )

@@ -219,7 +219,14 @@ public final class HistorySyncEngine: NSObject {
         // host), and a trap can't be caught — so we must confirm the entitlement
         // is present BEFORE ever touching CKContainer. This is the single guard
         // that keeps unentitled builds dormant instead of crashing.
-        guard Self.hasCloudKitEntitlement(for: containerIdentifier) else {
+        if let probleem = Self.cloudKitEntitlementProblem(for: containerIdentifier) {
+            // Dit pad was tot 14 augustus 2026 volledig stil: de guard returnde
+            // zonder één logregel. Daardoor bleef de Mac-app maandenlang slapend
+            // zonder dat iemand kon zien waarom, terwijl er intussen honderden
+            // wijzigingen in het uitgaande journaal opliepen. De melding
+            // hieronder is de enige aanwijzing die je krijgt, dus hij moet
+            // zeggen wát er ontbreekt en niet alleen dát er iets ontbreekt.
+            NSLog("HistorySyncEngine: slapend, %@", probleem)
             status = .unavailable(reason: "iCloud niet beschikbaar op deze build")
             return false
         }
@@ -287,16 +294,45 @@ public final class HistorySyncEngine: NSObject {
     /// SIGTRAP: the previous iOS check read the embedded provisioning profile
     /// (what the App ID *may* have), not the real, signed grant.
     static func hasCloudKitEntitlement(for containerIdentifier: String) -> Bool {
+        cloudKitEntitlementProblem(for: containerIdentifier) == nil
+    }
+
+    /// Same check as ``hasCloudKitEntitlement(for:)``, but says *what* is wrong.
+    /// Returns `nil` when the entitlement is present and correct; otherwise a
+    /// short Dutch phrase for the log. The distinction matters in practice:
+    /// "not signed at all" (ad-hoc / CI) and "signed, but for another container"
+    /// (a typo in the plist, or a container rename) look identical from the
+    /// outside and need completely different fixes.
+    static func cloudKitEntitlementProblem(for containerIdentifier: String) -> String? {
         #if os(macOS)
-        guard let task = SecTaskCreateFromSelf(nil) else { return false }
-        let key = "com.apple.developer.icloud-container-identifiers" as CFString
-        guard let value = SecTaskCopyValueForEntitlement(task, key, nil) else { return false }
-        if let ids = value as? [String] {
-            return ids.contains(containerIdentifier)
+        guard let task = SecTaskCreateFromSelf(nil) else {
+            return "de handtekening van dit proces is niet te lezen"
         }
-        return false
+        let key = "com.apple.developer.icloud-container-identifiers" as CFString
+        guard let value = SecTaskCopyValueForEntitlement(task, key, nil) else {
+            return "deze build draagt geen CloudKit-recht (ad-hoc ondertekend?), verwacht container \(containerIdentifier)"
+        }
+        guard let ids = value as? [String] else {
+            return "het CloudKit-recht heeft een onverwachte vorm"
+        }
+        guard ids.contains(containerIdentifier) else {
+            return "getekend voor container(s) \(ids.joined(separator: ", ")), maar de app verwacht \(containerIdentifier)"
+        }
+        // Aanwezig en juist. Nog één waarschuwing, geen weigering: restricted
+        // entitlements worden pas door het systeem gehonoreerd als er ook echt
+        // met een team is getekend. Ad-hoc draagt ze wel maar krijgt ze niet,
+        // en dan breekt CKContainer(identifier:) het proces af op een manier die
+        // niet te vangen is. Zien we geen team-identifier, dan is dat vrijwel
+        // zeker het geval en wil je dat in het log terugvinden.
+        let appID = "com.apple.application-identifier" as CFString
+        if SecTaskCopyValueForEntitlement(task, appID, nil) == nil {
+            NSLog("HistorySyncEngine: let op, CloudKit-recht aanwezig maar geen team-identifier in de handtekening; als CKContainer hierna afbreekt is dit de reden")
+        }
+        return nil
         #else
-        FileManager.default.url(forUbiquityContainerIdentifier: containerIdentifier) != nil
+        return FileManager.default.url(forUbiquityContainerIdentifier: containerIdentifier) == nil
+            ? "geen ubiquity-container voor \(containerIdentifier), deze build draagt het iCloud-recht niet"
+            : nil
         #endif
     }
 

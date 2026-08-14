@@ -75,24 +75,18 @@ enum TranscriptFormatting {
             : joined
     }
 
-    /// Relative Dutch date: "vandaag 14:32", "gisteren 09:10", else "dd-MM".
+    /// Een echte datum en tijd in de lijstregel: "13 aug 2026 15:42".
+    ///
+    /// Hier stond "vandaag 14:32", "gisteren 09:10" en anders alleen "dd-MM",
+    /// dus zonder jaartal. Niels zoekt op datum en moest daarvoor telkens een
+    /// opname openen. Op de iPhone is dit op 13 augustus 2026 al rechtgezet
+    /// (`TranscriptRowiOS.relativeDate`); dit is de Mac-tegenhanger.
     static func relativeDate(for entry: TranscriptEntry) -> String {
         guard let date = entry.timestamp else { return entry.createdAt }
-        let calendar = Calendar.current
-        let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale(identifier: "nl_NL")
-        timeFormatter.dateFormat = "HH:mm"
-
-        if calendar.isDateInToday(date) {
-            return "vandaag \(timeFormatter.string(from: date))"
-        }
-        if calendar.isDateInYesterday(date) {
-            return "gisteren \(timeFormatter.string(from: date))"
-        }
-        let dayFormatter = DateFormatter()
-        dayFormatter.locale = Locale(identifier: "nl_NL")
-        dayFormatter.dateFormat = "dd-MM"
-        return dayFormatter.string(from: date)
+        return date.formatted(
+            .dateTime.day().month(.abbreviated).year().hour().minute()
+                .locale(Locale(identifier: "nl_NL"))
+        )
     }
 
     /// A longer date line for the detail view: "21-06-2026 10:27".
@@ -104,10 +98,19 @@ enum TranscriptFormatting {
         return formatter.string(from: date)
     }
 
-    /// Duration as "m:ss" (or "0:07").
+    /// De duur mét eenheid: "42 s", "3:07 m", "1:02:15 u".
+    ///
+    /// Dit was kaal "3:07", wat naast een datum niet te lezen is: is dat drie
+    /// minuten of drie uur? Zelfde vorm als op de iPhone (`DurationText`).
     static func duration(_ seconds: Double) -> String {
-        let total = Int(seconds.rounded())
-        return String(format: "%d:%02d", total / 60, total % 60)
+        let total = max(0, Int(seconds.rounded()))
+        if total < 60 {
+            return "\(total) s"
+        }
+        if total < 3600 {
+            return String(format: "%d:%02d m", total / 60, total % 60)
+        }
+        return String(format: "%d:%02d:%02d u", total / 3600, (total % 3600) / 60, total % 60)
     }
 
     /// A "m:ss" timecode for segment lists.

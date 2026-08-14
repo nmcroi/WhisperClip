@@ -169,7 +169,9 @@ struct NotesListView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(displayTitle(note))
-                            .font(ThemeFont.ui(26, weight: .bold))
+                            // Zelfde maat als de transcripttitel in het
+                            // Geschiedenis-detail (14 aug 2026).
+                            .font(ThemeFont.ui(22, weight: .bold))
                             .foregroundStyle(Theme.text)
                         Spacer()
                         Button {

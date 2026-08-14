@@ -337,7 +337,8 @@ private struct ModeEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(mode == nil ? "Nieuwe modus" : "Modus bewerken")
-                .font(ThemeFont.ui(16, weight: .bold))
+                // Zelfde maat als de andere instellingenkoppen (14 aug 2026).
+                .font(ThemeFont.ui(18, weight: .bold))
                 .foregroundStyle(Theme.text)
 
             VStack(alignment: .leading, spacing: 6) {

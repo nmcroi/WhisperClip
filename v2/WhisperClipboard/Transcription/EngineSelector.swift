@@ -38,7 +38,7 @@ enum EngineSelector {
             }
             return Decision(
                 engine: .parakeet,
-                notice: "Apple-spraakherkenning ondersteunt ‘\(code)’ niet — Parakeet actief"
+                notice: "Apple-spraakherkenning ondersteunt ‘\(code)’ niet, Parakeet actief"
             )
         }
     }

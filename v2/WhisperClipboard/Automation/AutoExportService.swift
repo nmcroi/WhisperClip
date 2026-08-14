@@ -64,7 +64,7 @@ final class AutoExportService {
                   fileName, destination.path, String(describing: error))
             if !didNotifyFailure {
                 didNotifyFailure = true
-                notify("Automatisch exporteren mislukte — controleer de exportmap in Instellingen")
+                notify("Automatisch exporteren mislukte, controleer de exportmap in Instellingen")
             }
         }
     }

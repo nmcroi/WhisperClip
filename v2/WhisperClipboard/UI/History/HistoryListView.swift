@@ -1,3 +1,4 @@
+import AppKit
 import Core
 import Combine
 import Foundation
@@ -11,6 +12,11 @@ struct HistoryListView: View {
     @ObservedObject var navigation: AppNavigation
     var modes: ModesService
 
+    /// Voor de sync-knop in de kop. Tot 14 augustus 2026 zat synchroniseren
+    /// alleen in Instellingen ▸ Algemeen, drie klikken diep, terwijl je juist
+    /// hier staat als je je opnames mist.
+    @EnvironmentObject private var environment: AppEnvironment
+
     @State private var rawQuery = ""
     @State private var debouncedQuery = ""
     @State private var filter: HistoryFilter = .all
@@ -19,10 +25,30 @@ struct HistoryListView: View {
     @State private var speakerFilter: SpeakerFilter = .any
     @State private var titleFilter: TitleFilter = .any
     @State private var sortOrder: SortOrder = .newest
-    @State private var selectedID: String?
+    /// De geselecteerde opnames. Meervoud sinds 14 augustus 2026, op de
+    /// Mac-manier: cmd-klik zet er één bij of haalt er één weg, shift-klik pakt
+    /// een reeks, gewoon klikken selecteert er één. Geen knop "Selecteer" en
+    /// geen rondjes voor de rijen: dat is de iPhone-vorm, en op een Mac verwacht
+    /// je Finder-gedrag (keuze van Niels).
+    @State private var selection: Set<String> = []
+
+    /// Het vertrekpunt voor shift-klik: de laatst met een gewone klik of
+    /// cmd-klik aangeraakte rij.
+    @State private var anchorID: String?
     @State private var renamingID: String?
     @State private var renameText = ""
     @State private var deletingEntry: TranscriptEntry?
+
+    /// Of er op dit moment een handmatige synchronisatie loopt. De engine kent
+    /// geen "bezig"-status, dus zonder deze vlag gebeurt er na een klik zichtbaar
+    /// niets tot hij klaar is.
+    @State private var isSyncing = false
+
+    /// Of de keuzevraag bij samenvoegen open staat: originelen bewaren of niet.
+    @State private var showMergeChoice = false
+
+    /// Of de bevestigvraag bij het verwijderen van een selectie open staat.
+    @State private var showMultiDeleteConfirmation = false
 
     /// De zichtbare lijst, één keer opgehaald per echte wijziging.
     ///
@@ -82,10 +108,34 @@ struct HistoryListView: View {
                 // bevat anders nog de zojuist verwijderde rij (bevinding
                 // 2026-08-04).
                 refreshEntries()
-                if selectedID == entry.id { selectedID = entries.first?.id }
+                if selection.contains(entry.id) {
+                    selection.remove(entry.id)
+                    if selection.isEmpty { select(entries.first?.id) }
+                }
             }
             Button("Annuleer", role: .cancel) { deletingEntry = nil }
         } message: { _ in
+            Text("Dit kan niet ongedaan worden gemaakt.")
+        }
+        .confirmationDialog(
+            "\(selection.count) opnames samenvoegen tot één?",
+            isPresented: $showMergeChoice
+        ) {
+            Button("Samenvoegen, originelen bewaren") { mergeSelection(deleteOriginals: false) }
+            Button("Samenvoegen, originelen verwijderen", role: .destructive) {
+                mergeSelection(deleteOriginals: true)
+            }
+            Button("Annuleer", role: .cancel) {}
+        } message: {
+            Text("De teksten komen op tijdsvolgorde achter elkaar, oudste eerst. Sprekerlabels gaan niet mee, want die lopen per opname vanaf Spreker 1.")
+        }
+        .confirmationDialog(
+            "\(selection.count) opnames verwijderen?",
+            isPresented: $showMultiDeleteConfirmation
+        ) {
+            Button("Verwijder", role: .destructive) { deleteSelection() }
+            Button("Annuleer", role: .cancel) {}
+        } message: {
             Text("Dit kan niet ongedaan worden gemaakt.")
         }
         .dataChangeAlert($dataError)
@@ -95,7 +145,7 @@ struct HistoryListView: View {
             debouncedQuery = value
         }
         .onChange(of: navigation.pendingTranscriptID) { _, id in
-            if let id { selectedID = id; navigation.pendingTranscriptID = nil }
+            if let id { select(id); navigation.pendingTranscriptID = nil }
         }
         // Eén query per echte wijziging: zoektekst, filters of sortering
         // (samengebald in `criteria`), of een mutatie in de store.
@@ -106,10 +156,10 @@ struct HistoryListView: View {
         .onAppear {
             refreshEntries()
             if let id = navigation.pendingTranscriptID {
-                selectedID = id
+                select(id)
                 navigation.pendingTranscriptID = nil
-            } else if selectedID == nil {
-                selectedID = entries.first?.id
+            } else if selection.isEmpty {
+                select(entries.first?.id)
             }
         }
     }
@@ -126,6 +176,7 @@ struct HistoryListView: View {
                 Text("\(entries.count)")
                     .font(ThemeFont.ui(12, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
+                syncButton
             }
             .padding(.horizontal, 14)
             .padding(.top, 14)
@@ -133,10 +184,190 @@ struct HistoryListView: View {
             searchField
             filterChips
             advancedControls
+            selectionBar
             Divider().overlay(Theme.border)
             listContent
         }
         .background(Theme.window)
+    }
+
+    // MARK: - Selectie
+
+    /// Eén selectie, zoals bij een gewone klik.
+    private func select(_ id: String?) {
+        selection = id.map { [$0] } ?? []
+        anchorID = id
+    }
+
+    /// De opname die rechts in het detailpaneel staat. Bij meer dan één
+    /// geselecteerde rij toont het detailpaneel niets: dan gaat het om de
+    /// selectie als geheel en niet om één transcript.
+    private var selectedID: String? {
+        selection.count == 1 ? selection.first : nil
+    }
+
+    private func handleClick(on entry: TranscriptEntry, modifiers: NSEvent.ModifierFlags) {
+        if modifiers.contains(.command) {
+            if selection.contains(entry.id) {
+                selection.remove(entry.id)
+            } else {
+                selection.insert(entry.id)
+            }
+            anchorID = entry.id
+            return
+        }
+        if modifiers.contains(.shift), let anchorID,
+           let van = entries.firstIndex(where: { $0.id == anchorID }),
+           let tot = entries.firstIndex(where: { $0.id == entry.id }) {
+            let bereik = van <= tot ? van...tot : tot...van
+            selection.formUnion(entries[bereik].map(\.id))
+            return
+        }
+        select(entry.id)
+    }
+
+    /// De geselecteerde opnames, in de volgorde van de lijst.
+    private var selectedEntries: [TranscriptEntry] {
+        entries.filter { selection.contains($0.id) }
+    }
+
+    // MARK: - Selectiebalk
+
+    /// Verschijnt zodra er meer dan één opname geselecteerd is. Bewust geen
+    /// balk onderaan zoals op de iPhone: op een Mac horen de acties bij de
+    /// bediening boven de lijst.
+    @ViewBuilder
+    private var selectionBar: some View {
+        if selection.count >= 2 {
+            HStack(spacing: 8) {
+                Text("\(selection.count) geselecteerd")
+                    .font(ThemeFont.ui(11))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize()
+                Spacer(minLength: 8)
+                ActionButton(
+                    title: "Voeg samen",
+                    systemImage: "arrow.triangle.merge",
+                    role: .primary,
+                    size: .compact
+                ) { showMergeChoice = true }
+                ActionButton(
+                    title: "Kopieer",
+                    systemImage: "doc.on.doc",
+                    size: .compact
+                ) { copySelection() }
+                ActionButton(
+                    title: "Verwijder",
+                    systemImage: "trash",
+                    role: .destructive,
+                    size: .compact
+                ) { showMultiDeleteConfirmation = true }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
+        }
+    }
+
+    /// Voegt de selectie samen tot één nieuwe opname. Het samenvoegen zelf komt
+    /// uit `TranscriptMerge` (Core), dezelfde code die de iPhone gebruikt.
+    private func mergeSelection(deleteOriginals: Bool) {
+        let gekozen = selectedEntries
+        guard let eerste = TranscriptMerge.sortedByTime(gekozen).first,
+              let samengevoegd = TranscriptMerge.merge(
+                  gekozen,
+                  naam: "\(TranscriptFormatting.title(for: eerste)) (samengevoegd)"
+              )
+        else { return }
+        let gelukt = DataChange.perform(
+            "Het samenvoegen van de transcripties",
+            reporting: $dataError
+        ) {
+            try store.add(samengevoegd)
+            if deleteOriginals {
+                for entry in gekozen {
+                    try store.delete(id: entry.id)
+                }
+            }
+        }
+        guard gelukt else { return }
+        refreshEntries()
+        select(samengevoegd.id)
+    }
+
+    /// De selectie als één stuk leesbare tekst op het klembord. De Mac heeft
+    /// geen deelvenster zoals de iPhone; kopiëren is hier de gewone weg.
+    private func copySelection() {
+        let tekst = TranscriptMerge.combinedText(
+            selectedEntries,
+            locale: Locale(identifier: "nl_NL")
+        ) { TranscriptFormatting.title(for: $0) }
+        guard !tekst.isEmpty else { return }
+        Clipboard.copy(tekst)
+        Notifications.post("\(selection.count) transcripties gekopieerd")
+    }
+
+    private func deleteSelection() {
+        let ids = selection
+        let gelukt = DataChange.perform(
+            "Het verwijderen van de transcripties",
+            reporting: $dataError
+        ) {
+            for id in ids {
+                try store.delete(id: id)
+            }
+        }
+        guard gelukt else { return }
+        refreshEntries()
+        select(entries.first?.id)
+    }
+
+    // MARK: - Sync
+
+    /// Handmatig synchroniseren, met de status als tooltip. Bewust hier en niet
+    /// alleen in Instellingen: dit is het scherm waar je staat als je een opname
+    /// van je iPhone mist.
+    private var syncButton: some View {
+        Button {
+            guard !isSyncing else { return }
+            isSyncing = true
+            Task {
+                await environment.historySync.syncNow()
+                isSyncing = false
+            }
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 12, weight: .medium))
+                // Grijs als er niets te synchroniseren valt. De Designregels
+                // zeggen dat een uitgeschakelde knop niet de accentkleur houdt.
+                .foregroundStyle(syncIsAvailable ? Theme.accent : Theme.textTertiary)
+                .rotationEffect(.degrees(isSyncing ? 360 : 0))
+                .animation(
+                    isSyncing
+                        ? .linear(duration: 1).repeatForever(autoreverses: false)
+                        : .default,
+                    value: isSyncing
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!syncIsAvailable || isSyncing)
+        .help(syncTooltip)
+        .accessibilityLabel("Synchroniseer met iCloud")
+    }
+
+    /// Of synchroniseren nu iets kan opleveren. Bij `disabled` staat de
+    /// schakelaar uit, bij `unavailable` draagt deze build het CloudKit-recht
+    /// niet of is er geen iCloud-account: in beide gevallen doet klikken niets.
+    private var syncIsAvailable: Bool {
+        switch environment.historySync.status {
+        case .disabled, .unavailable: return false
+        case .requiresApproval, .active, .error: return true
+        }
+    }
+
+    private var syncTooltip: String {
+        isSyncing
+            ? "Bezig met synchroniseren"
+            : "iCloud: \(environment.historySync.status.dutchLabel)"
     }
 
     private var advancedControls: some View {
@@ -278,12 +509,18 @@ struct HistoryListView: View {
             if renamingID == entry.id {
                 renameRow(for: entry)
             } else {
-                Button { selectedID = entry.id } label: {
+                Button {
+                    // De modifiers komen uit het klikevent zelf. SwiftUI geeft
+                    // ze niet door aan een Button-actie, en een aparte
+                    // TapGesture met .modifiers() naast de gewone tik levert
+                    // twee gestures die om dezelfde klik vechten.
+                    handleClick(on: entry, modifiers: NSApp.currentEvent?.modifierFlags ?? [])
+                } label: {
                     TranscriptRow(
                         entry: entry,
                         onTogglePin: { togglePin(entry) }
                     )
-                    .background(selectedID == entry.id ? Theme.surfaceHover : Color.clear)
+                    .background(selection.contains(entry.id) ? Theme.surfaceHover : Color.clear)
                 }
                 .buttonStyle(.plain)
                 .contextMenu { rowMenu(for: entry) }
@@ -356,7 +593,7 @@ struct HistoryListView: View {
                 // detailpaneel verwijderde rij nog (bevinding 2026-08-04).
                 onDeleted: {
                     refreshEntries()
-                    selectedID = entries.first?.id
+                    select(entries.first?.id)
                 }
             )
             .id(entry.id)

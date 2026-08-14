@@ -494,7 +494,7 @@ final class AppEnvironment: ObservableObject {
         defer {
             let ms = Double(DispatchTime.now().uptimeNanoseconds - started) / 1_000_000
             if ms > 250 {
-                NSLog("AppEnvironment: opslaan duurde %.0f ms — dit vertraagt de HUD", ms)
+                NSLog("AppEnvironment: opslaan duurde %.0f ms, dit vertraagt de HUD", ms)
             }
         }
 
@@ -519,7 +519,7 @@ final class AppEnvironment: ObservableObject {
             // gebruiker te weten zolang hij er nog iets mee kan
             // (bevinding 2026-08-03).
             Notifications.postCritical(
-                "Opslaan in Geschiedenis is mislukt. De tekst staat nog op je klembord — plak hem ergens voordat je iets anders kopieert."
+                "Opslaan in Geschiedenis is mislukt. De tekst staat nog op je klembord, plak hem ergens voordat je iets anders kopieert."
             )
         }
 

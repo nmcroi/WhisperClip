@@ -579,7 +579,7 @@ public final class ModesService {
             user: joined,
             provider: provider,
             model: model,
-            modeName: "\(mode.name) — samenvoegen"
+            modeName: "\(mode.name), samenvoegen"
         )
     }
 

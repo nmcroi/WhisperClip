@@ -22,7 +22,7 @@ public enum ParakeetEngineError: LocalizedError {
         case .downloadFailed(let detail):
             return "Het Parakeet-model kon niet worden gedownload: \(detail)"
         case .downloadStalled:
-            return "Download lijkt vast te zitten — controleer je verbinding en probeer opnieuw."
+            return "Download lijkt vast te zitten, controleer je verbinding en probeer opnieuw."
         case .modelNotLoaded:
             return "Het Parakeet-model is nog niet geladen."
         case .notRecording:

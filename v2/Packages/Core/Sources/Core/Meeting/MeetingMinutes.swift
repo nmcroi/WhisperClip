@@ -189,7 +189,7 @@ public enum MeetingMinutesComposer {
         case .english: title = "Meeting minutes"
         case .german: title = "Besprechungsprotokoll"
         }
-        return "\(title) — \(formatter.string(from: date))"
+        return "\(title), \(formatter.string(from: date))"
     }
 
     /// De mailontvangers: alle deelnemers met een geldig ingevuld adres.

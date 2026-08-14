@@ -47,7 +47,7 @@ final class EngineSelectorTests: XCTestCase {
             appleSupportedLanguageCodes: ["en", "de", "fr"]
         )
         XCTAssertEqual(decision.engine, .parakeet)
-        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet — Parakeet actief")
+        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet, Parakeet actief")
     }
 
     func testFallbackNoticeUsesLanguageCodeNotFullIdentifier() {
@@ -57,7 +57,7 @@ final class EngineSelectorTests: XCTestCase {
             appleSupportedLanguageCodes: ["en"]
         )
         XCTAssertEqual(decision.engine, .parakeet)
-        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet — Parakeet actief")
+        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet, Parakeet actief")
     }
 
     func testEmptyLanguageDefaultsToDutch() {
@@ -68,7 +68,7 @@ final class EngineSelectorTests: XCTestCase {
         )
         // Empty language defaults to "nl", which is unsupported here.
         XCTAssertEqual(decision.engine, .parakeet)
-        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet — Parakeet actief")
+        XCTAssertEqual(decision.notice, "Apple-spraakherkenning ondersteunt ‘nl’ niet, Parakeet actief")
     }
 
     // MARK: - languageCode normalization

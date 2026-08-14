@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  iCloud DEBUG-variant van de Mac-entitlements. Identiek aan
+  WhisperClipboard-iCloud.entitlements, met één sleutel erbij die alles bepaalt:
+  icloud-container-environment = Development.
+
+  WAAROM DIT BESTAND BESTAAT
+    De Mac-app droeg het CloudKit-recht helemaal nooit: project.yml wees naar de
+    minimale entitlements en de iCloud-variant hierboven werd nergens gebruikt.
+    Daardoor viel HistorySyncEngine.hasCloudKitEntitlement altijd om en bleef de
+    sync-engine slapend, zonder één logregel. Vastgesteld op 14 augustus 2026.
+
+  WAAROM DE OMGEVING HIER EXPLICIET STAAT
+    Het Mac Development-profiel staat BEIDE omgevingen toe: de dump toont
+    icloud-container-environment = ["Production", "Development"]. Zonder deze
+    sleutel is de gekozen omgeving dus impliciet. Het besluit om het CloudKit-
+    schema naar Production uit te rollen ligt nog bij Niels en is onomkeerbaar,
+    dus "impliciet" is hier niet goed genoeg. Met deze sleutel kan een
+    Debug-build de Production-database technisch niet aanraken.
+
+  WANNEER GEBRUIK JE HEM
+    Alleen via Configs/Local.xcconfig, het lokale, niet-gecommitte bestand dat
+    de ondertekening overneemt. Zonder dat bestand bouwt het project ad-hoc met
+    de minimale entitlements, precies zoals CI dat doet.
+
+  NOOIT MET AD-HOC ONDERTEKENING
+    com.apple.developer.* zijn restricted entitlements. Een ad-hoc handtekening
+    draagt ze wel, maar het systeem honoreert ze niet. hasCloudKitEntitlement
+    leest de handtekening en zou dus slagen, waarna CKContainer(identifier:) het
+    proces alsnog afbreekt op een manier die niet te vangen is. Dat is exact de
+    crash die de guard moest voorkomen.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.nl.nielscroiset.whisperclipboard</string>
+	</array>
+	<!-- De hele reden dat dit bestand apart bestaat. Zie de toelichting hierboven. -->
+	<key>com.apple.developer.icloud-container-environment</key>
+	<string>Development</string>
+	<!-- iCloud key-value store voor de woordenlijst-sync (ReplacementsCloudSync).
+	     Zelfde identifier als op iOS zodat Mac en iPhone één KV-store delen. -->
+	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
+	<string>$(TeamIdentifierPrefix)nl.nielscroiset.whisperclipboard</string>
+</dict>
+</plist>

@@ -201,7 +201,7 @@ extension AIMode {
             Je bent een assistent die concrete actiepunten uit een transcript \
             haalt. Geef een bulletlijst met heldere, uitvoerbare taken. Noem per \
             actiepunt de eigenaar en de deadline wanneer die in het transcript \
-            genoemd worden (formaat: "— [eigenaar] · [deadline]"). Neem alleen \
+            genoemd worden (formaat: "[eigenaar] · [deadline]"). Neem alleen \
             echte acties op, geen algemene observaties. \(commonRules)
             """,
             icon: "checklist",

@@ -85,9 +85,19 @@ targets:
           # entitlements — used only by the Developer-ID release signing step
           # (see Packaging/RELEASING.md). Excluded so it isn't compiled as source.
           - "WhisperClipboard-iCloud.entitlements"
+          # Debug-variant van dezelfde superset, met de CloudKit-omgeving hard
+          # op Development. Gebruikt via Configs/Local.xcconfig.
+          - "WhisperClipboard-iCloud-Development.entitlements"
           # Fonts are copied intact into Contents/Resources/Fonts by the
           # postCompileScripts phase below (ATSApplicationFontsPath = Fonts).
           - "Resources/Fonts"
+      # De ene knoppentaal, afgesproken met Niels op 13 augustus 2026 en tot
+      # 14 augustus alleen op de iPhone. Het bestand importeert niets anders dan
+      # SwiftUI en gebruikt uitsluitend tokens die aan beide kanten dezelfde naam
+      # hebben (Theme.accent, Theme.onAccent, ThemeFont, Theme.Metrics.radius),
+      # dus het compileert ongewijzigd tegen de Mac-Theme. Eén bestand voor beide
+      # apps, zodat de knoppen niet uit elkaar kunnen gaan lopen.
+      - path: SharedUI
     dependencies:
       - package: KeyboardShortcuts
       - package: Core
@@ -150,15 +160,25 @@ targets:
         # gaat; zonder automatische controle doet het niets.
         SUEnableAutomaticChecks: false
         SUScheduledCheckInterval: 86400
-    entitlements:
-      path: WhisperClipboard/WhisperClipboard.entitlements
-      properties:
-        # Microphone access under hardened runtime. This is the ONLY entitlement
-        # the app needs: it is non-sandboxed (no app-sandbox key), performs no
-        # JIT, loads no unsigned code, and does not disable library validation
-        # (all linked frameworks — Sparkle, FluidAudio, GRDB, KeyboardShortcuts —
-        # are signed by the same Developer ID during packaging). See PRIVACY.md.
-        com.apple.security.device.audio-input: true
+    # Ondertekening en entitlements staan in Configs/Mac.xcconfig, niet hier.
+    #
+    # Reden (14 augustus 2026): de Mac-app droeg het CloudKit-recht nooit, want
+    # deze target wees hard naar de minimale entitlements en de iCloud-variant
+    # werd nergens gebruikt. Daardoor bleef de sync-engine slapend. Een
+    # target-xcconfig staat in Xcode's volgorde BOVEN de projectinstellingen uit
+    # `settings.base`, dus daar kan een ontwikkelaar er lokaal een echt
+    # certificaat plus profiel overheen leggen (Configs/Local.xcconfig, staat in
+    # .gitignore) zonder dat er ooit een team in een gecommit bestand staat.
+    # Ontbreekt dat lokale bestand, zoals op de CI-runner, dan blijft alles
+    # precies zoals het was: ad-hoc, geen team, minimale entitlements.
+    #
+    # LET OP: het bestand WhisperClipboard/WhisperClipboard.entitlements werd
+    # hiervoor door XcodeGen gegenereerd uit een `properties:`-blok. Nu is het
+    # een gewoon, met de hand beheerd bestand. Pas je het aan, pas dan het
+    # bestand zelf aan; dit blok genereert het niet meer.
+    configFiles:
+      Debug: Configs/Mac.xcconfig
+      Release: Configs/Mac.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: nl.nielscroiset.whisperclipboard
@@ -219,6 +239,8 @@ targets:
       # krijgt deze bronbestanden nadrukkelijk niet.
       - path: WhisperClipboard/PLAUD/PlaudClient.swift
       - path: WhisperClipboard/PLAUD/PlaudClient+Wire.swift
+      # De gedeelde knoppentaal, zie de toelichting bij de Mac-target.
+      - path: SharedUI
     dependencies:
       - package: Core
       - package: WhisperShared
@@ -344,6 +366,48 @@ schemes:
       config: Debug
       targets:
         - WhisperClipboardTests
+
+  # Crashjacht: apart schema voor het onderzoek naar M-02 (de crash van
+  # 3 augustus 2026, twee rapporten die allebei eindigen in
+  # swift_task_isCurrentExecutorWithFlagsImpl). Bewust NIET in het gewone
+  # schema, want Address Sanitizer maakt de app twee tot vijf keer trager en
+  # vreet geheugen; dagelijks werk hoort ongehinderd te blijven.
+  #
+  # Waarom hier en niet alleen in Xcode: dit project wordt door XcodeGen
+  # gegenereerd, dus alles wat je met de hand in Product > Scheme > Edit Scheme
+  # aanzet is bij de volgende `xcodegen generate` weer weg.
+  #
+  # ASan en Zombie Objects (NSZombieEnabled) sluiten elkaar uit: zombies
+  # vervangen de allocator, ASan ook. ASan staat hier aan omdat die beide
+  # soorten fout vindt; de zombie-variant is pas aan de beurt als ASan niets
+  # oplevert. Zet dan enableAddressSanitizer op false en NSZombieEnabled op
+  # true.
+  WhisperClipboard-Crashjacht:
+    build:
+      targets:
+        WhisperClipboard: all
+    run:
+      config: Debug
+      enableAddressSanitizer: true
+      environmentVariables:
+        # ASan-runtime. detect_stack_use_after_return vangt de variant die
+        # anders pas veel later ergens anders omvalt. Het rapport gaat naar een
+        # bestand, want de crash komt tijdens normaal gebruik en niet met de
+        # console voor je neus. ASan hangt het proces-ID achter de naam.
+        - variable: ASAN_OPTIONS
+          value: detect_stack_use_after_return=1:log_path=/tmp/whisperclip-asan:print_stats=1
+          isEnabled: true
+        # ASan is niet te combineren met de nano-allocator van macOS.
+        - variable: MallocNanoZone
+          value: "0"
+          isEnabled: true
+        # De strikte stand van de Swift 6-isolatiecontrole. In de gewone stand
+        # klapt een schending alleen soms, wat precies past bij het grillige
+        # beeld van deze crash. In deze stand valt hij meteen om, op de eerste
+        # overtreding, met een bruikbare stack.
+        - variable: SWIFT_IS_CURRENT_EXECUTOR_LEGACY_MODE_OVERRIDE
+          value: swift6
+          isEnabled: true
 
   WhisperClipboardiOS:
     build:

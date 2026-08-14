@@ -421,7 +421,7 @@ struct MeetingSheet: View {
             service.subject = MeetingMinutesComposer.subject(date: date)
             if service.canPerform(withItems: [body]) {
                 service.perform(withItems: [body])
-                mailStatus = "Mail geopend — controleer en druk op versturen."
+                mailStatus = "Mail geopend, controleer en druk op versturen."
                 return
             }
         }
@@ -431,11 +431,11 @@ struct MeetingSheet: View {
             participants: participants,
             date: date
         ), NSWorkspace.shared.open(url) {
-            mailStatus = "Mail geopend — controleer en druk op versturen."
+            mailStatus = "Mail geopend, controleer en druk op versturen."
             return
         }
 
         Clipboard.copy(body)
-        mailStatus = "Geen mail-app gevonden — het volledige verslag (met ontvangers in gedachten) staat op je klembord."
+        mailStatus = "Geen mail-app gevonden, het volledige verslag (met ontvangers in gedachten) staat op je klembord."
     }
 }

@@ -39,7 +39,7 @@ enum Notifications {
     /// informatieve meldingen blijven via `post(_:)` lopen, anders wordt elke
     /// melding een modaal venster.
     static func postCritical(_ body: String, title: String = "Whisper Clip") {
-        NSLog("Notifications (kritiek): %@ — %@", title, body)
+        NSLog("Notifications (kritiek): %@: %@", title, body)
         Task {
             if await deliver(title: title, body: body) { return }
             presentAlert(title: title, body: body)

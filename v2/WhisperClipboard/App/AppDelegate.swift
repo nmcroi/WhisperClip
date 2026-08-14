@@ -410,7 +410,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             do {
                 let result = try await environment.modes.runToCompletion(mode: mode, on: entry)
                 Clipboard.copy(result.output)
-                Notifications.post("'\(mode.name)' klaar — resultaat staat op je klembord")
+                Notifications.post("'\(mode.name)' klaar, het resultaat staat op je klembord")
             } catch let error as ClaudeError {
                 Notifications.post(error.localizedDescription)
             } catch {

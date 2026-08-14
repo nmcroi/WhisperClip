@@ -228,7 +228,9 @@ private struct HomeContent: View {
         // title so the brand mark isn't rendered twice.
         VStack(alignment: .leading, spacing: 10) {
             Text("Home")
-            .font(ThemeFont.ui(24, weight: .bold))
+            // Zelfde maat als "Notities" en "Geschiedenis": koppen van
+            // gelijke rang krijgen gelijke grootte (14 aug 2026).
+            .font(ThemeFont.ui(20, weight: .bold))
             statusPill
         }
     }
@@ -376,7 +378,7 @@ private struct HomeContent: View {
                 symbol: captionsRunning ? "captions.bubble.fill" : "captions.bubble",
                 title: "Live ondertitels",
                 subtitle: captionsRunning
-                    ? "Actief — klik om te stoppen"
+                    ? "Actief, klik om te stoppen"
                     : "Toon ondertitels van systeemaudio",
                 enabled: modelManager.status.isReady,
                 active: captionsRunning,
@@ -414,8 +416,8 @@ private struct HomeContent: View {
 
     private var dictationSubtitle: String {
         switch dictation.phase {
-        case .recording: return "Opname loopt — klik om te stoppen"
-        case .paused: return "Opname gepauzeerd — klik om te stoppen"
+        case .recording: return "Opname loopt, klik om te stoppen"
+        case .paused: return "Opname gepauzeerd, klik om te stoppen"
         default: return "Spreek in en plak de tekst"
         }
     }
@@ -485,13 +487,24 @@ private struct HomeContent: View {
 struct AccentButtonStyle: ButtonStyle {
     var prominent: Bool = true
 
+    /// Of de knop iets kan doen. SwiftUI geeft dit niet door aan een
+    /// `ButtonStyle`, dus we lezen het uit de omgeving. Zonder dit bleef een
+    /// uitgeschakelde knop vol geel: hij zag eruit als de hoofdactie van het
+    /// scherm terwijl klikken niets deed. De Designregels van 13 augustus 2026
+    /// zeggen dat geel een knop is die wérkt.
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(ThemeFont.ui(13, weight: .semibold))
-            .foregroundStyle(Theme.onAccent)
+            .foregroundStyle(isEnabled ? Theme.onAccent : Theme.textTertiary)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(Theme.accent.opacity(configuration.isPressed ? 0.8 : 1))
+            .background(
+                isEnabled
+                    ? Theme.accent.opacity(configuration.isPressed ? 0.8 : 1)
+                    : Theme.surfaceHover
+            )
             .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
             .contentShape(Rectangle())
     }

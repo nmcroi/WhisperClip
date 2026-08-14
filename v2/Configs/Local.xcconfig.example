@@ -1,0 +1,26 @@
+// Voorbeeld voor Configs/Local.xcconfig, het lokale bestand dat de
+// ondertekening van de Mac-app overneemt. Kopieer dit bestand naar
+// Configs/Local.xcconfig om lokaal een Debug-build te maken die het
+// CloudKit-recht draagt, zodat iCloud-sync werkt.
+//
+//   cp Configs/Local.xcconfig.example Configs/Local.xcconfig
+//
+// Local.xcconfig staat in .gitignore en mag nooit worden gecommit: er staat een
+// certificaat- en teamnaam in, en de CI-runner moet ad-hoc blijven bouwen.
+//
+// De waarden opzoeken:
+//   security find-identity -v -p codesigning         -> CODE_SIGN_IDENTITY
+//   Xcode ▸ Settings ▸ Accounts ▸ Manage Certificates -> het team
+//   ~/Library/Developer/Xcode/UserData/Provisioning Profiles/
+//                                                    -> PROVISIONING_PROFILE_SPECIFIER
+//
+// De entitlements wijzen naar de Development-variant. Die pint de CloudKit-
+// omgeving vast op Development, zodat een Debug-build de Production-database
+// niet kan aanraken. Het uitrollen van het schema naar Production is een
+// onomkeerbaar besluit dat nog bij Niels ligt.
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Development: Niels Croiset (AX3972Q786)
+DEVELOPMENT_TEAM = APC9FD5B67
+PROVISIONING_PROFILE_SPECIFIER = Whisper Clip macOS Development Xcode
+CODE_SIGN_ENTITLEMENTS = WhisperClipboard/WhisperClipboard-iCloud-Development.entitlements

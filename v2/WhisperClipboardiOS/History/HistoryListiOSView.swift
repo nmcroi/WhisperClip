@@ -98,38 +98,21 @@ struct HistoryListiOSView: View {
         }
     }
 
-    /// Voegt de gekozen opnames samen tot één nieuwe opname. Bewust op volgorde
-    /// van tijd en niet op de volgorde van de lijst: een samenvoeging is het
-    /// herstellen van een gesprek dat in stukken is opgenomen, en met de lijst op
-    /// "nieuwste eerst" zou het verhaal achterstevoren komen te staan.
+    /// Voegt de gekozen opnames samen tot één nieuwe opname.
+    ///
+    /// Het samenvoegen zelf staat sinds 14 augustus 2026 in `TranscriptMerge`
+    /// (Core), zodat de Mac exact hetzelfde doet. Hier blijft alleen wat
+    /// iPhone-eigen is: de vertaalde naam en de foutmelding.
     private func merge(_ entries: [TranscriptEntry], deleteOriginals: Bool) {
-        guard let history = app.history, entries.count >= 2 else { return }
-        let ordered = entries.sorted {
-            ($0.timestamp ?? .distantPast) < ($1.timestamp ?? .distantPast)
-        }
-        let text = ordered
-            .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n\n")
+        guard let history = app.history else { return }
+        let ordered = TranscriptMerge.sortedByTime(entries)
         guard let first = ordered.first else { return }
-        let merged = TranscriptEntry(
-            id: UUID().uuidString,
-            text: text,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            name: String(
-                format: L10n.string( "%@ (samengevoegd)", locale: app.interfaceLanguage.locale),
-                locale: app.interfaceLanguage.locale,
-                first.displayTitle(locale: app.interfaceLanguage.locale)
-            ),
-            pinned: false,
-            language: first.language,
-            model: first.model,
-            source: first.source,
-            duration: ordered.reduce(0) { $0 + $1.duration },
-            // Sprekerlabels lopen per opname vanaf "Spreker 1"; die zomaar achter
-            // elkaar plakken zou twee verschillende mensen tot één spreker maken.
-            segments: []
+        let naam = String(
+            format: L10n.string("%@ (samengevoegd)", locale: app.interfaceLanguage.locale),
+            locale: app.interfaceLanguage.locale,
+            first.displayTitle(locale: app.interfaceLanguage.locale)
         )
+        guard let merged = TranscriptMerge.merge(entries, naam: naam) else { return }
         do {
             try history.add(merged)
             if deleteOriginals {
@@ -353,20 +336,15 @@ struct HistoryListiOSView: View {
         }
     }
 
-    /// Titel, datum en tekst per opname, gescheiden door een lege regel. Bewust
-    /// zonder scheidingsstreepjes: dit gaat vaak rechtstreeks een mail of notitie
-    /// in en moet daar leesbaar zijn zonder opmaak.
+    /// Titel, datum en tekst per opname, gescheiden door een lege regel.
+    ///
+    /// Staat sinds 14 augustus 2026 in `TranscriptMerge` (Core), zodat de Mac
+    /// dezelfde tekst oplevert. Eén verschil met de oude iPhone-versie: de
+    /// opnames staan nu op tijdsvolgorde in plaats van de volgorde van de lijst,
+    /// net als bij samenvoegen. Met de lijst op "nieuwste eerst" kwam het
+    /// verhaal anders achterstevoren in de mail.
     static func combinedText(_ entries: [TranscriptEntry], locale: Locale) -> String {
-        entries.map { entry in
-            var kop = entry.displayTitle(locale: locale)
-            if let date = entry.timestamp {
-                kop += "\n" + date.formatted(
-                    .dateTime.day().month(.abbreviated).year().hour().minute().locale(locale)
-                )
-            }
-            return kop + "\n\n" + entry.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        .joined(separator: "\n\n\n")
+        TranscriptMerge.combinedText(entries, locale: locale) { $0.displayTitle(locale: locale) }
     }
 
     /// Verwijdert alle geselecteerde opnames, na de bevestigvraag.

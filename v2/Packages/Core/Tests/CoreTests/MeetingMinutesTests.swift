@@ -13,7 +13,7 @@ import Testing
             aiMinutes: "AI summary",
             language: .english
         )
-        #expect(MeetingMinutesComposer.subject(date: testDate, language: .english).hasPrefix("Meeting minutes —"))
+        #expect(MeetingMinutesComposer.subject(date: testDate, language: .english).hasPrefix("Meeting minutes,"))
         #expect(english.contains("--- AI minutes ---"))
         #expect(english.contains("--- Full unedited transcript ---"))
         #expect(english.contains("Only the transcript text"))
@@ -25,7 +25,7 @@ import Testing
             date: testDate,
             language: .german
         )
-        #expect(MeetingMinutesComposer.subject(date: testDate, language: .german).hasPrefix("Besprechungsprotokoll —"))
+        #expect(MeetingMinutesComposer.subject(date: testDate, language: .german).hasPrefix("Besprechungsprotokoll,"))
         #expect(german.contains("--- Bericht ---"))
         #expect(german.contains("kein externer KI-Dienst"))
     }
@@ -116,7 +116,7 @@ import Testing
 
     @Test func onderwerpBevatNederlandseDatum() {
         let subject = MeetingMinutesComposer.subject(date: date)
-        #expect(subject.hasPrefix("Notulen — "))
+        #expect(subject.hasPrefix("Notulen, "))
         #expect(subject.contains("2026"))
         #expect(subject.contains("juli"))
     }

@@ -155,7 +155,7 @@ final class PlaudSyncService {
             loadedProcessed = ids
         case .unreadable(let reason):
             problems.append(
-                "de lijst met al geïmporteerde opnames (\(PlaudSyncStorage.processedFilename)) is onleesbaar — \(reason)"
+                "de lijst met al geïmporteerde opnames (\(PlaudSyncStorage.processedFilename)) is onleesbaar: \(reason)"
             )
         }
 
@@ -166,7 +166,7 @@ final class PlaudSyncService {
             loadedCheckpoint = date
         case .unreadable(let reason):
             problems.append(
-                "het ijkpunt van de laatste synchronisatie (\(PlaudSyncStorage.checkpointFilename)) is onleesbaar — \(reason)"
+                "het ijkpunt van de laatste synchronisatie (\(PlaudSyncStorage.checkpointFilename)) is onleesbaar: \(reason)"
             )
         }
 

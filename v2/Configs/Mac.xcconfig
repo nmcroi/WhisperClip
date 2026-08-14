@@ -1,0 +1,35 @@
+// Ondertekening van de Mac-app.
+//
+// Dit blok is EXACT het gedrag van vóór 14 augustus 2026: ad-hoc, geen team,
+// minimale entitlements. Een kale `xcodebuild` en de CI-runner zien alleen dit.
+//
+// WAAROM DIT HIER STAAT EN NIET IN project.yml
+// Xcode weegt instellingen in deze volgorde, van zwaar naar licht:
+// commandoregel, target-instellingen, target-xcconfig, projectinstellingen,
+// project-xcconfig. project.yml zet CODE_SIGN_IDENTITY, CODE_SIGN_STYLE en
+// DEVELOPMENT_TEAM op PROJECTniveau (settings.base). Een target-xcconfig staat
+// daar dus boven en kan ze overschrijven, zonder dat er ooit een echt team of
+// certificaat in een gecommit bestand hoeft te staan.
+//
+// LET OP bij toekomstige wijzigingen: zet deze sleutels nooit in de
+// target-settings van WhisperClipboard in project.yml. Die staan hoger dan dit
+// bestand en winnen dan stil, zonder foutmelding, waardoor de lokale override
+// hieronder niets meer doet.
+
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+PROVISIONING_PROFILE_SPECIFIER =
+
+// De minimale entitlements: alleen microfoontoegang onder de hardened runtime.
+// Bewust minimaal, zie de toelichting in het bestand zelf en in PRIVACY.md.
+CODE_SIGN_ENTITLEMENTS = WhisperClipboard/WhisperClipboard.entitlements
+
+// Optionele lokale override, helemaal onderaan zodat hij wint van alles
+// hierboven. Ontbreekt het bestand, dan doet deze regel niets: dat is precies
+// wat de vraagtekenvorm van #include betekent. In een verse checkout en op de
+// CI-runner bestaat het niet, dus daar verandert er niets.
+//
+// Zie Configs/Local.xcconfig.example om er een te maken.
+// Local.xcconfig staat in .gitignore en mag nooit worden gecommit.
+#include? "Local.xcconfig"
