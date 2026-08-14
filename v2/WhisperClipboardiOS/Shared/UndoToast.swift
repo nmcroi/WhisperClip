@@ -21,7 +21,7 @@ struct UndoToast: View {
             Button(action: onUndo) {
                 Text(actionTitle)
                     .font(ThemeFont.ui(14, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Theme.accentText)
             }
             .buttonStyle(.plain)
         }

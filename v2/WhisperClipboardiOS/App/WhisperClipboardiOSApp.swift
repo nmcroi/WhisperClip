@@ -12,7 +12,7 @@ struct WhisperClipboardiOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            ContentShell()
                 .environmentObject(app)
                 .environment(\.locale, app.interfaceLanguage.locale)
                 .preferredColorScheme(app.appearance.preferredColorScheme)
@@ -21,27 +21,77 @@ struct WhisperClipboardiOSApp: App {
     }
 }
 
+/// Houdt Instellingen en de gekozen tab BUITEN de herbouw-grens. De tabs
+/// worden bij een merk- of weergavewissel herbouwd (kleuren worden bij het
+/// tekenen opgelost; zonder herbouw hielden tint, toolbar en pickers oude
+/// kleuren vast), maar het instellingenvenster en de tabkeuze staan hier en
+/// blijven dus gewoon open: wisselen schoot Niels eerst uit Instellingen
+/// terug naar het startscherm (13 aug 2026).
+private struct ContentShell: View {
+    @EnvironmentObject private var app: AppModel
+    @State private var showSettings = false
+    @State private var selectedTab = 0
+
+    var body: some View {
+        RootView(selection: $selectedTab, showSettings: $showSettings)
+            .id("\(app.brand.rawValue)-\(app.appearance.rawValue)")
+            .sheet(isPresented: $showSettings) {
+                SettingsSheet()
+                    .environmentObject(app)
+                    .preferredColorScheme(app.appearance.preferredColorScheme)
+                    // Expliciet, niet alleen via de WindowGroup: het open
+                    // venster hield anders de oude accentkleur vast tot je een
+                    // scherm terugklikte (bug 13 aug 2026).
+                    .tint(Theme.accentText)
+            }
+    }
+}
+
 /// The tab shell. Tinted, themed, with the shared error alert.
 struct RootView: View {
     @EnvironmentObject private var app: AppModel
-    @State private var showSettings = false
+    @Binding var selection: Int
+    @Binding var showSettings: Bool
+
+    /// De tabbalk tekent de systeemtint met een waas, waardoor het oranje er
+    /// lichter uitzag dan op de knoppen (13 aug 2026). Hier pinnen we de
+    /// exacte themakleur; RootView wordt bij een merk- of weergavewissel
+    /// herbouwd, dus dit loopt vanzelf mee.
+    private func applyTabBarColors() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
+        let item = UITabBarItemAppearance()
+        let selected = UIColor(Theme.accentText)
+        item.selected.iconColor = selected
+        item.selected.titleTextAttributes = [.foregroundColor: selected]
+        appearance.stackedLayoutAppearance = item
+        appearance.inlineLayoutAppearance = item
+        appearance.compactInlineLayoutAppearance = item
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selection) {
             RecordView()
                 .tabItem { Label("Opnemen", systemImage: "mic.fill") }
+                .tag(0)
 
             NavigationStack {
                 MeetingSetupView()
             }
-            .tabItem { Label("Notule", systemImage: "person.2.wave.2.fill") }
+            .tabItem { Label("Notulist", systemImage: "person.2.wave.2.fill") }
+            .tag(1)
 
             NotesListiOSView()
                 .tabItem { Label("Notities", systemImage: "note.text") }
+                .tag(2)
 
             HistoryListiOSView()
                 .tabItem { Label("Geschiedenis", systemImage: "clock.fill") }
+                .tag(3)
         }
+        .onAppear(perform: applyTabBarColors)
         .overlay(alignment: .topTrailing) {
             // Settings gear floats over de tab-content (elke tab is z'n eigen
             // NavigationStack, dus een gedeelde toolbar-knop zou dupliceren).
@@ -53,16 +103,11 @@ struct RootView: View {
             } label: {
                 Image(systemName: "gearshape")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(Theme.accentText)
                     .padding(10)
             }
             .padding(.trailing, 8)
             .padding(.top, 4)
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsSheet()
-                .environmentObject(app)
-                .preferredColorScheme(app.appearance.preferredColorScheme)
         }
         .alert(
             "Er ging iets mis",

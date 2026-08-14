@@ -76,11 +76,43 @@ volledig:
   deze naar EN/DE. De gebruiker levert later zes definitieve voice-overs aan
   (NL/EN/DE, elk zonder/met AI); dat blokkeert de run niet.
 
-## Designregels
+## Designregels (de knoppentaal, vastgesteld met Niels op 13 augustus 2026)
 
-- Geel = aanklikbare primaire actie.
-- Wit = titel/hoofdinhoud.
-- Grijs = toelichting, status of opgeslagen/invoerwaarde.
+Vier soorten bediening, elk met precies één vorm. De componenten staan in
+`WhisperClipboardiOS/Shared/ActionButtons.swift`; gebruik die, bouw geen eigen
+knoppen meer per scherm.
+
+1. **Ga ergens heen** (pagina of uitlegvenster): witte tekst links, eventueel
+   een grijze waarde, pijltje `>` rechts. Ook voor uitleg zoals "Hoe werkt de
+   notulist?" (met `info.circle` links).
+2. **Kies hier**: witte tekst links, gele waarde rechts met keuzepijltjes
+   (inline Picker, zoals Transcriptietaal).
+3. **Aan of uit**: witte tekst links, Toggle rechts met `Theme.accent`-tint.
+4. **Doe iets nu**: altijd een knop met vorm (`ActionButton`), blok met
+   `Theme.Metrics.radius`. Drie niveaus: primair (geel gevuld, `Theme.onAccent`
+   als tekstkleur en nooit `Color.black`, maximaal één per scherm), secundair
+   (omrand op `Theme.surface`, tekst `Theme.accentText`), destructief
+   (`Theme.dangerSoft` met `Theme.danger`). Twee maten: gewoon (16pt) en
+   compact (14pt, voor actiebalken).
+
+Kernregel: **geel is een gekozen waarde of een knop met vorm; al het andere is
+wit met een teken rechts.** Kale gele tekstregels bestaan niet.
+
+Verder:
+
+- **Tekst wordt nooit afgebroken.** Compacte knoppen zetten het icoon boven de
+  tekst zodat het label de volle knopbreedte heeft; knelt het dan nog, dan
+  schaalt de tekst kleiner. Afkorten met puntjes is een absolute no-go
+  (13 aug 2026).
+- Grijs = toelichting, status of opgeslagen/invoerwaarde, nooit aanraakbaar.
+- Een knop is een knop: nooit twee aanraakbare regels in één kaart. Elke actie
+  krijgt een eigen blok (13 aug 2026).
+- Actiebalken en bedieningsrijen (Kopieer/Deel/AI, Selecteer/Filter/Sorteer):
+  de icoon-stijl `IconActionLabel`. Geel icoon, klein grijs label eronder, geen
+  kader; rood icoon voor verwijderen, geel label alleen bij een actieve stand.
+  De blok-knoppen (`ActionButton`) zijn voor losstaande acties in formulieren.
+  Toelichting (zoals het aantal opnames) grijs onder de rij. Gekozen door Niels
+  op 13 aug 2026: dit rijmt met de tabbalk, die ook icoon-boven-tekst is.
 - Gelijke acties hebben identieke hoogte, vorm, typografie en states.
 - Consistente kaarten, marges, pictogramruimte, koppen en fout-/lege staten.
 - Audit alle iPhone-schermen, niet alleen Instellingen.

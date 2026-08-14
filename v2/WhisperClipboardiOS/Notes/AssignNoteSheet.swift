@@ -54,17 +54,13 @@ struct AssignNoteSheet: View {
                     .onSubmit(saveName)
                     .listRowBackground(Theme.surfaceHover)
 
-                Button(action: saveName) {
-                    Text("Bewaar")
-                        .font(ThemeFont.ui(16, weight: .semibold))
-                        .foregroundStyle(Theme.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
+                ActionButton(
+                    title: L10n.string( "Bewaar", locale: app.interfaceLanguage.locale),
+                    role: .primary,
+                    isEnabled: !titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ) {
+                    saveName()
                 }
-                .buttonStyle(.plain)
-                .disabled(titleText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .listRowBackground(Theme.window)
             } header: {
                 Text("Geef deze notitie een naam")

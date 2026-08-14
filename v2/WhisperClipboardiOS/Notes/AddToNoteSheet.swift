@@ -30,7 +30,7 @@ struct AddToNoteSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Annuleer") { dismiss() }
-                        .foregroundStyle(Theme.textSecondary)
+                        .foregroundStyle(Theme.accentText)
                 }
             }
             .alert("Nieuwe notitie", isPresented: $showNewNote) {
@@ -46,13 +46,12 @@ struct AddToNoteSheet: View {
         let notes = (try? app.history?.notes()) ?? []
         List {
             Section {
-                Button {
+                ActionButton(
+                    title: L10n.string( "Nieuwe notitie…", locale: app.interfaceLanguage.locale),
+                    systemImage: "plus"
+                ) {
                     newNoteTitle = defaultNoteTitle
                     showNewNote = true
-                } label: {
-                    Label("Nieuwe notitie…", systemImage: "plus")
-                        .font(ThemeFont.ui(16, weight: .medium))
-                        .foregroundStyle(Theme.accentText)
                 }
                 .listRowBackground(Theme.window)
             }

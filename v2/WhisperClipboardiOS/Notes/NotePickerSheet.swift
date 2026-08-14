@@ -33,7 +33,7 @@ struct NotePickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Annuleer") { dismiss() }
-                        .foregroundStyle(Theme.textSecondary)
+                        .foregroundStyle(Theme.accentText)
                 }
             }
         }

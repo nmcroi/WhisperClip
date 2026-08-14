@@ -59,6 +59,16 @@ final class AppModel: ObservableObject {
         didSet { Self.persistAppearance(appearance) }
     }
 
+    /// Het merkthema (WhisperClip of GHX). Persisted onder `app.brand`.
+    /// `Theme.brand` wordt meegezet; de `@Published`-wijziging tekent alle
+    /// schermen opnieuw, dus de kleuren wisselen direct.
+    @Published var brand: AppBrand {
+        didSet {
+            Theme.brand = brand
+            UserDefaults.standard.set(brand.rawValue, forKey: Self.brandKey)
+        }
+    }
+
     /// Interface language. System follows the current supported system locale;
     /// the explicit alternatives override it app-wide without changing iOS.
     @Published var interfaceLanguage: AppLanguage {
@@ -164,9 +174,15 @@ final class AppModel: ObservableObject {
     private static let meetingContactsKey = "ios.meetingContacts"
     private static let transcriptionLanguageKey = "ios.transcriptionLanguage"
     private static let aiProviderKey = "ai.defaultProvider"
+    private static let brandKey = "app.brand"
 
     init() {
         self.appearance = Self.loadAppearance()
+        let storedBrand = AppBrand(
+            rawValue: UserDefaults.standard.string(forKey: Self.brandKey) ?? ""
+        ) ?? .whisperClip
+        self.brand = storedBrand
+        Theme.brand = storedBrand
         self.interfaceLanguage = AppLanguage(
             rawValue: UserDefaults.standard.string(forKey: Self.interfaceLanguageKey) ?? ""
         ) ?? .system

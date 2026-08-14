@@ -25,8 +25,12 @@ struct HistoryDetailiOSView: View {
                     // navigatiebalk: het instellingen-tandwiel van RootView
                     // zweeft daar los overheen, waardoor een lange titel er
                     // dwars doorheen liep (bevinding 2026-08-02).
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 0) {
                         header
+                        // Zelfde hairline als onder de actiebalk: de titel
+                        // plakte tegen de informatie aan (13 aug 2026).
+                        Divider().overlay(Theme.border)
+                            .padding(.vertical, 12)
                         Text(title)
                             .font(ThemeFont.ui(22, weight: .bold))
                             .foregroundStyle(Theme.text)
@@ -52,27 +56,10 @@ struct HistoryDetailiOSView: View {
         .safeAreaInset(edge: .top, spacing: 0) {
             actionBar
         }
-        .toolbar {
-            // Links geplaatst (naast de terug-chevron): rechtsboven zweeft het
-            // globale instellingen-tandwiel van RootView.
-            ToolbarItem(placement: .topBarLeading) {
-                Menu {
-                    Button {
-                        showAddToNote = true
-                    } label: {
-                        Label("Voeg toe aan notitie…", systemImage: "note.text.badge.plus")
-                    }
-                    Button(role: .destructive) {
-                        deleteTranscript()
-                    } label: {
-                        Label("Verwijder", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(Theme.accentText)
-                }
-            }
-        }
+        // Het losse rondje met drie puntjes naast de terug-chevron is vervallen:
+        // het was de enige knop op dit scherm met een eigen vorm (13 aug 2026).
+        // Dezelfde acties zitten nu als vierde knop in de actiebalk, in precies
+        // dezelfde vorm als Kopieer, Deel en AI.
         .sheet(isPresented: $showAddToNote) {
             AddToNoteSheet(entryId: entry.id) {
                 // De opname hoort nu bij een notitie en verdwijnt uit de losse
@@ -111,8 +98,10 @@ struct HistoryDetailiOSView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 8) {
+                // Informatie, geen knop: geel is voor acties en gekozen
+                // waarden, dus het bronicoon is grijs (afspraak 13 aug 2026).
                 Image(systemName: TranscriptSourceStyle.icon(for: entry.source))
-                    .foregroundStyle(Theme.accentText)
+                    .foregroundStyle(Theme.textSecondary)
                 Text(sourceLabel)
                 if entry.duration > 0 {
                     Text("·")
@@ -167,37 +156,67 @@ struct HistoryDetailiOSView: View {
 
     }
 
+    /// Proefstijl van 13 augustus 2026: de knop ís het icoon, groot en geel,
+    /// tekst in wit eronder, zonder kader. Alle vijf de acties zichtbaar, geen
+    /// Meer-menu meer: Niels wil zien wat er kan.
     private var actionBar: some View {
-        HStack(spacing: 10) {
-            compactAction(
-                didCopy ? "✓" : L10n.string( "Kopieer", locale: app.interfaceLanguage.locale),
-                systemImage: "doc.on.doc",
-                prominent: true
-            ) {
+        HStack(spacing: 4) {
+            Button {
                 UIPasteboard.general.string = entry.text
                 didCopy = true
-            }
-
-            ShareLink(item: entry.text) {
-                compactActionLabel(
-                    L10n.string( "Deel", locale: app.interfaceLanguage.locale),
-                    systemImage: "square.and.arrow.up",
-                    prominent: false
+            } label: {
+                IconActionLabel(
+                    title: didCopy
+                        ? L10n.string( "Gekopieerd", locale: app.interfaceLanguage.locale)
+                        : L10n.string( "Kopieer", locale: app.interfaceLanguage.locale),
+                    systemImage: didCopy ? "checkmark" : "doc.on.doc"
                 )
             }
             .buttonStyle(.plain)
 
-            compactAction(
-                "AI",
-                systemImage: "sparkles",
-                prominent: showsAI
-            ) {
+            ShareLink(item: entry.text) {
+                IconActionLabel(
+                    title: L10n.string( "Deel", locale: app.interfaceLanguage.locale),
+                    systemImage: "square.and.arrow.up"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showAddToNote = true
+            } label: {
+                IconActionLabel(
+                    title: L10n.string( "Notitie", locale: app.interfaceLanguage.locale),
+                    systemImage: "note.text.badge.plus"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showsAI.toggle()
                 }
+            } label: {
+                IconActionLabel(
+                    title: "AI",
+                    systemImage: "sparkles",
+                    isActive: showsAI
+                )
             }
+            .buttonStyle(.plain)
+
+            Button {
+                deleteTranscript()
+            } label: {
+                IconActionLabel(
+                    title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
+                    systemImage: "trash",
+                    iconColor: Theme.danger
+                )
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background(Theme.window)
         .overlay(alignment: .bottom) {
@@ -205,44 +224,14 @@ struct HistoryDetailiOSView: View {
         }
     }
 
-    private func compactAction(
-        _ title: String,
-        systemImage: String,
-        prominent: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            compactActionLabel(title, systemImage: systemImage, prominent: prominent)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func compactActionLabel(
-        _ title: String,
-        systemImage: String,
-        prominent: Bool
-    ) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(ThemeFont.ui(14, weight: .semibold))
-            .foregroundStyle(prominent ? Theme.onAccent : Theme.accentText)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(prominent ? Theme.accent : Theme.surface)
-            .overlay {
-                RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous)
-                    .stroke(Theme.border, lineWidth: prominent ? 0 : 1)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
-    }
-
     private var title: String {
         let trimmedName = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedName.isEmpty && trimmedName.localizedCaseInsensitiveCompare("PLAUD-opname") != .orderedSame {
             return trimmedName
         }
-        return String(entry.text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(30))
+        // 15 tekens: bij 30 brak de titel bijna altijd naar een tweede regel
+        // (13 aug 2026).
+        return String(entry.text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(15))
     }
 
     /// De taal waarin deze opname is uitgeschreven. Leest zowel de nieuwe codes
@@ -260,10 +249,12 @@ struct HistoryDetailiOSView: View {
     /// hier hoort de werkelijke datum (wens Niels, 2026-08-02).
     private var recordedAtText: String? {
         guard let date = entry.timestamp else { return nil }
-        return date.formatted(
-            .dateTime.day().month(.wide).year().hour().minute()
-                .locale(app.interfaceLanguage.locale)
-        )
+        // Cijferdatum: "13 augustus 2026 om 15:42" brak de regel af, waardoor
+        // de taal erachter niet meer paste (13 aug 2026).
+        let formatter = DateFormatter()
+        formatter.locale = app.interfaceLanguage.locale
+        formatter.dateFormat = "dd-MM-yyyy 'om' HH:mm"
+        return formatter.string(from: date)
     }
 
     private var sourceLabel: String {
@@ -273,7 +264,7 @@ struct HistoryDetailiOSView: View {
         case "captions": L10n.string( "Ondertitels", locale: app.interfaceLanguage.locale)
         case "plaud": "PLAUD"
         case "meeting": L10n.string( "Notulen", locale: app.interfaceLanguage.locale)
-        default: L10n.string( "iPhone-microfoon", locale: app.interfaceLanguage.locale)
+        default: "iPhone"
         }
     }
 }

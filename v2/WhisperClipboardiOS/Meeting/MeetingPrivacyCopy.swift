@@ -4,6 +4,15 @@ import Foundation
 /// Definitieve voice-overs kunnen later worden toegevoegd zonder deze route of
 /// de opnamebediening te wijzigen.
 struct MeetingPrivacyCopy {
+    /// De drie AI-staten die Niels wil kunnen uitleggen (13 aug 2026):
+    /// AI staat helemaal uit in Instellingen (geen schakelaar zichtbaar),
+    /// de schakelaar is zichtbaar maar uit, of de schakelaar staat aan.
+    enum AIState {
+        case unavailable
+        case off
+        case on
+    }
+
     struct Card: Identifiable {
         let id: String
         let title: String
@@ -20,26 +29,36 @@ struct MeetingPrivacyCopy {
     let voiceHint: String
     let voiceAccessibilityHint: String
 
-    static func make(languageCode: String, includesAI: Bool) -> Self {
+    static func make(languageCode: String, ai: AIState) -> Self {
         switch languageCode {
-        case "en": english(includesAI: includesAI)
-        case "de": german(includesAI: includesAI)
-        default: dutch(includesAI: includesAI)
+        case "en": english(ai: ai)
+        case "de": german(ai: ai)
+        default: dutch(ai: ai)
         }
     }
 
-    private static func dutch(includesAI: Bool) -> Self {
+    private static func dutch(ai: AIState) -> Self {
         let intro = "De app helpt vergaderingen notuleren door het gesproken gesprek lokaal op deze zichtbare telefoon te transcriberen."
         let pause = "Wil iemand iets buiten de notulen bespreken, dan wordt de opname gepauzeerd. Wat tijdens die pauze wordt gezegd, wordt niet opgenomen en komt dus niet in de transcriptie."
         let after = "Aan het einde van de vergadering wordt de transcriptie afgerond. De geluidsopname wordt daarna van de telefoon verwijderd. Vervolgens wordt een e-mail voorbereid voor iedereen die voor deze vergadering een e-mailadres heeft opgegeven; iedereen ontvangt hetzelfde verslag nadat de gebruiker de e-mail heeft verstuurd."
         let help = "De notulist verwerkt alleen geluid. Beschrijf daarom kort wat op een scherm of whiteboard gebeurt en spel bijzondere namen of termen. Een lokaal transcriptiemodel kan woorden verkeerd of fonetisch uitschrijven, maar zulke fouten zijn bij het nalezen meestal uit de context te herstellen."
-        let final = includesAI
-            ? "Voor deze vergadering is aanvullend AI-verslag aangezet. De transcriptietekst wordt daarom na afloop ook door een externe AI-dienst verwerkt tot bijvoorbeeld een samenvatting en actiepunten. De volledige oorspronkelijke transcriptie blijft onderdeel van het verslag."
-            : "Nergens tijdens dit proces wordt AI gebruikt."
+        let final: String
+        let finalHeading: String
+        switch ai {
+        case .unavailable:
+            finalHeading = "Zonder AI"
+            final = "Nergens tijdens dit proces wordt AI gebruikt."
+        case .off:
+            finalHeading = "AI staat nu uit"
+            final = "Op dit moment wordt er geen AI gebruikt. Alleen als de schakelaar AI-notulen op het startscherm wordt aangezet, wordt de transcriptietekst na afloop door een externe AI-dienst verwerkt."
+        case .on:
+            finalHeading = "Aanvullend AI-verslag"
+            final = "De schakelaar AI-notulen staat aan. De transcriptietekst wordt daarom na afloop ook door een externe AI-dienst verwerkt tot bijvoorbeeld een samenvatting en actiepunten. De volledige oorspronkelijke transcriptie blijft onderdeel van het verslag."
+        }
         return copy(
             title: "WhisperClip Notulist",
             subtitle: "Korte uitleg voor de aanwezigen",
-            headings: ("Wat deze notulist doet", "Privacy tijdens de vergadering", "Na afloop", "Help de transcriptie", includesAI ? "Aanvullend AI-verslag" : "Zonder AI"),
+            headings: ("Wat deze notulist doet", "Privacy tijdens de vergadering", "Na afloop", "Help de transcriptie", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "Dit is de WhisperClip Notulist. \(intro) \(pause) \(after) \(help) \(final)",
             play: "Lees voor aan aanwezigen",
@@ -49,18 +68,28 @@ struct MeetingPrivacyCopy {
         )
     }
 
-    private static func english(includesAI: Bool) -> Self {
+    private static func english(ai: AIState) -> Self {
         let intro = "The app helps take minutes by transcribing the spoken conversation locally on this visible phone."
         let pause = "If anyone wants to discuss something off the record, the recording will be paused. Anything said during that pause is not recorded and will not appear in the transcript."
         let after = "At the end of the meeting, the transcript is completed. The audio recording is then removed from the phone. An email is prepared for everyone who provided an email address for this meeting; everyone receives the same report after the user sends the email."
         let help = "The minute taker processes sound only. Briefly describe anything shown on a screen or whiteboard, and spell unusual names or terms. A local transcription model may write words incorrectly or phonetically, but these errors can usually be resolved from context during review."
-        let final = includesAI
-            ? "An additional AI report has been enabled for this meeting. After the meeting, the transcript text is also processed by an external AI service to create items such as a summary and action points. The full original transcript remains part of the report."
-            : "AI is not used anywhere in this process."
+        let final: String
+        let finalHeading: String
+        switch ai {
+        case .unavailable:
+            finalHeading = "No AI"
+            final = "AI is not used anywhere in this process."
+        case .off:
+            finalHeading = "AI is currently off"
+            final = "AI is not being used right now. Only if the AI minutes switch on the start screen is turned on will the transcript text be processed by an external AI service afterwards."
+        case .on:
+            finalHeading = "Additional AI report"
+            final = "The AI minutes switch is on. After the meeting, the transcript text is also processed by an external AI service to create items such as a summary and action points. The full original transcript remains part of the report."
+        }
         return copy(
             title: "WhisperClip Minute Taker",
             subtitle: "Brief explanation for everyone present",
-            headings: ("What this minute taker does", "Privacy during the meeting", "After the meeting", "Help the transcription", includesAI ? "Additional AI report" : "No AI"),
+            headings: ("What this minute taker does", "Privacy during the meeting", "After the meeting", "Help the transcription", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "This is the WhisperClip Minute Taker. \(intro) \(pause) \(after) \(help) \(final)",
             play: "Read aloud to attendees",
@@ -70,18 +99,28 @@ struct MeetingPrivacyCopy {
         )
     }
 
-    private static func german(includesAI: Bool) -> Self {
+    private static func german(ai: AIState) -> Self {
         let intro = "Die App unterstützt bei der Protokollierung, indem sie das gesprochene Gespräch lokal auf diesem sichtbaren Telefon transkribiert."
         let pause = "Möchte jemand etwas außerhalb des Protokolls besprechen, wird die Aufnahme pausiert. Was während dieser Pause gesagt wird, wird nicht aufgenommen und erscheint daher nicht im Transkript."
         let after = "Am Ende der Besprechung wird das Transkript fertiggestellt. Anschließend wird die Audioaufnahme vom Telefon entfernt. Danach wird eine E-Mail für alle vorbereitet, die für diese Besprechung eine E-Mail-Adresse angegeben haben; alle erhalten denselben Bericht, nachdem der Benutzer die E-Mail gesendet hat."
         let help = "Die Protokollfunktion verarbeitet ausschließlich Ton. Beschreiben Sie deshalb kurz, was auf einem Bildschirm oder Whiteboard geschieht, und buchstabieren Sie besondere Namen oder Begriffe. Ein lokales Transkriptionsmodell kann Wörter falsch oder phonetisch schreiben; solche Fehler lassen sich beim Durchlesen meist aus dem Zusammenhang klären."
-        let final = includesAI
-            ? "Für diese Besprechung wurde zusätzlich ein KI-Bericht aktiviert. Der Transkripttext wird daher nach der Besprechung auch von einem externen KI-Dienst verarbeitet, beispielsweise zu einer Zusammenfassung und Aktionspunkten. Das vollständige ursprüngliche Transkript bleibt Bestandteil des Berichts."
-            : "In diesem gesamten Prozess wird keine KI verwendet."
+        let final: String
+        let finalHeading: String
+        switch ai {
+        case .unavailable:
+            finalHeading = "Ohne KI"
+            final = "In diesem gesamten Prozess wird keine KI verwendet."
+        case .off:
+            finalHeading = "KI ist derzeit aus"
+            final = "Derzeit wird keine KI verwendet. Nur wenn der Schalter KI-Protokoll auf dem Startbildschirm eingeschaltet wird, wird der Transkripttext anschließend von einem externen KI-Dienst verarbeitet."
+        case .on:
+            finalHeading = "Zusätzlicher KI-Bericht"
+            final = "Der Schalter KI-Protokoll ist eingeschaltet. Der Transkripttext wird daher nach der Besprechung auch von einem externen KI-Dienst verarbeitet, beispielsweise zu einer Zusammenfassung und Aktionspunkten. Das vollständige ursprüngliche Transkript bleibt Bestandteil des Berichts."
+        }
         return copy(
             title: "WhisperClip Protokoll",
             subtitle: "Kurze Erklärung für alle Anwesenden",
-            headings: ("Was diese Protokollfunktion tut", "Datenschutz während der Besprechung", "Nach der Besprechung", "Unterstützen Sie die Transkription", includesAI ? "Zusätzlicher KI-Bericht" : "Ohne KI"),
+            headings: ("Was diese Protokollfunktion tut", "Datenschutz während der Besprechung", "Nach der Besprechung", "Unterstützen Sie die Transkription", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "Dies ist die WhisperClip Protokollfunktion. \(intro) \(pause) \(after) \(help) \(final)",
             play: "Anwesenden vorlesen",

@@ -12,48 +12,42 @@ struct MeetingPrivacyInfoSheet: View {
     private var copy: MeetingPrivacyCopy {
         MeetingPrivacyCopy.make(
             languageCode: app.interfaceLanguage.resolvedCode,
-            includesAI: makeAIMinutes
+            ai: !app.allowMeetingAI ? .unavailable : (makeAIMinutes ? .on : .off)
         )
     }
 
     var body: some View {
-        NavigationStack {
             ZStack {
                 Theme.window.ignoresSafeArea()
                 ScrollView {
+                    // Kaal op verzoek van Niels (13 aug 2026): geen i-icoon,
+                    // geen dubbele titel, geen ondertitel. Eén grote kop
+                    // "Uitleg", meteen daaronder de voorleesknop
+                    // ("Audio-uitleg"), dan pas de tekstkaarten.
                     VStack(alignment: .leading, spacing: 20) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: 42))
-                            .foregroundStyle(Theme.accentText)
-
-                        Text(copy.title)
+                        Text("Uitleg")
                             .font(ThemeFont.ui(28, weight: .bold))
                             .foregroundStyle(Theme.text)
 
-                        Text(copy.subtitle)
-                            .font(ThemeFont.ui(16))
-                            .foregroundStyle(Theme.textSecondary)
+                        // Halve breedte (wens 13 aug 2026): de knop deelt de
+                        // regel met een leeg vak van dezelfde breedte.
+                        HStack(spacing: 0) {
+                            ActionButton(
+                                title: narrator.isSpeaking
+                                    ? copy.stop
+                                    : L10n.string( "Audio-uitleg", locale: app.interfaceLanguage.locale),
+                                systemImage: narrator.isSpeaking ? "stop.fill" : "play.fill",
+                                role: .primary
+                            ) {
+                                narrator.toggle(text: copy.spokenText, language: app.interfaceLanguage.speechLanguage)
+                            }
+                            .accessibilityHint(copy.voiceAccessibilityHint)
+                            Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
+                        }
 
                         ForEach(copy.cards) { card in
                             explanationCard(title: card.title, symbol: card.symbol, text: card.text)
                         }
-
-                        Button {
-                            narrator.toggle(text: copy.spokenText, language: app.interfaceLanguage.speechLanguage)
-                        } label: {
-                            Label(
-                                narrator.isSpeaking ? copy.stop : copy.play,
-                                systemImage: narrator.isSpeaking ? "stop.fill" : "play.fill"
-                            )
-                            .font(ThemeFont.ui(16, weight: .semibold))
-                            .foregroundStyle(Theme.onAccent)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 15)
-                            .background(Theme.accent)
-                            .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityHint(copy.voiceAccessibilityHint)
 
                         Text(copy.voiceHint)
                             .font(ThemeFont.ui(13))
@@ -63,18 +57,9 @@ struct MeetingPrivacyInfoSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("Uitleg")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Gereed") {
-                        narrator.stop()
-                        dismiss()
-                    }
-                    .foregroundStyle(Theme.accentText)
-                }
-            }
-        }
+            .onDisappear { narrator.stop() }
     }
 
     private func explanationCard(title: String, symbol: String, text: String) -> some View {
@@ -87,6 +72,7 @@ struct MeetingPrivacyInfoSheet: View {
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .themeCard()
     }

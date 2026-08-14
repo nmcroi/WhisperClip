@@ -309,36 +309,22 @@ private struct ResultCard: View {
             .frame(maxHeight: maxTextHeight)
 
             if needsSaveRetry() {
-                Button(action: onSaveRetry) {
-                    Label(
-                        L10n.string("Bewaren opnieuw proberen", locale: locale),
-                        systemImage: "arrow.clockwise"
-                    )
-                        .font(ThemeFont.ui(16, weight: .semibold))
-                        .foregroundStyle(Theme.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
-                }
-                .buttonStyle(.plain)
+                ActionButton(
+                    title: L10n.string("Bewaren opnieuw proberen", locale: locale),
+                    systemImage: "arrow.clockwise",
+                    role: .primary,
+                    action: onSaveRetry
+                )
             }
 
-            Button(action: onCopy) {
-                Label(
-                    copied()
-                        ? L10n.string( "Gekopieerd", locale: locale)
-                        : L10n.string( "Kopieer", locale: locale),
-                    systemImage: copied() ? "checkmark" : "doc.on.doc"
-                )
-                    .font(ThemeFont.ui(16, weight: .semibold))
-                    .foregroundStyle(Theme.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
-            }
-            .buttonStyle(.plain)
+            ActionButton(
+                title: copied()
+                    ? L10n.string( "Gekopieerd", locale: locale)
+                    : L10n.string( "Kopieer", locale: locale),
+                systemImage: copied() ? "checkmark" : "doc.on.doc",
+                role: .primary,
+                action: onCopy
+            )
         }
         .padding(16)
         .themeCard()

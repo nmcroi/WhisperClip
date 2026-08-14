@@ -13,6 +13,7 @@ struct MeetingSetupView: View {
     @State private var started = false
     @State private var seededOwnContact = false
     @State private var showPrivacyInfo = false
+    @State private var showParticipants = false
     @State private var makeAIMinutes = false
 
     struct Row: Identifiable {
@@ -53,133 +54,75 @@ struct MeetingSetupView: View {
             VStack(spacing: 0) {
                 meetingPageHeader
                 List {
+                    // Vier blokken, elk precies één regel, volgens de
+                    // knoppentaal in START_PROMPT_NEXT_CHAT.md (13 aug 2026).
+                    // Volgorde van Niels (13 aug 2026): eerst de instellingen,
+                    // de uitleg als laatste, met een dun accentrandje zodat hij
+                    // zich onderscheidt.
                     Section {
-                    ForEach($rows) { $row in
-                        VStack(alignment: .leading, spacing: 8) {
-                            TextField("Naam", text: $row.name)
-                                .font(ThemeFont.ui(16))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 11)
-                                .background(Theme.surfaceHover)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(Theme.border, lineWidth: 1)
-                                }
-                            TextField("E-mailadres", text: $row.email)
-                                .font(ThemeFont.ui(16))
-                                .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 11)
-                                .background(Theme.surfaceHover)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .strokeBorder(Theme.border, lineWidth: 1)
-                                }
-                            if !isStoredContact(row) {
-                                Toggle(isOn: $row.saveContact) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Bewaren")
-                                            .font(ThemeFont.ui(14))
-                                        if app.showHelpTips {
-                                            Text("Bewaar deze naam en dit e-mailadres voor volgende vergaderingen.")
-                                                .font(ThemeFont.ui(12))
-                                                .foregroundStyle(Theme.textSecondary)
-                                        }
-                                    }
-                                }
-                                .tint(Theme.accent)
-                                .disabled(!(row.participant(
-                                    defaultName: L10n.string( "Deelnemer", locale: app.interfaceLanguage.locale)
-                                )?.isValid ?? false))
-                            }
+                        Button {
+                            showParticipants = true
+                        } label: {
+                            navRow("Deelnemers toevoegen")
                         }
-                        .padding(.trailing, 46)
-                        .overlay(alignment: .topTrailing) {
-                            Button {
-                                removeRow(id: row.id)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(Theme.textSecondary)
-                                    .frame(width: 44, height: 44)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(String(
-                                format: L10n.string( "Verwijder %@ uit deze vergadering", locale: app.interfaceLanguage.locale),
-                                locale: app.interfaceLanguage.locale,
-                                row.name.isEmpty
-                                    ? L10n.string( "deelnemer", locale: app.interfaceLanguage.locale)
-                                    : row.name
-                            ))
-                        }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
                     }
-                    .onDelete { offsets in
-                        rows.remove(atOffsets: offsets)
-                    }
+                    .listRowBackground(Theme.surface)
 
-                    Button {
-                        rows.append(Row())
-                    } label: {
-                        Label("Nieuwe deelnemer", systemImage: "person.badge.plus")
-                            .foregroundStyle(Theme.accentText)
-                    }
-
-                    if !app.meetingContacts.isEmpty {
+                    Section {
+                        // Eigen label met exacte kleur: de systeemtint tekent
+                        // menuwaarden met een waas, waardoor er twee tinten
+                        // oranje ontstonden (13 aug 2026).
                         Menu {
-                            ForEach(app.meetingContacts.filter(\.isValid)) { contact in
-                                Button(contact.name) { add(contact) }
+                            Picker("Transcriptietaal", selection: $app.transcriptionLanguage) {
+                                ForEach(TranscriptionLanguage.allCases) { language in
+                                    Text(language.whisperClipLabel(in: app.interfaceLanguage))
+                                        .tag(language)
+                                }
                             }
                         } label: {
-                            Label("Kies vaste deelnemer", systemImage: "person.crop.circle.badge.checkmark")
-                                .foregroundStyle(Theme.accentText)
-                        }
-                    }
-                    } header: {
-                        Text("Deelnemers")
-                    } footer: {
-                        if app.showHelpTips {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text("Je mag dit leeg laten om alleen lokaal te transcriberen. Iedere ingevulde deelnemer is een e-mailontvanger en ontvangt na afloop exact hetzelfde verslag. Vaste deelnemers beheer je in Instellingen.")
-                                if app.allowMeetingAI && makeAIMinutes {
-                                    Text(String(
-                                        format: L10n.string( "De opname en transcriptie gebeuren lokaal op deze iPhone. Alleen de afgeronde transcripttekst gaat naar %@; audio wordt nooit verstuurd en wordt na lokale transcriptie verwijderd. Gepauzeerde stukken worden nergens vastgelegd.", locale: app.interfaceLanguage.locale),
-                                        locale: app.interfaceLanguage.locale,
-                                        app.aiProvider.displayName
-                                    ))
-                                } else {
-                                    Text("De opname en transcriptie gebeuren volledig lokaal op deze iPhone — geen cloud, geen externe AI-dienst. Audio wordt alleen tijdelijk lokaal bewaard en na transcriptie verwijderd; gepauzeerde stukken worden nergens vastgelegd.")
-                                }
+                            HStack(spacing: 6) {
+                                Text("Transcriptietaal")
+                                    .foregroundStyle(Theme.text)
+                                Spacer()
+                                Text(app.transcriptionLanguage.whisperClipLabel(in: app.interfaceLanguage))
+                                    .foregroundStyle(Theme.accentText)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Theme.accentText)
                             }
+                            .frame(minHeight: 32)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                     .listRowBackground(Theme.surface)
 
                     if app.allowMeetingAI {
                         Section {
-                            Toggle("Maak ook AI-notulen", isOn: $makeAIMinutes)
+                            Toggle("AI-notulen", isOn: $makeAIMinutes)
                                 .tint(Theme.accent)
-                        } footer: {
-                            if app.showHelpTips {
-                                Text(String(
-                                    format: L10n.string( "Standaard uit. Alleen voor deze vergadering wordt na afloop de transcripttekst naar %@ gestuurd; audio wordt nooit verstuurd.", locale: app.interfaceLanguage.locale),
-                                    locale: app.interfaceLanguage.locale,
-                                    app.aiProvider.displayName
-                                ))
-                            }
+                                .frame(minHeight: 32)
                         }
                         .listRowBackground(Theme.surface)
                     }
 
-                    Section("Transcriptietaal") {
-                        TranscriptionLanguageMenu(selection: $app.transcriptionLanguage)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    Section {
+                        Button {
+                            showPrivacyInfo = true
+                        } label: {
+                            navRow("Hoe werkt de notulist?")
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .listRowBackground(Theme.surface)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .fill(Theme.surface)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                    .strokeBorder(Theme.accentText.opacity(0.55), lineWidth: 1)
+                            )
+                    )
                 }
                 .scrollContentBackground(.hidden)
                 meetingRecordBar
@@ -193,11 +136,15 @@ struct MeetingSetupView: View {
             }
         }
         .onAppear(perform: seedOwnContact)
-        .sheet(isPresented: $showPrivacyInfo) {
+        // Zelfde schuifrichting als Deelnemers (rechts naar links): eerst
+        // kwam de uitleg van onderen en dat was de enige afwijking (13 aug 2026).
+        .navigationDestination(isPresented: $showPrivacyInfo) {
             MeetingPrivacyInfoSheet(makeAIMinutes: app.allowMeetingAI && makeAIMinutes)
                 .environmentObject(app)
-                .environment(\.locale, app.interfaceLanguage.locale)
-                .preferredColorScheme(app.appearance.preferredColorScheme)
+        }
+        .navigationDestination(isPresented: $showParticipants) {
+            MeetingParticipantsView(rows: $rows)
+                .environmentObject(app)
         }
         .navigationDestination(isPresented: $started) {
             MeetingRecordView(
@@ -208,22 +155,25 @@ struct MeetingSetupView: View {
         }
     }
 
+    private func navRow(_ title: LocalizedStringKey) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .foregroundStyle(Theme.text)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.accentText)
+        }
+        .frame(minHeight: 32)
+        .contentShape(Rectangle())
+    }
+
     private var meetingPageHeader: some View {
         HStack(spacing: 12) {
-            Text("Notulen")
+            Text("De Notulist")
                 .font(ThemeFont.ui(34, weight: .bold))
                 .foregroundStyle(Theme.text)
             Spacer()
-            Button {
-                showPrivacyInfo = true
-            } label: {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundStyle(Theme.accentText)
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Uitleg over privacy en notulen")
         }
         .padding(.horizontal, 20)
         .padding(.top, 12)

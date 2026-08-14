@@ -66,6 +66,27 @@ extension Color {
     }
 }
 
+// MARK: - Merkthema
+
+/// Het merk waarin de app zich toont. WhisperClip is het eigen geel-zwart;
+/// GHX gebruikt de officiële huisstijl (Impact Blue #001473, Innovation
+/// Orange #FF5E1A) voor de demo aan GHX (13 aug 2026). Alleen de
+/// accentkleuren wisselen; opmaak, gedrag en naam blijven identiek.
+/// GHX-naam en huisstijl alleen tonen aan GHX zelf tot zij toestemming geven.
+enum AppBrand: String, CaseIterable, Identifiable {
+    case whisperClip
+    case ghx
+
+    var id: String { rawValue }
+
+    func label(in language: AppLanguage) -> String {
+        switch self {
+        case .whisperClip: return "WhisperClip"
+        case .ghx: return "GHX"
+        }
+    }
+}
+
 /// The v2 design language ported to iOS: sleek, tight, **yellow** as the primary
 /// accent and **red** as the secondary/recording accent. Hex values are
 /// byte-identical to the mac `Theme` so both apps share one visual identity.
@@ -74,45 +95,118 @@ extension Color {
 /// Dark is the signature look and the default; light mirrors it for opt-in users.
 enum Theme {
 
+    /// Het actieve merk. Gezet door `AppModel` bij start en bij wisselen in
+    /// Instellingen; elke wijziging van een `@Published` op het model tekent de
+    /// schermen opnieuw, dus de kleuren volgen direct. `nonisolated(unsafe)`
+    /// omdat de kleur-getters vanuit View-body's lezen: in de praktijk raakt
+    /// alleen de main thread dit, net als de Views zelf.
+    nonisolated(unsafe) static var brand: AppBrand = .whisperClip
+
     // MARK: Surfaces
 
-    /// App background (near-black / near-white).
-    static let window = Color(lightHex: "FBFBFA", darkHex: "0E0E10")
+    /// App background. GHX: True Blue #091431, door de gids goedgekeurd voor
+    /// grote digitale vlakken; licht een vleug blauw-wit.
+    static var window: Color {
+        brand == .ghx
+            ? Color(lightHex: "F7FAFF", darkHex: "091431")
+            : Color(lightHex: "FBFBFA", darkHex: "0E0E10")
+    }
     /// Card / raised surface.
-    static let surface = Color(lightHex: "FFFFFF", darkHex: "17171A")
+    static var surface: Color {
+        brand == .ghx
+            ? Color(lightHex: "FFFFFF", darkHex: "101D4A")
+            : Color(lightHex: "FFFFFF", darkHex: "17171A")
+    }
     /// Slightly lifted surface (hover, selected rows, input fields).
-    static let surfaceHover = Color(lightHex: "F1F1EF", darkHex: "1F1F23")
+    static var surfaceHover: Color {
+        brand == .ghx
+            ? Color(lightHex: "EAF0FB", darkHex: "182861")
+            : Color(lightHex: "F1F1EF", darkHex: "1F1F23")
+    }
     /// Subtle 1px border.
-    static let border = Color(lightHex: "E3E3DF", darkHex: "26262B")
+    static var border: Color {
+        brand == .ghx
+            ? Color(lightHex: "D7E0F5", darkHex: "20306E")
+            : Color(lightHex: "E3E3DF", darkHex: "26262B")
+    }
     /// Brighter border for hover / focus.
-    static let borderStrong = Color(lightHex: "D0D0CB", darkHex: "35353C")
+    static var borderStrong: Color {
+        brand == .ghx
+            ? Color(lightHex: "B9C8EC", darkHex: "2E4088")
+            : Color(lightHex: "D0D0CB", darkHex: "35353C")
+    }
 
     // MARK: Text
 
-    /// Primary text (near-white / near-black).
-    static let text = Color(lightHex: "111114", darkHex: "F5F5F7")
+    /// Primary text. GHX licht: diep blauw in plaats van zwart, zoals de gids
+    /// zijn lopende tekst zet.
+    static var text: Color {
+        brand == .ghx
+            ? Color(lightHex: "0B1B4D", darkHex: "F5F7FF")
+            : Color(lightHex: "111114", darkHex: "F5F5F7")
+    }
     /// Secondary / muted text.
-    static let textSecondary = Color(lightHex: "57575C", darkHex: "9A9AA2")
+    static var textSecondary: Color {
+        brand == .ghx
+            ? Color(lightHex: "4A5A8C", darkHex: "9FACD8")
+            : Color(lightHex: "57575C", darkHex: "9A9AA2")
+    }
     /// Tertiary / faint text (timecodes, captions).
-    static let textTertiary = Color(lightHex: "6F6F75", darkHex: "7F7F88")
+    static var textTertiary: Color {
+        brand == .ghx
+            ? Color(lightHex: "6C7BA6", darkHex: "7583B4")
+            : Color(lightHex: "6F6F75", darkHex: "7F7F88")
+    }
 
     // MARK: Accents
 
-    /// Primary accent for **fills / highlights** — the yellow "Kopieer" button,
-    /// level bars, the record ring.
-    static let accent = Color(lightHex: "FFD60A", darkHex: "FFD60A")
-    /// Accent for **text / thin strokes / the wordmark period**. A darker amber on
-    /// white so accent-as-text stays readable.
-    static let accentText = Color(lightHex: "8A6900", darkHex: "FFD60A")
-    /// A dimmer yellow for large fills / hovers.
-    static let accentSoft = Color(lightHex: "C9A800", darkHex: "C9A800")
-    /// Secondary accent — recording state, destructive actions.
-    static let danger = Color(lightHex: "C91F18", darkHex: "FF453A")
+    /// Primary accent for **fills / highlights** — the "Kopieer" button, level
+    /// bars, the record ring. GHX: Innovation Orange, keuze van Niels
+    /// (13 aug 2026); witte tekst erop, zoals de gids op oranje vlakken doet.
+    static var accent: Color {
+        brand == .ghx
+            ? Color(lightHex: "FF5E1A", darkHex: "FF5E1A")
+            : Color(lightHex: "FFD60A", darkHex: "FFD60A")
+    }
+    /// Accent for **text / thin strokes / iconen**. GHX: Innovation Orange,
+    /// op wens van Niels (13 aug 2026); "graphics & text safe" in de gids.
+    static var accentText: Color {
+        brand == .ghx
+            ? Color(lightHex: "E04A0E", darkHex: "FF5E1A")
+            : Color(lightHex: "8A6900", darkHex: "FFD60A")
+    }
+    /// A dimmer accent for large fills / hovers.
+    static var accentSoft: Color {
+        brand == .ghx
+            ? Color(lightHex: "CC4B15", darkHex: "CC4B15")
+            : Color(lightHex: "C9A800", darkHex: "C9A800")
+    }
+    /// Secondary accent — recording state, destructive actions. GHX: een
+    /// donkerder, koeler rood (kardinaalrood) in plaats van Spark Red #FF0000,
+    /// want dat lag te dicht tegen Innovation Orange aan (13 aug 2026).
+    static var danger: Color {
+        brand == .ghx
+            ? Color(lightHex: "8C0B1F", darkHex: "A50D24")
+            : Color(lightHex: "C91F18", darkHex: "FF453A")
+    }
     /// A dimmer red for backgrounds.
     static let dangerSoft = Color(lightHex: "FBE4E2", darkHex: "3A1A18")
 
-    /// Foreground color to place on top of the yellow accent fill (always dark).
-    static let onAccent = Color(lightHex: "0E0E10", darkHex: "0E0E10")
+    /// Foreground color to place on top of the accent fill. Donker op geel;
+    /// wit op GHX-blauw, zoals de gids witte tekst op blauwe vlakken zet.
+    static var onAccent: Color {
+        brand == .ghx
+            ? Color(lightHex: "FFFFFF", darkHex: "FFFFFF")
+            : Color(lightHex: "0E0E10", darkHex: "0E0E10")
+    }
+
+    /// Het kleine merkaccent: de punt in het woordmerk. GHX: Innovation Orange
+    /// #FF5E1A, het accent van de X, bewust spaarzaam gebruikt.
+    static var wordmarkDot: Color {
+        brand == .ghx
+            ? Color(lightHex: "FF5E1A", darkHex: "FF5E1A")
+            : accentText
+    }
 
     // MARK: Metrics
 
@@ -191,13 +285,24 @@ extension View {
     }
 }
 
-/// The app-title wordmark: "Whisper Clipboard" with a yellow period.
+/// The app-title wordmark: "WhisperClip" with an accent period. In het
+/// GHX-thema staat hier het officiële GHX-logo (wens van Niels, 13 aug 2026):
+/// uit de Brand Guide geknipt, wit met oranje X op donker en blauw met oranje
+/// X op licht, nooit hertekend of vervormd (logoregels in de skill ghx-stijl).
 struct Wordmark: View {
     var size: CGFloat = 26
 
     var body: some View {
-        Text.accentDotted("WhisperClip")
-            .font(ThemeFont.wordmark(size, weight: .bold))
+        if Theme.brand == .ghx {
+            Image("GHXLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: size * 1.45)
+                .accessibilityLabel("GHX")
+        } else {
+            Text.accentDotted("WhisperClip")
+                .font(ThemeFont.wordmark(size, weight: .bold))
+        }
     }
 }
 
@@ -223,6 +328,6 @@ extension Text {
     /// accent colour.
     static func accentDotted(_ title: String) -> Text {
         Text(verbatim: title).foregroundStyle(Theme.text)
-            + Text(verbatim: ".").foregroundStyle(Theme.accentText)
+            + Text(verbatim: ".").foregroundStyle(Theme.wordmarkDot)
     }
 }

@@ -25,11 +25,11 @@ struct DictionaryiOSView: View {
                         }
                     }
 
-                    Button {
+                    ActionButton(
+                        title: L10n.string( "Voeg toe", locale: app.interfaceLanguage.locale),
+                        systemImage: "plus"
+                    ) {
                         app.replacements.append(Replacement(find: "", replace: ""))
-                    } label: {
-                        Label("Voeg toe", systemImage: "plus")
-                            .foregroundStyle(Theme.accentText)
                     }
                 } footer: {
                     Text("Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts — hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’.")

@@ -231,9 +231,16 @@ struct AIRunnerView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
-            Button("Instellingen") { onOpenSettings() }
-                .font(ThemeFont.ui(13, weight: .semibold))
-                .foregroundStyle(Theme.accentText)
+            Button {
+                onOpenSettings()
+            } label: {
+                ActionButtonLabel(
+                    title: L10n.string( "Instellingen", locale: app.interfaceLanguage.locale),
+                    size: .compact
+                )
+                .fixedSize()
+            }
+            .buttonStyle(.plain)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -394,14 +401,15 @@ private struct AIResultDetailView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     HStack(spacing: 10) {
                         ShareLink(item: result.output) {
-                            Label("Verstuur", systemImage: "paperplane")
-                                .font(ThemeFont.ui(14, weight: .semibold))
-                                .foregroundStyle(Theme.onAccent)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(Theme.accent)
-                                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius))
+                            ActionButtonLabel(
+                                title: L10n.string( "Verstuur", locale: app.interfaceLanguage.locale),
+                                systemImage: "paperplane",
+                                role: .primary,
+                                size: .compact
+                            )
+                            .fixedSize()
                         }
+                        .buttonStyle(.plain)
                         resultActionsMenu
                         Spacer()
                     }
@@ -473,18 +481,14 @@ private struct AIResultDetailView: View {
                 Label("Verwijder", systemImage: "trash")
             }
         } label: {
-            Label("Meer", systemImage: "ellipsis.circle")
-                .font(ThemeFont.ui(14, weight: .semibold))
-                .foregroundStyle(Theme.accentText)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Theme.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Metrics.radius)
-                        .strokeBorder(Theme.border, lineWidth: 1)
-                )
+            ActionButtonLabel(
+                title: L10n.string( "Meer", locale: app.interfaceLanguage.locale),
+                systemImage: "ellipsis",
+                size: .compact
+            )
+            .fixedSize()
         }
+        .buttonStyle(.plain)
     }
 
     private var safeFilename: String {
@@ -539,17 +543,19 @@ private struct DictionarySuggestionsResultView: View {
                         Text(suggestion.reason)
                             .font(ThemeFont.ui(13))
                             .foregroundStyle(Theme.textSecondary)
-                        Button(isAdded(suggestion)
-                               ? L10n.string( "Toegevoegd", locale: app.interfaceLanguage.locale)
-                               : L10n.string( "Voeg toe aan woordenlijst", locale: app.interfaceLanguage.locale)) {
+                        Button {
                             add(suggestion)
+                        } label: {
+                            ActionButtonLabel(
+                                title: isAdded(suggestion)
+                                    ? L10n.string( "Toegevoegd", locale: app.interfaceLanguage.locale)
+                                    : L10n.string( "Voeg toe aan woordenlijst", locale: app.interfaceLanguage.locale),
+                                role: .primary,
+                                size: .compact,
+                                isEnabled: !isAdded(suggestion)
+                            )
+                            .fixedSize()
                         }
-                        .font(ThemeFont.ui(14, weight: .semibold))
-                        .foregroundStyle(Color.black)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(Theme.accent.opacity(isAdded(suggestion) ? 0.55 : 1))
-                        .clipShape(Capsule())
                         .buttonStyle(.plain)
                         .disabled(isAdded(suggestion))
                     }

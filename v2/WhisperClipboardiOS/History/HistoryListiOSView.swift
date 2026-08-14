@@ -17,9 +17,22 @@ struct HistoryListiOSView: View {
     @State private var sortOrder = SortOrder.newest
     /// De opname waarvoor de "Voeg toe aan notitie"-sheet open staat.
     @State private var addToNoteTarget: AddToNoteTarget?
+    /// Selectiemodus: meerdere opnames in één keer delen. Niels wilde er drie
+    /// tegelijk naar zijn Mac sturen en kon alleen één voor één (13 aug 2026).
+    @State private var isSelecting = false
+    @State private var selection: Set<String> = []
+    /// De opnames waarvoor de bevestiging om samen te voegen open staat.
+    @State private var mergeTarget: MergeTarget?
+    @State private var showDeleteSelectedConfirm = false
+    @FocusState private var searchFocused: Bool
 
     /// Identifiable-wikkel zodat `sheet(item:)` een losse entry-id kan dragen.
     private struct AddToNoteTarget: Identifiable { let id: String }
+
+    private struct MergeTarget: Identifiable {
+        let id = UUID()
+        let entries: [TranscriptEntry]
+    }
 
     var body: some View {
         NavigationStack {
@@ -43,18 +56,130 @@ struct HistoryListiOSView: View {
                     .environmentObject(app)
                     .preferredColorScheme(app.appearance.preferredColorScheme)
             }
+            .alert(
+                L10n.string( "Opnames verwijderen", locale: app.interfaceLanguage.locale),
+                isPresented: $showDeleteSelectedConfirm
+            ) {
+                Button("Verwijder", role: .destructive) { deleteSelected() }
+                Button("Annuleer", role: .cancel) {}
+            } message: {
+                Text(String(
+                    format: L10n.string(
+                        "%lld opnames worden definitief verwijderd.",
+                        locale: app.interfaceLanguage.locale
+                    ),
+                    locale: app.interfaceLanguage.locale,
+                    selection.count
+                ))
+            }
+            .alert(
+                L10n.string( "Opnames samenvoegen", locale: app.interfaceLanguage.locale),
+                isPresented: Binding(
+                    get: { mergeTarget != nil },
+                    set: { if !$0 { mergeTarget = nil } }
+                ),
+                presenting: mergeTarget
+            ) { target in
+                Button("Voeg samen") { merge(target.entries, deleteOriginals: false) }
+                Button("Samenvoegen en originelen verwijderen", role: .destructive) {
+                    merge(target.entries, deleteOriginals: true)
+                }
+                Button("Annuleer", role: .cancel) {}
+            } message: { target in
+                Text(String(
+                    format: L10n.string(
+                        "%lld opnames worden één nieuwe opname, op volgorde van tijd, oudste eerst.",
+                        locale: app.interfaceLanguage.locale
+                    ),
+                    locale: app.interfaceLanguage.locale,
+                    target.entries.count
+                ))
+            }
+        }
+    }
+
+    /// Voegt de gekozen opnames samen tot één nieuwe opname. Bewust op volgorde
+    /// van tijd en niet op de volgorde van de lijst: een samenvoeging is het
+    /// herstellen van een gesprek dat in stukken is opgenomen, en met de lijst op
+    /// "nieuwste eerst" zou het verhaal achterstevoren komen te staan.
+    private func merge(_ entries: [TranscriptEntry], deleteOriginals: Bool) {
+        guard let history = app.history, entries.count >= 2 else { return }
+        let ordered = entries.sorted {
+            ($0.timestamp ?? .distantPast) < ($1.timestamp ?? .distantPast)
+        }
+        let text = ordered
+            .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+        guard let first = ordered.first else { return }
+        let merged = TranscriptEntry(
+            id: UUID().uuidString,
+            text: text,
+            createdAt: ISO8601DateFormatter().string(from: Date()),
+            name: String(
+                format: L10n.string( "%@ (samengevoegd)", locale: app.interfaceLanguage.locale),
+                locale: app.interfaceLanguage.locale,
+                first.displayTitle(locale: app.interfaceLanguage.locale)
+            ),
+            pinned: false,
+            language: first.language,
+            model: first.model,
+            source: first.source,
+            duration: ordered.reduce(0) { $0 + $1.duration },
+            // Sprekerlabels lopen per opname vanaf "Spreker 1"; die zomaar achter
+            // elkaar plakken zou twee verschillende mensen tot één spreker maken.
+            segments: []
+        )
+        do {
+            try history.add(merged)
+            if deleteOriginals {
+                for entry in ordered {
+                    try history.delete(id: entry.id)
+                }
+            }
+            selection = []
+            isSelecting = false
+        } catch {
+            app.errorMessage = String(
+                format: L10n.string(
+                    "De opnames konden niet worden samengevoegd: %@",
+                    locale: app.interfaceLanguage.locale
+                ),
+                locale: app.interfaceLanguage.locale,
+                error.localizedDescription
+            )
         }
     }
 
     private var searchField: some View {
         HStack(spacing: 10) {
+            // Geel: tikken op het veld (inclusief het vergrootglas) opent het
+            // toetsenbord, dus dit is aanraakbaar gebied (13 aug 2026).
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(Theme.textSecondary)
+                .foregroundStyle(Theme.accentText)
             TextField("Zoeken", text: $query)
                 .font(ThemeFont.ui(17))
                 .foregroundStyle(Theme.text)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .focused($searchFocused)
+                .submitLabel(.done)
+            // Het toetsenbord was niet weg te krijgen zonder te zoeken
+            // (13 aug 2026): dit kruisje wist en sluit in één tik.
+            if searchFocused || !query.isEmpty {
+                Button {
+                    query = ""
+                    searchFocused = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Wis zoekopdracht en sluit toetsenbord")
+            }
         }
         .padding(.horizontal, 14)
         .frame(height: 48)
@@ -85,15 +210,21 @@ struct HistoryListiOSView: View {
                 List {
                     controlsRow(visible: entries.count, total: total)
                         .listRowBackground(Theme.window)
-                        .listRowSeparatorTint(Theme.border)
+                        .listRowSeparator(.hidden)
 
                     ForEach(entries, id: \.id) { entry in
-                        ZStack {
-                            NavigationLink(value: entry.id) {
-                                EmptyView()
+                        Group {
+                            if isSelecting {
+                                selectableRow(entry)
+                            } else {
+                                ZStack {
+                                    NavigationLink(value: entry.id) {
+                                        EmptyView()
+                                    }
+                                    .opacity(0)
+                                    TranscriptRowiOS(entry: entry)
+                                }
                             }
-                            .opacity(0)
-                            TranscriptRowiOS(entry: entry)
                         }
                         .listRowBackground(Theme.window)
                         .listRowSeparatorTint(Theme.border)
@@ -116,12 +247,146 @@ struct HistoryListiOSView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
                 .navigationDestination(for: String.self) { id in
                     if let entry = entryByID(id) {
                         HistoryDetailiOSView(entry: entry)
                     }
                 }
+                if isSelecting {
+                    selectionBar(entries: entries)
+                }
             }
+        }
+    }
+
+    /// Eén regel in selectiemodus: dezelfde regel als anders, met een rondje
+    /// ervoor. Tikken selecteert in plaats van openen.
+    private func selectableRow(_ entry: TranscriptEntry) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: selection.contains(entry.id) ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 20))
+                .foregroundStyle(selection.contains(entry.id) ? Theme.accentText : Theme.textTertiary)
+            TranscriptRowiOS(entry: entry)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if selection.contains(entry.id) {
+                selection.remove(entry.id)
+            } else {
+                selection.insert(entry.id)
+            }
+        }
+    }
+
+    /// De balk onderaan tijdens het selecteren: drie compacte knoppen in de
+    /// knoppentaal, met het aantal gekozen opnames als grijze regel eronder.
+    /// Deel is de hoofdactie en dus het enige primaire (gele) blok.
+    private func selectionBar(entries: [TranscriptEntry]) -> some View {
+        let chosen = entries.filter { selection.contains($0.id) }
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Button {
+                    selection = chosen.count == entries.count ? [] : Set(entries.map(\.id))
+                } label: {
+                    IconActionLabel(
+                        title: chosen.count == entries.count
+                            ? L10n.string( "Niets", locale: app.interfaceLanguage.locale)
+                            : L10n.string( "Alles", locale: app.interfaceLanguage.locale),
+                        systemImage: "checklist"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    mergeTarget = MergeTarget(entries: chosen)
+                } label: {
+                    IconActionLabel(
+                        title: "Merge",
+                        systemImage: "arrow.triangle.merge",
+                        isEnabled: chosen.count >= 2
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(chosen.count < 2)
+
+                ShareLink(item: Self.combinedText(chosen, locale: app.interfaceLanguage.locale)) {
+                    IconActionLabel(
+                        title: L10n.string( "Deel", locale: app.interfaceLanguage.locale),
+                        systemImage: "square.and.arrow.up",
+                        isEnabled: !chosen.isEmpty
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(chosen.isEmpty)
+
+                Button {
+                    showDeleteSelectedConfirm = true
+                } label: {
+                    IconActionLabel(
+                        title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
+                        systemImage: "trash",
+                        iconColor: Theme.danger,
+                        isEnabled: !chosen.isEmpty
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(chosen.isEmpty)
+
+                Button {
+                    isSelecting = false
+                    selection = []
+                } label: {
+                    IconActionLabel(
+                        title: L10n.string( "Klaar", locale: app.interfaceLanguage.locale),
+                        systemImage: "xmark"
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(Theme.surface)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.border).frame(height: Theme.Metrics.hairline)
+        }
+    }
+
+    /// Titel, datum en tekst per opname, gescheiden door een lege regel. Bewust
+    /// zonder scheidingsstreepjes: dit gaat vaak rechtstreeks een mail of notitie
+    /// in en moet daar leesbaar zijn zonder opmaak.
+    static func combinedText(_ entries: [TranscriptEntry], locale: Locale) -> String {
+        entries.map { entry in
+            var kop = entry.displayTitle(locale: locale)
+            if let date = entry.timestamp {
+                kop += "\n" + date.formatted(
+                    .dateTime.day().month(.abbreviated).year().hour().minute().locale(locale)
+                )
+            }
+            return kop + "\n\n" + entry.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        .joined(separator: "\n\n\n")
+    }
+
+    /// Verwijdert alle geselecteerde opnames, na de bevestigvraag.
+    private func deleteSelected() {
+        guard let history = app.history else { return }
+        do {
+            for id in selection {
+                try history.delete(id: id)
+            }
+            selection = []
+            isSelecting = false
+        } catch {
+            app.errorMessage = String(
+                format: L10n.string(
+                    "Het transcript kon niet worden verwijderd: %@",
+                    locale: app.interfaceLanguage.locale
+                ),
+                locale: app.interfaceLanguage.locale,
+                error.localizedDescription
+            )
         }
     }
 
@@ -141,15 +406,54 @@ struct HistoryListiOSView: View {
         }
     }
 
+    /// De knoppen op een eigen regel, het aantal eronder. Alle drie samen op één
+    /// regel mét tekst paste niet naast het aantal: iOS brak de labels toen in
+    /// drie stukken af (13 aug 2026). Het aantal is toelichting, dus die mag
+    /// eronder en grijs.
     private func controlsRow(visible: Int, total: Int) -> some View {
-        HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Tijdens het selecteren geen knoppen bovenaan: Klaar zit in de
+            // balk onderaan, die scrolt niet mee uit beeld (13 aug 2026).
+            if !isSelecting {
+                HStack(spacing: 10) {
+                    selectButton
+                    filterMenu
+                    sortMenu
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 10)
+            }
+            // Beide strepen zelf getekend, identiek. Eerst was de onderste de
+            // systeemscheiding van de lijst en die rendert lichter; het aantal
+            // hing bovendien te dicht tegen de knoppen (13 aug 2026).
+            Rectangle().fill(Theme.border).frame(height: Theme.Metrics.hairline)
             Text(countLabel(visible: visible, total: total))
                 .font(ThemeFont.ui(13, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
-            Spacer()
-            filterMenu
-            sortMenu
+                .lineLimit(1)
+                .padding(.vertical, 12)
+            Rectangle().fill(Theme.border).frame(height: Theme.Metrics.hairline)
         }
+    }
+
+    private var selectButton: some View {
+        Button {
+            isSelecting.toggle()
+            if !isSelecting { selection = [] }
+        } label: {
+            IconActionLabel(
+                title: isSelecting
+                    ? L10n.string( "Klaar", locale: app.interfaceLanguage.locale)
+                    : L10n.string( "Selecteer", locale: app.interfaceLanguage.locale),
+                // Kale varianten, geen cirkels: omcirkelde symbolen ogen
+                // kleiner dan de iconen op het detailscherm (13 aug 2026).
+                // Label grijs, ook als Klaar: de selectiemodus is geen
+                // "actieve stand" die geel verdient (correctie 13 aug 2026).
+                systemImage: "checkmark"
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isSelecting ? "Klaar met selecteren" : "Selecteer opnames")
     }
 
     private var filterMenu: some View {
@@ -171,10 +475,14 @@ struct HistoryListiOSView: View {
                 Button("Wis filters", role: .destructive) { resetFilters() }
             }
         } label: {
-            Label("Filter", systemImage: filtersAreActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                .font(ThemeFont.ui(13, weight: .semibold))
-                .foregroundStyle(Theme.accentText)
+            IconActionLabel(
+                title: L10n.string( "Filter", locale: app.interfaceLanguage.locale),
+                systemImage: "line.3.horizontal.decrease",
+                isActive: filtersAreActive
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Filter")
     }
 
     private var sortMenu: some View {
@@ -183,10 +491,13 @@ struct HistoryListiOSView: View {
                 ForEach(SortOrder.allCases) { Text($0.label(in: app.interfaceLanguage)).tag($0) }
             }
         } label: {
-            Label("Sorteer", systemImage: "arrow.up.arrow.down.circle")
-                .font(ThemeFont.ui(13, weight: .semibold))
-                .foregroundStyle(Theme.accentText)
+            IconActionLabel(
+                title: L10n.string( "Sorteer", locale: app.interfaceLanguage.locale),
+                systemImage: "arrow.up.arrow.down"
+            )
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Sorteer")
     }
 
     private var emptyState: some View {
@@ -373,6 +684,8 @@ struct TranscriptRowiOS: View {
 
     var body: some View {
         HStack(spacing: 12) {
+            // Geel, want de hele regel is klikbaar en opent de opname; in de
+            // detailkop is hetzelfde icoon informatie en dus grijs (13 aug 2026).
             Image(systemName: TranscriptSourceStyle.icon(for: entry.source))
                 .font(.system(size: 16))
                 .foregroundStyle(Theme.accentText)
@@ -405,16 +718,7 @@ struct TranscriptRowiOS: View {
     }
 
     private var title: String {
-        let trimmedName = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedName.isEmpty && trimmedName.localizedCaseInsensitiveCompare("PLAUD-opname") != .orderedSame {
-            return trimmedName
-        }
-        let firstWords = entry.text
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .prefix(60)
-        return firstWords.isEmpty
-            ? L10n.string( "Naamloze opname", locale: app.interfaceLanguage.locale)
-            : String(firstWords)
+        entry.displayTitle(locale: app.interfaceLanguage.locale)
     }
 
     /// Een echte datum en tijd, geen "twee weken geleden": Niels zoekt op datum
@@ -429,5 +733,23 @@ struct TranscriptRowiOS: View {
 
     private var durationText: String {
         DurationText.string(seconds: entry.duration, locale: app.interfaceLanguage.locale)
+    }
+}
+
+extension TranscriptEntry {
+    /// De titel zoals hij in de lijst staat: de eigen naam, of anders de eerste
+    /// zestig tekens van het transcript. Eén plek, zodat de lijst en het delen
+    /// nooit uit elkaar kunnen lopen.
+    func displayTitle(locale: Locale) -> String {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedName.isEmpty && trimmedName.localizedCaseInsensitiveCompare("PLAUD-opname") != .orderedSame {
+            return trimmedName
+        }
+        let firstWords = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(60)
+        return firstWords.isEmpty
+            ? L10n.string( "Naamloze opname", locale: locale)
+            : String(firstWords)
     }
 }

@@ -75,25 +75,25 @@ struct PlaudSettingsContent: View {
                         : ""
                 )
 
-                Button {
+                ActionButton(
+                    title: L10n.string( "Account opslaan", locale: app.interfaceLanguage.locale),
+                    systemImage: "checkmark.circle",
+                    isEnabled: !(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                                 (password.isEmpty && !hasSavedCredentials))
+                ) {
                     saveCredentials()
-                } label: {
-                    Label("Account opslaan", systemImage: "checkmark.circle")
                 }
-                .foregroundStyle(Theme.accentText)
-                .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                          (password.isEmpty && !hasSavedCredentials))
 
-                Button {
-                    Task { await testConnection() }
-                } label: {
-                    HStack {
-                        Label("Verbinding testen", systemImage: "network")
-                        if isTesting { Spacer(); ProgressView() }
+                HStack(spacing: 10) {
+                    ActionButton(
+                        title: L10n.string( "Verbinding testen", locale: app.interfaceLanguage.locale),
+                        systemImage: "network",
+                        isEnabled: !(isTesting || (!hasSavedCredentials && password.isEmpty))
+                    ) {
+                        Task { await testConnection() }
                     }
+                    if isTesting { ProgressView() }
                 }
-                .foregroundStyle(Theme.accentText)
-                .disabled(isTesting || (!hasSavedCredentials && password.isEmpty))
 
                 if let testMessage {
                     Label(testMessage, systemImage: testSucceeded ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
@@ -118,25 +118,32 @@ struct PlaudSettingsContent: View {
                 Button {
                     service.syncNow()
                 } label: {
-                    HStack {
+                    HStack(spacing: 8) {
                         RotatingSyncIcon(active: service.isSyncing)
                         Text("Synchroniseer PLAUD")
-                            .font(ThemeFont.ui(17, weight: .semibold))
                     }
-                    .foregroundStyle(Color.black)
+                    .font(ThemeFont.ui(16, weight: .semibold))
+                    .foregroundStyle(hasSavedCredentials && !service.isSyncing ? Theme.onAccent : Theme.textTertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
-                    .frame(maxWidth: .infinity, minHeight: 52, maxHeight: 52)
-                    .padding(.horizontal, 18)
-                    .background(Theme.accent, in: Capsule())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 12)
+                    .background(hasSavedCredentials && !service.isSyncing ? Theme.accent : Theme.surfaceHover)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, alignment: .center)
                 .disabled(!hasSavedCredentials || service.isSyncing)
 
                 if service.isSyncing {
-                    Button("Stop", role: .destructive) { service.cancel() }
+                    ActionButton(
+                        title: L10n.string( "Stop", locale: app.interfaceLanguage.locale),
+                        systemImage: "stop.circle",
+                        role: .destructive
+                    ) {
+                        service.cancel()
+                    }
                     ProgressView(value: service.progressFraction)
                 }
 

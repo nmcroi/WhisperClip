@@ -15,9 +15,11 @@
 		18AFB39EAD10DC91853BAF1F /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = CC8F65B4B5F243ECAF5D8AC0 /* Core */; };
 		1B17BEFC34473D2671024472 /* RecordingHUDPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A72C9D7BFA9B61B73521E54B /* RecordingHUDPanel.swift */; };
 		1CFB66A92D84196A6CE8A137 /* PauseToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD515FAF7E91D752A8FF671 /* PauseToggleButton.swift */; };
+		B2C3D4E5F60718293A4B5C6E /* ActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6D /* ActionButtons.swift */; };
 		1D2994BAFF3F0B651F4F4C62 /* AccessibilityPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F851ED3A796AA4E4EE854F /* AccessibilityPermission.swift */; };
 		1F008F01037DFD52388AB203 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00BFC79EAD046B59506688C1 /* HomeView.swift */; };
 		2329CE1AC97FD57F6112D23A /* MeetingPrivacyInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AD7EC8A3F40261FA774D42 /* MeetingPrivacyInfoSheet.swift */; };
+		A1B2C3D4E5F60718293A4B5D /* MeetingParticipantsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* MeetingParticipantsView.swift */; };
 		27B565300FDB25C3952D6151 /* DictationLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9663E781B96BFEF73FA36A8D /* DictationLogicTests.swift */; };
 		2A21960A8199F67F798E28B6 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 029416F2756C062AE6D4E7B6 /* Clipboard.swift */; };
 		2B499ED1D007731BA854B105 /* InsertionLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29387B38D94A0836DCEBC319 /* InsertionLogicTests.swift */; };
@@ -279,6 +281,7 @@
 		C93F83536A9CB8C9B298982F /* ThemeiOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeiOS.swift; sourceTree = "<group>"; };
 		CA14638D8E4D06FC83FBE79D /* WhisperClipboardiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperClipboardiOSApp.swift; sourceTree = "<group>"; };
 		CCD515FAF7E91D752A8FF671 /* PauseToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseToggleButton.swift; sourceTree = "<group>"; };
+		B2C3D4E5F60718293A4B5C6D /* ActionButtons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButtons.swift; sourceTree = "<group>"; };
 		CE14FCA0B08F69A881534C49 /* HistoryDetailiOSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailiOSView.swift; sourceTree = "<group>"; };
 		D6F851ED3A796AA4E4EE854F /* AccessibilityPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermission.swift; sourceTree = "<group>"; };
 		D7500F947869E624B24DFED7 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
@@ -301,6 +304,7 @@
 		F216FEECA940DDFE95F3B93C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F30CAC045B5E61407E6D9629 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F4AD7EC8A3F40261FA774D42 /* MeetingPrivacyInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingPrivacyInfoSheet.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* MeetingParticipantsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingParticipantsView.swift; sourceTree = "<group>"; };
 		F580797D5BC5393CCED9620F /* AppNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigation.swift; sourceTree = "<group>"; };
 		F5DC60D0AD01FB9A0C27FC55 /* WhisperClipboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperClipboardTests.swift; sourceTree = "<group>"; };
 		F6A43A6868CE829D56E34271 /* TranscriptAudioStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptAudioStoreTests.swift; sourceTree = "<group>"; };
@@ -562,6 +566,7 @@
 				B67D1F308613202C8772144C /* MailComposeView.swift */,
 				5144B736B2B99078F4B5151F /* MeetingPrivacyCopy.swift */,
 				F4AD7EC8A3F40261FA774D42 /* MeetingPrivacyInfoSheet.swift */,
+				A1B2C3D4E5F60718293A4B5C /* MeetingParticipantsView.swift */,
 				B5966AB44A79E6963B1A4E9F /* MeetingRecordView.swift */,
 				F928C5F50021EFA4178B0E5E /* MeetingSetupView.swift */,
 			);
@@ -667,6 +672,7 @@
 			isa = PBXGroup;
 			children = (
 				CCD515FAF7E91D752A8FF671 /* PauseToggleButton.swift */,
+				B2C3D4E5F60718293A4B5C6D /* ActionButtons.swift */,
 				6AE99AD6BFA6F0AF651BBC55 /* RecordingActivityAttributes.swift */,
 				F18298A8524EDB5C4AC2B7A5 /* StopRecordingIntent.swift */,
 				80C96440072B03CD4274ABD7 /* UndoToast.swift */,
@@ -1035,6 +1041,7 @@
 				B2CF9C60C94FC97E5BFDBC19 /* MailComposeView.swift in Sources */,
 				D067291AE9559D3369ECEAF7 /* MeetingPrivacyCopy.swift in Sources */,
 				2329CE1AC97FD57F6112D23A /* MeetingPrivacyInfoSheet.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5D /* MeetingParticipantsView.swift in Sources */,
 				61C03FE625ED3096F98101C0 /* MeetingRecordView.swift in Sources */,
 				42D22A39807384AFEB6B6B7E /* MeetingSetupView.swift in Sources */,
 				82AAB34B993432E33A9F9809 /* ModelDownloadCard.swift in Sources */,
@@ -1043,6 +1050,7 @@
 				6AB3EA19B0D989F4BD2A10AF /* NoteSummarizeSheet.swift in Sources */,
 				94FE58D8BCBB97E32C4C9F76 /* NotesListiOSView.swift in Sources */,
 				1CFB66A92D84196A6CE8A137 /* PauseToggleButton.swift in Sources */,
+				B2C3D4E5F60718293A4B5C6E /* ActionButtons.swift in Sources */,
 				633881A75EBDA33C78E543E8 /* PlaudClient+Wire.swift in Sources */,
 				65521264937BE36D4ECB5380 /* PlaudClient.swift in Sources */,
 				F07696C708E8A7F1B5AF61C6 /* PlaudSettingsiOSView.swift in Sources */,

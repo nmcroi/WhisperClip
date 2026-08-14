@@ -66,6 +66,9 @@ struct NoteDetailiOSView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            noteActionBar
+        }
         .task {
             // Koppel de controller aan DEZE notitie: opnames worden er áán
             // toegevoegd i.p.v. los opgeslagen.
@@ -198,13 +201,13 @@ struct NoteDetailiOSView: View {
     @ViewBuilder
     private func noteBody(_ entries: [TranscriptEntry]) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+            ForEach(entries, id: \.id) { entry in
                 VStack(alignment: .leading, spacing: 6) {
-                    // Subtiele tijdstempel-scheiding tussen sessies — géén harde
-                    // contentbreuk die als losse entries zou lezen.
-                    if index > 0 {
-                        sessionDivider(for: entry)
-                    }
+                    // Elke sessie zijn eigen tijdstempel, ook de eerste: zonder
+                    // die eerste was onduidelijk of een datum bij de tekst
+                    // erboven of eronder hoorde (13 aug 2026). De datum staat
+                    // altijd BOVEN zijn tekst.
+                    sessionDivider(for: entry)
                     Text(entry.text.trimmingCharacters(in: .whitespacesAndNewlines))
                         .font(ThemeFont.ui(17))
                         .foregroundStyle(Theme.text)
@@ -372,40 +375,62 @@ struct NoteDetailiOSView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Notitie hernoemen")
         }
-        // Links geplaatst (naast de terug-chevron): rechtsboven zweeft het globale
-        // instellingen-tandwiel van RootView.
-        ToolbarItem(placement: .topBarLeading) {
-            Menu {
-                Button {
-                    renameText = note.title
-                    showRename = true
-                } label: {
-                    Label("Hernoem", systemImage: "pencil")
-                }
-                // Hele notitie samenvoegen met een andere (task 4a).
-                Button {
-                    showMergeSheet = true
-                } label: {
-                    Label("Voeg samen met andere notitie…", systemImage: "arrow.triangle.merge")
-                }
-                // AI-samenvatten van de hele notitie (i3): draait op de
-                // samengevoegde tekst van alle opnames in deze notitie.
-                Button {
-                    showSummarizeSheet = true
-                } label: {
-                    Label("Samenvatten met AI…", systemImage: "sparkles")
-                }
-                .disabled(app.modes == nil)
-                Divider()
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Verwijder notitie", systemImage: "trash")
-                }
+    }
+
+    /// De acties zichtbaar naast elkaar in de icoon-stijl, net als op het
+    /// Geschiedenis-detail. Het rondje met drie puntjes is vervallen
+    /// (13 aug 2026): Niels wil de knoppen gewoon zien.
+    private var noteActionBar: some View {
+        HStack(spacing: 4) {
+            Button {
+                renameText = note.title
+                showRename = true
             } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(Theme.accentText)
+                IconActionLabel(
+                    title: L10n.string( "Hernoem", locale: app.interfaceLanguage.locale),
+                    systemImage: "pencil"
+                )
             }
+            .buttonStyle(.plain)
+
+            Button {
+                showMergeSheet = true
+            } label: {
+                IconActionLabel(
+                    title: "Merge",
+                    systemImage: "arrow.triangle.merge"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showSummarizeSheet = true
+            } label: {
+                IconActionLabel(
+                    title: "AI",
+                    systemImage: "sparkles",
+                    isEnabled: app.modes != nil
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(app.modes == nil)
+
+            Button {
+                showDeleteConfirm = true
+            } label: {
+                IconActionLabel(
+                    title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
+                    systemImage: "trash",
+                    iconColor: Theme.danger
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Theme.window)
+        .overlay(alignment: .bottom) {
+            Divider().overlay(Theme.border)
         }
     }
 

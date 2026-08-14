@@ -28,39 +28,42 @@ struct SettingsSheet: View {
     }
 
     var body: some View {
+        // De tint stáát hier en niet op de sheet-wikkel: dit body tekent bij
+        // elke modelwijziging opnieuw, de wikkel niet, waardoor een stijlwissel
+        // in het open venster de oude accentkleur hield (bug 13 aug 2026).
         NavigationStack {
             ZStack {
                 Theme.window.ignoresSafeArea()
                 Form {
                     Section {
-                        NavigationLink {
-                            generalSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { generalSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("Algemeen", symbol: "slider.horizontal.3")
                         }
-                        NavigationLink {
-                            transcriptionSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { transcriptionSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("Opnemen en transcriptie", symbol: "waveform")
                         }
-                        NavigationLink {
-                            meetingSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { meetingSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("Notulen", symbol: "person.2.wave.2")
                         }
-                        NavigationLink {
-                            aiSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { aiSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("AI", symbol: "sparkles")
                         }
-                        NavigationLink {
-                            syncSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { syncSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("Synchronisatie", symbol: "arrow.triangle.2.circlepath")
                         }
-                        NavigationLink {
-                            aboutSettings
-                        } label: {
+                        ZStack {
+                            NavigationLink { aboutSettings } label: { EmptyView() }
+                                .opacity(0)
                             settingsLink("Privacy en over WhisperClip", symbol: "hand.raised")
                         }
                     }
@@ -93,27 +96,70 @@ struct SettingsSheet: View {
         // pushed. Recreate this settings stack after a language switch so no
         // title remains in the previous language.
         .id(app.interfaceLanguage)
+        // Elke render opnieuw gezet: dit body tekent bij iedere modelwijziging,
+        // dus een stijlwissel kleurt de pickers en waardes direct om, ook met
+        // het venster open (bug 13 aug 2026).
+        .tint(Theme.accentText)
     }
 
     private func settingsLink(_ title: LocalizedStringKey, symbol: String) -> some View {
         HStack(spacing: 16) {
+            // Iconen en pijltje in de themakleur, tekst wit (wens 13 aug 2026).
             Image(systemName: symbol)
                 .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(Theme.text)
+                .foregroundStyle(Theme.accentText)
                 .frame(width: 32, alignment: .center)
             Text(title)
                 .foregroundStyle(Theme.text)
             Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.accentText)
         }
         .padding(.vertical, 7)
+    }
+
+    /// Een keuzeregel met de waarde in de exacte themakleur, als vervanging van
+    /// de systeem-Picker die zijn tint niet ververst bij een stijlwissel.
+    private func inlinePickerRow(
+        title: LocalizedStringKey,
+        value: String,
+        @ViewBuilder menu: () -> some View
+    ) -> some View {
+        Menu {
+            menu()
+        } label: {
+            HStack(spacing: 6) {
+                Text(title)
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                Text(value)
+                    .foregroundStyle(Theme.accentText)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.accentText)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var generalSettings: some View {
         Form {
             Section("Weergave") {
-                Picker("Taal van de app", selection: $app.interfaceLanguage) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language.pickerLabel(in: app.interfaceLanguage)).tag(language)
+                // Eigen menuregels met exacte kleur, geen systeem-Picker: iOS
+                // verft de menuwaarde alleen bij het aanmaken, waardoor
+                // "Nederlands" en de stijlnaam na een stijlwissel de oude
+                // kleur hielden tot je het scherm opnieuw opende (13 aug 2026).
+                // Zelfde patroon als de Transcriptietaal op de Notulist.
+                inlinePickerRow(
+                    title: "Taal van de app",
+                    value: app.interfaceLanguage.pickerLabel(in: app.interfaceLanguage)
+                ) {
+                    Picker("Taal van de app", selection: $app.interfaceLanguage) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.pickerLabel(in: app.interfaceLanguage)).tag(language)
+                        }
                     }
                 }
                 Picker("Weergave", selection: $app.appearance) {
@@ -122,6 +168,19 @@ struct SettingsSheet: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                // Het merkthema: alleen de accentkleuren wisselen, de rest van
+                // de app blijft identiek. GHX-huisstijl alleen tonen aan GHX
+                // zelf tot zij toestemming geven (werklijst, sectie 6).
+                inlinePickerRow(
+                    title: "Stijl",
+                    value: app.brand.label(in: app.interfaceLanguage)
+                ) {
+                    Picker("Stijl", selection: $app.brand) {
+                        ForEach(AppBrand.allCases) { brand in
+                            Text(brand.label(in: app.interfaceLanguage)).tag(brand)
+                        }
+                    }
+                }
                 Toggle("Hulptips tonen", isOn: $app.showHelpTips)
                     .tint(Theme.accent)
             }
@@ -219,21 +278,17 @@ struct SettingsSheet: View {
                         .font(ThemeFont.ui(13))
                         .foregroundStyle(Theme.textSecondary)
                     if syncRequiresApproval {
-                        Button("Koppel dit iCloud-account") { showICloudMergeConfirmation = true }
-                            .foregroundStyle(Theme.accentText)
-                    } else if app.icloudSyncEnabled {
-                        Button { Task { await sync.syncNow() } } label: {
-                            Label("Synchroniseer iCloud", systemImage: "arrow.triangle.2.circlepath")
-                                .font(ThemeFont.ui(17, weight: .semibold))
-                                .foregroundStyle(Color.black)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                                .frame(maxWidth: .infinity, minHeight: 52, maxHeight: 52)
-                                .padding(.horizontal, 18)
-                                .background(Theme.accent, in: Capsule())
-                                .contentShape(Rectangle())
+                        ActionButton(title: L10n.string( "Koppel dit iCloud-account", locale: app.interfaceLanguage.locale)) {
+                            showICloudMergeConfirmation = true
                         }
-                        .buttonStyle(.plain)
+                    } else if app.icloudSyncEnabled {
+                        ActionButton(
+                            title: L10n.string( "Synchroniseer iCloud", locale: app.interfaceLanguage.locale),
+                            systemImage: "arrow.triangle.2.circlepath",
+                            role: .primary
+                        ) {
+                            Task { await sync.syncNow() }
+                        }
                     }
                 }
             } header: {
@@ -356,41 +411,40 @@ struct SettingsSheet: View {
                         Text(L10n.string( "•••• opgeslagen", locale: app.interfaceLanguage.locale))
                             .foregroundStyle(Theme.textSecondary)
                     }
-                    Button(role: .destructive) {
+                    ActionButton(
+                        title: L10n.string( "Verwijder API-key", locale: app.interfaceLanguage.locale),
+                        systemImage: "trash",
+                        role: .destructive
+                    ) {
                         deleteKey(for: provider)
-                    } label: {
-                        Label("Verwijder API-key", systemImage: "trash")
                     }
-                    .foregroundStyle(Theme.danger)
                 } else {
                     SecureField(keyPlaceholder(for: provider), text: keyInputBinding(for: provider))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(ThemeFont.ui(16))
-                    Button {
+                    // Gedempt zodra er niets in te vullen valt (2026-08-02).
+                    ActionButton(
+                        title: L10n.string( "API-key opslaan", locale: app.interfaceLanguage.locale),
+                        systemImage: "checkmark.circle",
+                        isEnabled: canSaveKey(for: provider)
+                    ) {
                         saveKey(for: provider)
-                    } label: {
-                        Label("API-key opslaan", systemImage: "checkmark.circle")
                     }
-                    // Geel zolang de knop werkelijk iets doet; gedempt zodra er
-                    // niets in te vullen valt (bevinding 2026-08-02).
-                    .foregroundStyle(canSaveKey(for: provider) ? Theme.accentText : Theme.textSecondary)
-                    .disabled(!canSaveKey(for: provider))
                 }
 
-                Button {
-                    Task { await testConnection(for: provider) }
-                } label: {
-                    HStack {
-                        Label("Verbinding en modellen testen", systemImage: "bolt.horizontal.circle")
-                        if testingProvider == provider {
-                            Spacer()
-                            ProgressView().tint(Theme.accent)
-                        }
+                HStack(spacing: 10) {
+                    ActionButton(
+                        title: L10n.string( "Verbinding en modellen testen", locale: app.interfaceLanguage.locale),
+                        systemImage: "bolt.horizontal.circle",
+                        isEnabled: canTestConnection(for: provider)
+                    ) {
+                        Task { await testConnection(for: provider) }
+                    }
+                    if testingProvider == provider {
+                        ProgressView().tint(Theme.accent)
                     }
                 }
-                .foregroundStyle(canTestConnection(for: provider) ? Theme.accentText : Theme.textSecondary)
-                .disabled(!canTestConnection(for: provider))
 
                 switch testResults[provider] {
                 case .success:
@@ -801,8 +855,13 @@ private struct MeetingContactsSettingsView: View {
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                Button("Voeg toe") { addContact() }
-                    .disabled(!newContactIsValid)
+                ActionButton(
+                    title: L10n.string( "Voeg toe", locale: app.interfaceLanguage.locale),
+                    systemImage: "plus",
+                    isEnabled: newContactIsValid
+                ) {
+                    addContact()
+                }
                 if duplicateEmailWarning {
                     Text("Dit e-mailadres staat al in de lijst. Wijzig die deelnemer hierboven in plaats van een tweede toe te voegen.")
                         .font(ThemeFont.ui(13))

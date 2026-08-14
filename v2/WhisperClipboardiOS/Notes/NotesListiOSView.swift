@@ -267,20 +267,17 @@ struct NoteRowiOS: View {
                 .foregroundStyle(Theme.accentText)
                 .frame(width: 24)
 
+            // Zelfde ontwerp als een geschiedenisregel (13 aug 2026): de
+            // titel groot en wit, de datum grijs eronder. Het tekstfragment is
+            // weg: bij een notitie is de titel de inhoud, het fragment was ruis.
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(ThemeFont.ui(16, weight: .medium))
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
-                if !preview.isEmpty {
-                    Text(preview)
-                        .font(ThemeFont.ui(13))
-                        .foregroundStyle(Theme.textSecondary)
-                        .lineLimit(1)
-                }
                 Text(relativeDate)
-                    .font(ThemeFont.ui(12))
-                    .foregroundStyle(Theme.textTertiary)
+                    .font(ThemeFont.ui(13))
+                    .foregroundStyle(Theme.textSecondary)
             }
             Spacer()
         }
@@ -297,13 +294,13 @@ struct NoteRowiOS: View {
 
     private var relativeDate: String {
         guard let date = note.modifiedDate else { return note.modifiedAt }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = app.interfaceLanguage.locale
-        formatter.unitsStyle = .full
         return String(
             format: L10n.string( "Gewijzigd %@", locale: app.interfaceLanguage.locale),
             locale: app.interfaceLanguage.locale,
-            formatter.localizedString(for: date, relativeTo: Date())
+            date.formatted(
+                .dateTime.day().month(.abbreviated).year().hour().minute()
+                    .locale(app.interfaceLanguage.locale)
+            )
         )
     }
 }
