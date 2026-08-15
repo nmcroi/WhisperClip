@@ -18,6 +18,17 @@ struct RecordingHUDView: View {
     /// Whether to show the latency debug line (UserDefaults `showLatencyHUD`).
     let showLatency: Bool
 
+    /// Lezen en zetten van "direct invoegen", zodat de schakelaar in de HUD zelf
+    /// zit. Wens van Niels op 14 augustus 2026: hij wil dit kunnen omzetten op
+    /// het moment dat hij merkt dat invoegen nu niet uitkomt, niet drie klikken
+    /// diep in Instellingen. Nil = niet gekoppeld, dan verschijnt hij niet.
+    var directInsertionProvider: (() -> Bool)?
+    var setDirectInsertion: ((Bool) -> Void)?
+
+    /// Eigen kopie van de stand, zodat de knop meteen omklapt bij een klik. De
+    /// instelling zelf leeft buiten deze view en publiceert hier niets naartoe.
+    @State private var directInsertionOn = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -78,6 +89,7 @@ struct RecordingHUDView: View {
                     .foregroundStyle(Theme.text)
                 Spacer()
                 LevelBars(meter: levelMeter)
+                insertionToggle
                 PauseResumeButton(isPaused: false) { controller.pauseRecording() }
                 StopButton { controller.stop() }
             }
@@ -111,7 +123,12 @@ struct RecordingHUDView: View {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(Theme.accentText)
-                Text(controller.lastInsertionOutcome == .inserted ? "Ingevoegd" : "Op klembord")
+                // Sinds 14 augustus 2026 staat de tekst ná een invoeging óók nog
+                // op het klembord, dus "Ingevoegd" alleen zou onderverkopen wat
+                // er is gebeurd. Juist dát is het vangnet dat Niels miste.
+                Text(controller.lastInsertionOutcome == .inserted
+                     ? "Ingevoegd en op klembord"
+                     : "Op klembord")
                     .font(ThemeFont.ui(13, weight: .semibold))
                     .foregroundStyle(Theme.text)
                 // Celebrate the speed: the stop→clipboard figure in Dutch.
@@ -122,6 +139,23 @@ struct RecordingHUDView: View {
                 }
                 Spacer()
             }
+        }
+    }
+
+    /// Het schakelaartje "direct invoegen" tijdens het opnemen. Zelfde ronde
+    /// ringvorm als de pauze- en stopknop, gevuld wanneer hij aanstaat.
+    ///
+    /// Bewust hier en niet alleen in Instellingen: je merkt pas dát invoegen
+    /// niet uitkomt op het moment dat je aan het dicteren bent.
+    @ViewBuilder
+    private var insertionToggle: some View {
+        if let provider = directInsertionProvider, let setter = setDirectInsertion {
+            InsertionToggleButton(isOn: directInsertionOn) {
+                let nieuw = !directInsertionOn
+                directInsertionOn = nieuw
+                setter(nieuw)
+            }
+            .onAppear { directInsertionOn = provider() }
         }
     }
 
@@ -240,6 +274,46 @@ private struct PauseResumeButton: View {
         .animation(.easeOut(duration: 0.12), value: hovering)
         .pointingHandCursor(hovering: $hovering)
         .help(isPaused ? "Hervat opname" : "Pauzeer opname")
+    }
+}
+
+/// Zet "direct invoegen" aan of uit, zonder de HUD te verlaten.
+///
+/// Gevuld met een cursor-icoon wanneer invoegen aanstaat, leeg en gedimd
+/// wanneer alleen het klembord wordt gebruikt. De transcriptie belandt in beide
+/// standen op het klembord; deze knop gaat alleen over of hij daarnaast ook
+/// meteen in het actieve venster wordt geplakt.
+private struct InsertionToggleButton: View {
+    let isOn: Bool
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .strokeBorder(isOn ? Theme.accent : Theme.textTertiary, lineWidth: 1.6)
+                    .background(
+                        Circle().fill(
+                            isOn
+                                ? Theme.accent.opacity(hovering ? 0.28 : 0.18)
+                                : (hovering ? Theme.textTertiary.opacity(0.12) : .clear)
+                        )
+                    )
+                Image(systemName: "text.cursor")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(isOn ? Theme.accent : Theme.textTertiary)
+            }
+            .frame(width: 22, height: 22)
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(hovering ? 1.08 : 1.0)
+        .animation(.easeOut(duration: 0.12), value: hovering)
+        .pointingHandCursor(hovering: $hovering)
+        .help(isOn
+              ? "Direct invoegen staat aan. Klik om alleen het klembord te gebruiken."
+              : "Direct invoegen staat uit. Klik om de tekst meteen in te voegen.")
     }
 }
 

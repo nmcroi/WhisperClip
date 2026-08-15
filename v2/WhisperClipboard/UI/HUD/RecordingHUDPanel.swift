@@ -27,6 +27,13 @@ final class RecordingHUDController {
     /// Set by `AppEnvironment` from `settings.appearance`.
     var appearanceProvider: () -> NSAppearance? = { nil }
 
+    /// Leest en zet `settings.directInsertion` voor het schakelaartje in de HUD.
+    /// Als closures ingespoten, net als `appearanceProvider`, zodat de HUD niets
+    /// van `AppEnvironment` hoeft te weten. Nil-safe: zonder wiring staat het
+    /// schakelaartje er gewoon niet.
+    var directInsertionProvider: (() -> Bool)?
+    var setDirectInsertion: ((Bool) -> Void)?
+
     init(controller: DictationController) {
         self.controller = controller
         observePhase()
@@ -159,7 +166,9 @@ final class RecordingHUDController {
         let root = RecordingHUDView(
             controller: controller,
             levelMeter: controller.audioEngine.levelMeter,
-            showLatency: showLatency
+            showLatency: showLatency,
+            directInsertionProvider: directInsertionProvider,
+            setDirectInsertion: setDirectInsertion
         )
         let hosting = NSHostingController(rootView: root)
         hosting.view.frame.size = hosting.view.fittingSize

@@ -59,14 +59,7 @@ final class DictationController: ObservableObject {
     /// Delivers the processed transcript for direct insertion into the target app
     /// (captured at `start()`). Returns the outcome so the HUD line can reflect it.
     /// Nil-safe: when unset, dictation stays clipboard-only.
-    /// De `snapshot` is het klembord zoals het was VÓÓR onze transcriptie erop
-    /// kwam (gemaakt vlak vóór `Clipboard.copy`), zodat de restore-stap het echte
-    /// vorige klembord van de gebruiker kan terugzetten.
-    var insertionHandler: ((_ text: String, _ target: InsertionTarget?, _ snapshot: InsertionService.PasteboardSnapshot?) -> InsertionOutcome)?
-    /// Maakt een momentopname van het huidige klembord VÓÓRDAT de transcriptie
-    /// erop wordt gezet. Nil-safe: zonder handler is er geen snapshot en valt de
-    /// insertion-restore terug op leegmaken.
-    var pasteboardSnapshotProvider: (() -> InsertionService.PasteboardSnapshot?)?
+    var insertionHandler: ((_ text: String, _ target: InsertionTarget?) -> InsertionOutcome)?
     /// Captures the frontmost app at recording start (before the HUD appears).
     var captureInsertionTarget: (() -> InsertionTarget?)?
     /// Called just before a recording actually starts, so live captions can be
@@ -489,20 +482,14 @@ final class DictationController: ObservableObject {
             language: settings.language.isEmpty ? "nl" : settings.language
         )
 
-        // Neem het klembord van de gebruiker vast VÓÓRDAT we onze transcriptie
-        // erop schrijven. Anders zou de insertion-restore straks onze eigen tekst
-        // als "vorige inhoud" opslaan en het echte klembord van de gebruiker
-        // wissen. Nil-safe: zonder provider blijft alles bij het oude.
-        let pasteboardSnapshot = pasteboardSnapshotProvider?()
-
         Clipboard.copy(processed)
         latency.markClipboard()
         lastMetrics = latency.metrics
 
         // Direct insertion (M5): if wired + enabled, attempt to paste the text
-        // into the app that was frontmost when recording started. On any skip or
-        // failure the text simply remains on the clipboard (already copied above).
-        let outcome = insertionHandler?(processed, capturedInsertionTarget, pasteboardSnapshot)
+        // into the app that was frontmost when recording started. De tekst blijft
+        // hoe dan ook op het klembord staan, ook als de invoeging slaagt.
+        let outcome = insertionHandler?(processed, capturedInsertionTarget)
         lastInsertionOutcome = outcome
         capturedInsertionTarget = nil
         switch outcome {

@@ -349,6 +349,13 @@ final class AppEnvironment: ObservableObject {
         // The AppKit overlays (HUD, caption overlay) live outside the SwiftUI
         // colour-scheme environment, so give them the chosen appearance directly;
         // their dynamic `Theme` colors then resolve to the right palette.
+        // Het schakelaartje "direct invoegen" in de HUD zelf (14 augustus 2026).
+        hud.directInsertionProvider = { [weak self] in
+            self?.settings.directInsertion ?? false
+        }
+        hud.setDirectInsertion = { [weak self] aan in
+            self?.settings.directInsertion = aan
+        }
         hud.appearanceProvider = { [weak self] in
             self?.settings.appearance.nsAppearance
         }
@@ -377,14 +384,9 @@ final class AppEnvironment: ObservableObject {
         // Direct insertion wiring (M5). Capture the frontmost app at recording
         // start; attempt insertion at completion (clipboard-only when disabled).
         dictation.captureInsertionTarget = { InsertionService.captureFrontmost() }
-        // Momentopname van het klembord VÓÓR de transcriptie erop komt, zodat de
-        // insertion-restore het echte vorige klembord van de gebruiker terugzet.
-        dictation.pasteboardSnapshotProvider = { [weak self] in
-            self?.insertion.snapshotPasteboard()
-        }
-        dictation.insertionHandler = { [weak self] text, target, snapshot in
+        dictation.insertionHandler = { [weak self] text, target in
             guard let self else { return .clipboardOnly(reason: .disabled) }
-            return self.insertion.insert(text, settings: self.settings, target: target, snapshot: snapshot)
+            return self.insertion.insert(text, settings: self.settings, target: target)
         }
 
         // Woordenlijst-sync (iCloud KV-store): een remote lijst van de iPhone
