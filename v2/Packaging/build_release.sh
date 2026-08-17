@@ -62,10 +62,13 @@ V2_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PROJECT="${V2_DIR}/WhisperClipboard.xcodeproj"
 SCHEME="WhisperClipboard"
 CONFIGURATION="Release"
-# PRODUCT_NAME in project.yml — de gebouwde bundel heet "Whisper Clip.app"
-# (mét spatie, zodat menu/Dock de juiste naam tonen). Het DMG-bestand houdt
-# bewust een naam zonder spatie (nettere download-URL's op GitHub Releases).
-APP_NAME="Whisper Clip"
+# PRODUCT_NAME in project.yml. De bundel heet "WhisperClip.app", ZONDER spatie:
+# het product is op 8 augustus 2026 hernoemd van "Whisper Clip" naar
+# "WhisperClip". Deze regel stond nog op de oude naam, waardoor de release op
+# 17 augustus 2026 afbrak met "Build did not produce ... Whisper Clip.app" nádat
+# de build zelf was geslaagd. Wijzigt PRODUCT_NAME ooit weer, pas dan ook dit
+# aan. Het DMG-bestand houdt de naam WhisperClipboard (nettere download-URL's).
+APP_NAME="WhisperClip"
 DMG_BASE="WhisperClipboard"
 BUNDLE_ID="nl.nielscroiset.whisperclipboard"
 PROD_ENTITLEMENTS="${V2_DIR}/WhisperClipboard/WhisperClipboard.entitlements"

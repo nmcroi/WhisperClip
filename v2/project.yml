@@ -176,9 +176,14 @@ targets:
     # hiervoor door XcodeGen gegenereerd uit een `properties:`-blok. Nu is het
     # een gewoon, met de hand beheerd bestand. Pas je het aan, pas dan het
     # bestand zelf aan; dit blok genereert het niet meer.
+    # ALLEEN Debug. Release moet hier bewust buiten blijven: `build_release.sh`
+    # bouwt ad-hoc (CODE_SIGN_IDENTITY="-", leeg team) en tekent daarna zelf met
+    # de Developer ID plus de juiste entitlements. Hing het xcconfig ook aan
+    # Release, dan erfde die build de PROVISIONING_PROFILE_SPECIFIER uit
+    # Local.xcconfig en brak hij af met "requires a provisioning profile"
+    # (gebeurd op 17 augustus 2026).
     configFiles:
       Debug: Configs/Mac.xcconfig
-      Release: Configs/Mac.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: nl.nielscroiset.whisperclipboard
