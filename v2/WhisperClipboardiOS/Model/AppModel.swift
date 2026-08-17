@@ -81,6 +81,19 @@ final class AppModel: ObservableObject {
         didSet { UserDefaults.standard.set(showHelpTips, forKey: Self.showHelpTipsKey) }
     }
 
+    /// Na hoeveel seconden in de achtergrond de app bij terugkomst weer op het
+    /// opnamescherm klaarstaat. 0 betekent uit: hij blijft dan staan waar je hem
+    /// achterliet.
+    ///
+    /// Wens van Niels op 17 augustus 2026: hij verandert iets in Instellingen,
+    /// veegt de app weg, wil daarna dicteren en moet dan eerst terugklikken,
+    /// op Gereed drukken, naar Opnemen en pas dan opnemen. Vier handelingen
+    /// voordat hij kan praten, terwijl dicteren juist het snelle pad hoort te
+    /// zijn.
+    @Published var returnToRecordAfter: TimeInterval {
+        didSet { UserDefaults.standard.set(returnToRecordAfter, forKey: Self.returnToRecordAfterKey) }
+    }
+
     /// Algemene hoofdschakelaar voor externe AI in de Notulist. Standaard uit;
     /// per vergadering is daarna nog een tweede expliciete keuze vereist.
     @Published var allowMeetingAI: Bool {
@@ -169,6 +182,7 @@ final class AppModel: ObservableObject {
     private static let interfaceLanguageKey = "ios.interfaceLanguage"
     private static let showHelpTipsKey = "ios.showHelpTips"
     private static let allowMeetingAIKey = "ios.allowMeetingAI"
+    private static let returnToRecordAfterKey = "ios.returnToRecordAfter"
     private static let icloudSyncKey = "ios.icloudSyncEnabled"
     private static let replacementsKey = "ios.replacements"
     private static let meetingContactsKey = "ios.meetingContacts"
@@ -188,6 +202,11 @@ final class AppModel: ObservableObject {
         ) ?? .system
         self.showHelpTips = UserDefaults.standard.object(forKey: Self.showHelpTipsKey) as? Bool ?? true
         self.allowMeetingAI = UserDefaults.standard.bool(forKey: Self.allowMeetingAIKey)
+        // Standaard één minuut. `object(forKey:)` en niet `double(forKey:)`,
+        // want die laatste geeft 0 terug als er nog niets is opgeslagen en dat
+        // is hier juist de stand "uit".
+        self.returnToRecordAfter =
+            UserDefaults.standard.object(forKey: Self.returnToRecordAfterKey) as? TimeInterval ?? 60
         self.transcriptionLanguage = TranscriptionLanguage(
             rawValue: UserDefaults.standard.string(forKey: Self.transcriptionLanguageKey) ?? ""
         ) ?? AppFeatureConfiguration.defaultTranscriptionLanguage

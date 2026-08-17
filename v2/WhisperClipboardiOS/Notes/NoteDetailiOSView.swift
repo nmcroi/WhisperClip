@@ -393,6 +393,17 @@ struct NoteDetailiOSView: View {
             }
             .buttonStyle(.plain)
 
+            // Delen ontbrak hier terwijl Geschiedenis het op drie plekken heeft.
+            // Niels liep erop vast op 17 augustus 2026: hij wilde een notitie
+            // doorsturen en kon alleen kopiëren.
+            ShareLink(item: concatenatedText(fetchEntries())) {
+                IconActionLabel(
+                    title: L10n.string( "Deel", locale: app.interfaceLanguage.locale),
+                    systemImage: "square.and.arrow.up"
+                )
+            }
+            .buttonStyle(.plain)
+
             Button {
                 showMergeSheet = true
             } label: {

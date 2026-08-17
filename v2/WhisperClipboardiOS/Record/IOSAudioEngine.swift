@@ -79,6 +79,17 @@ final class IOSAudioEngine {
     /// Called (on the main actor) when a paused capture is successfully RESUMED.
     var onResume: (() -> Void)?
 
+    /// De onderbreking is voorbij, maar hervatten mocht of lukte niet. De opname
+    /// blijft gepauzeerd staan en wacht op de gebruiker.
+    ///
+    /// Hiervoor werd in dit geval afgerond en getranscribeerd. Na een
+    /// telefoontje stuurt iOS het einde van de onderbreking meestal ZONDER
+    /// `.shouldResume`, dus dan was je gesprek opeens opgeknipt in twee
+    /// opnames. Niels op 17 augustus 2026: "Niet dat hij hem afrondt en dat ik
+    /// opeens met allemaal verschillende opnames zit. Ik wil wel dat hij dan
+    /// door kan gaan."
+    var onNeedsManualResume: (() -> Void)?
+
     /// Waarom de capture gepauzeerd is. Een gebruikerspauze (de pauzeknop) en
     /// een OS-onderbreking (telefoontje, Siri) delen hetzelfde mechanisme —
     /// tap eraf, engine gepauzeerd, sessie en stream blijven leven — maar
@@ -243,8 +254,16 @@ final class IOSAudioEngine {
     private func handleInterruptionEnded(shouldResume: Bool) {
         guard isRunning, pauseReason == .interruption else { return }
         guard shouldResume, resumeCapture() else {
-            // Kan niet hervatten → finaliseer wat we hebben.
-            onInterruption?()
+            // Mag of kan niet vanzelf hervatten. NIET afronden: we zetten de
+            // pauze om naar een gebruikerspauze, zodat de opname blijft staan
+            // en de pauzeknop hem weer aan de praat krijgt. Zie de toelichting
+            // bij `onNeedsManualResume`.
+            //
+            // De sessie en de stream blijven leven, dus hervatten plakt gewoon
+            // verder aan dezelfde opname. Lukt dát later alsnog niet, dan valt
+            // `resumeByUser()` terug op afronden met alles tot het pauzemoment.
+            pauseReason = .user
+            onNeedsManualResume?()
             return
         }
         pauseReason = nil

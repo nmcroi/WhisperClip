@@ -144,6 +144,18 @@ struct SettingsSheet: View {
         .buttonStyle(.plain)
     }
 
+    /// De keuzes voor "Terug naar Opnemen". 0 is uit.
+    private static let returnOptions: [TimeInterval] = [0, 30, 60, 300, 900]
+
+    private static func returnLabel(_ seconden: TimeInterval) -> String {
+        switch seconden {
+        case 0: return "Uit"
+        case ..<60: return "Na \(Int(seconden)) sec"
+        case 60: return "Na 1 min"
+        default: return "Na \(Int(seconden / 60)) min"
+        }
+    }
+
     private var generalSettings: some View {
         Form {
             Section("Weergave") {
@@ -183,6 +195,24 @@ struct SettingsSheet: View {
                 }
                 Toggle("Hulptips tonen", isOn: $app.showHelpTips)
                     .tint(Theme.accent)
+            }
+            .listRowBackground(Theme.surface)
+
+            Section {
+                inlinePickerRow(
+                    title: "Terug naar Opnemen",
+                    value: Self.returnLabel(app.returnToRecordAfter)
+                ) {
+                    ForEach(Self.returnOptions, id: \.self) { seconden in
+                        Button(Self.returnLabel(seconden)) {
+                            app.returnToRecordAfter = seconden
+                        }
+                    }
+                }
+            } footer: {
+                Text("Ben je zo lang weg geweest uit de app, dan staat hij bij terugkomst weer klaar op het opnamescherm in plaats van op het scherm waar je hem achterliet.")
+                    .font(ThemeFont.ui(11))
+                    .foregroundStyle(Theme.textSecondary)
             }
             .listRowBackground(Theme.surface)
         }

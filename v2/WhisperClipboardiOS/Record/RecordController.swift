@@ -162,6 +162,17 @@ final class RecordController: ObservableObject, RecordingStopHandling {
             self.status = .recording
             self.liveActivity.setPaused(false)
         }
+        // De onderbreking is voorbij maar iOS hervat niet zelf (na een
+        // telefoontje is dat de regel, niet de uitzondering). De opname blijft
+        // staan als gewone pauze, zodat de pauzeknop hem weer start en het
+        // gesprek één opname blijft.
+        audio.onNeedsManualResume = { [weak self] in
+            guard let self else { return }
+            self.isPaused = true
+            self.pausedByInterruption = false
+            self.status = .paused
+            self.liveActivity.setPaused(true)
+        }
         self.audio = audio
 
         do {

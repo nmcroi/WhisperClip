@@ -32,9 +32,21 @@ private struct ContentShell: View {
     @State private var showSettings = false
     @State private var selectedTab = 0
 
+    /// Wanneer de app naar de achtergrond ging. Nil zolang hij op de voorgrond
+    /// staat.
+    @State private var backgroundedAt: Date?
+
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// De tab met het opnamescherm. Zie `RootView`, waar de tags worden gezet.
+    private static let recordTab = 0
+
     var body: some View {
         RootView(selection: $selectedTab, showSettings: $showSettings)
             .id("\(app.brand.rawValue)-\(app.appearance.rawValue)")
+            .onChange(of: scenePhase) { _, phase in
+                handle(phase)
+            }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
                     .environmentObject(app)
@@ -44,6 +56,36 @@ private struct ContentShell: View {
                     // scherm terugklikte (bug 13 aug 2026).
                     .tint(Theme.accentText)
             }
+    }
+
+    /// Zet de app bij terugkomst weer klaar op het opnamescherm, als hij lang
+    /// genoeg weg is geweest.
+    ///
+    /// Waarom dit bestaat (17 augustus 2026): Niels verandert iets in
+    /// Instellingen, veegt de app weg, en wil een uur later even snel iets
+    /// inspreken. Hij kwam dan terug in Instellingen ▸ Algemeen en moest eerst
+    /// terugklikken, op Gereed drukken, naar Opnemen en pas dán op de
+    /// opnameknop. Dicteren is juist het snelle pad van deze app.
+    ///
+    /// Bewust `.background` en niet `.inactive`: dat laatste vuurt ook bij een
+    /// binnenkomend belletje, het bedieningspaneel of de app-kiezer, en dan zou
+    /// hij zijn scherm kwijtraken terwijl hij nergens heen is geweest.
+    private func handle(_ phase: ScenePhase) {
+        switch phase {
+        case .background:
+            backgroundedAt = Date()
+        case .active:
+            defer { backgroundedAt = nil }
+            let drempel = app.returnToRecordAfter
+            guard drempel > 0, let weg = backgroundedAt else { return }
+            guard Date().timeIntervalSince(weg) >= drempel else { return }
+            // Eerst het instellingenvenster dicht, dan de tab. Andersom zie je
+            // het opnamescherm even achter een venster dat nog dichtklapt.
+            showSettings = false
+            selectedTab = Self.recordTab
+        default:
+            break
+        }
     }
 }
 
