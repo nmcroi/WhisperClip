@@ -122,7 +122,9 @@ final class PlaudSynciOSService: ObservableObject {
                 let alreadyExists = existingPlaud.contains { entry in
                     guard let date = ISO8601DateFormatter().date(from: entry.createdAt) else { return false }
                     let sameMoment = abs(date.timeIntervalSince(started)) < 120
-                    let sameDuration = abs(entry.duration - recording.duration) < 4
+                    // recording.duration komt van PLAUD in milliseconden, entry.duration staat
+                    // in seconden (22 augustus 2026), dus hier ook omrekenen voor de vergelijking.
+                    let sameDuration = abs(entry.duration - recording.duration / 1000) < 4
                     return sameMoment && sameDuration
                 }
                 if alreadyExists { processed.insert(recording.id) }
@@ -203,7 +205,11 @@ final class PlaudSynciOSService: ObservableObject {
                         language: transcriptionLanguage.rawValue,
                         model: "parakeet-tdt-0.6b-v3",
                         source: "plaud.ios",
-                        duration: recording.duration,
+                        // PLAUD levert duration in milliseconden, net als op de Mac (22 augustus 2026).
+                        // De Mac rekent dit nooit letterlijk om want die meet de duur opnieuw uit het
+                        // gedecodeerde audiobestand (zie FileImportService.decodeToPCM). Hier is dat
+                        // bestand na transcriptie al verwijderd, dus wordt het PLAUD-veld zelf omgezet.
+                        duration: recording.duration / 1000,
                         segments: result.segments
                     )
                     try history.add(entry)

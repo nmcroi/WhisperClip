@@ -150,6 +150,30 @@ public enum HistorySchema {
             )
         }
 
+        migrator.registerMigration("v7_plaud_duration_ms_fix") { db in
+            // Bugfix 22 augustus 2026: de iPhone-import van PLAUD-opnames sloeg
+            // `duration` op in milliseconden in plaats van seconden (het
+            // PLAUD-veld is ms, de iOS-code deelde niet door 1000 zoals de Mac dat
+            // via de eigen audiodecoding wel effectief doet). Dit is een
+            // eenmalige, idempotente reparatie via de migrator, dus draait op elk
+            // apparaat (Mac én iPhone) precies één keer bij de eerstvolgende
+            // start en repareert alleen de eigen database. Bewust GEEN gebruik
+            // van HistoryStore.add/update: die lopen via `onChange` en zouden bij
+            // meerdere apparaten een stortvloed aan sync-updates geven voor iets
+            // dat elk apparaat toch al zelf kan herstellen. > 86400s (24 uur) is
+            // de drempel: een echte opname van meer dan een dag komt niet voor,
+            // dus dat onderscheidt foutieve ms-waarden van echte seconden.
+            try db.execute(sql: """
+                UPDATE transcripts
+                SET duration = duration / 1000
+                WHERE source LIKE 'plaud%' AND duration > 86400
+            """)
+            let changes = db.changesCount
+            if changes > 0 {
+                NSLog("HistorySchema: v7_plaud_duration_ms_fix repaired %d row(s)", changes)
+            }
+        }
+
         return migrator
     }
 }

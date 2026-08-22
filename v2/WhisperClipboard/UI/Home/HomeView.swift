@@ -227,10 +227,16 @@ private struct HomeContent: View {
         // The wordmark lives in the sidebar; the content header shows a plain page
         // title so the brand mark isn't rendered twice.
         VStack(alignment: .leading, spacing: 10) {
-            Text("Home")
-            // Zelfde maat als "Notities" en "Geschiedenis": koppen van
-            // gelijke rang krijgen gelijke grootte (14 aug 2026).
-            .font(ThemeFont.ui(20, weight: .bold))
+            HStack(alignment: .firstTextBaseline) {
+                Text("Home")
+                // Zelfde maat als "Notities" en "Geschiedenis": koppen van
+                // gelijke rang krijgen gelijke grootte (14 aug 2026).
+                .font(ThemeFont.ui(20, weight: .bold))
+                Spacer()
+                // Op Home mét tekst: hier wil Niels na een dictaat meteen
+                // kunnen zien of zijn iPhone al mee is (22 aug 2026).
+                SyncNowButton(historySync: environment.historySync, showsLabel: true)
+            }
             statusPill
         }
     }

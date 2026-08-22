@@ -39,10 +39,6 @@ struct HistoryListView: View {
     @State private var renameText = ""
     @State private var deletingEntry: TranscriptEntry?
 
-    /// Of er op dit moment een handmatige synchronisatie loopt. De engine kent
-    /// geen "bezig"-status, dus zonder deze vlag gebeurt er na een klik zichtbaar
-    /// niets tot hij klaar is.
-    @State private var isSyncing = false
 
     /// Of de keuzevraag bij samenvoegen open staat: originelen bewaren of niet.
     @State private var showMergeChoice = false
@@ -176,7 +172,7 @@ struct HistoryListView: View {
                 Text("\(entries.count)")
                     .font(ThemeFont.ui(12, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
-                syncButton
+                SyncNowButton(historySync: environment.historySync)
             }
             .padding(.horizontal, 14)
             .padding(.top, 14)
@@ -319,55 +315,6 @@ struct HistoryListView: View {
         guard gelukt else { return }
         refreshEntries()
         select(entries.first?.id)
-    }
-
-    // MARK: - Sync
-
-    /// Handmatig synchroniseren, met de status als tooltip. Bewust hier en niet
-    /// alleen in Instellingen: dit is het scherm waar je staat als je een opname
-    /// van je iPhone mist.
-    private var syncButton: some View {
-        Button {
-            guard !isSyncing else { return }
-            isSyncing = true
-            Task {
-                await environment.historySync.syncNow()
-                isSyncing = false
-            }
-        } label: {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 12, weight: .medium))
-                // Grijs als er niets te synchroniseren valt. De Designregels
-                // zeggen dat een uitgeschakelde knop niet de accentkleur houdt.
-                .foregroundStyle(syncIsAvailable ? Theme.accent : Theme.textTertiary)
-                .rotationEffect(.degrees(isSyncing ? 360 : 0))
-                .animation(
-                    isSyncing
-                        ? .linear(duration: 1).repeatForever(autoreverses: false)
-                        : .default,
-                    value: isSyncing
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(!syncIsAvailable || isSyncing)
-        .help(syncTooltip)
-        .accessibilityLabel("Synchroniseer met iCloud")
-    }
-
-    /// Of synchroniseren nu iets kan opleveren. Bij `disabled` staat de
-    /// schakelaar uit, bij `unavailable` draagt deze build het CloudKit-recht
-    /// niet of is er geen iCloud-account: in beide gevallen doet klikken niets.
-    private var syncIsAvailable: Bool {
-        switch environment.historySync.status {
-        case .disabled, .unavailable: return false
-        case .requiresApproval, .active, .error: return true
-        }
-    }
-
-    private var syncTooltip: String {
-        isSyncing
-            ? "Bezig met synchroniseren"
-            : "iCloud: \(environment.historySync.status.dutchLabel)"
     }
 
     private var advancedControls: some View {

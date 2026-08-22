@@ -88,6 +88,7 @@
 		8730F933F9C033BD1AB409DD /* PartialAccumulator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC86E857A32F39F643084E6D /* PartialAccumulator.swift */; };
 		8A5B22296DB2A11B1928E254 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78B41E524A625F7A4EB753F1 /* L10n.swift */; };
 		8D2621B8B672C89D6DFFF324 /* PlaudClientIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262D15BDDAC407881937D976 /* PlaudClientIntegrationTests.swift */; };
+		8F640BCA4EFDC593CDECD15E /* SyncNowButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C7F7F034E5625D74FDEFFE3 /* SyncNowButton.swift */; };
 		91A2EF8C37D694C64F725B72 /* SyncStatus+Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE82AEB9CCEB479DC384B4FD /* SyncStatus+Localization.swift */; };
 		9279B36B28194C109B8910A4 /* PlaudSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843351EA43F13695B87EF899 /* PlaudSettingsView.swift */; };
 		94DB4A8F885C1A6CFA70EA1C /* WhisperClipboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DC60D0AD01FB9A0C27FC55 /* WhisperClipboardTests.swift */; };
@@ -212,6 +213,7 @@
 		262D15BDDAC407881937D976 /* PlaudClientIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaudClientIntegrationTests.swift; sourceTree = "<group>"; };
 		29387B38D94A0836DCEBC319 /* InsertionLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionLogicTests.swift; sourceTree = "<group>"; };
 		2A88261D297C8F8330BA7F31 /* InsertionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionSettingsView.swift; sourceTree = "<group>"; };
+		2C7F7F034E5625D74FDEFFE3 /* SyncNowButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncNowButton.swift; sourceTree = "<group>"; };
 		2CC097D11B6921EA8C5F0875 /* AddToNoteSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddToNoteSheet.swift; sourceTree = "<group>"; };
 		2EC60879FEDC6F83986AEE9A /* AutoExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoExportService.swift; sourceTree = "<group>"; };
 		32A9004EDE806642B923E452 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -606,6 +608,7 @@
 			isa = PBXGroup;
 			children = (
 				B9FDB1C6F4C774A6EBB39837 /* ActionCard.swift */,
+				2C7F7F034E5625D74FDEFFE3 /* SyncNowButton.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -1146,6 +1149,7 @@
 				1B17BEFC34473D2671024472 /* RecordingHUDPanel.swift in Sources */,
 				76B0A09BB59439210964062B /* RecordingHUDView.swift in Sources */,
 				4BDDCF7572F25E1E6DBBAA23 /* SettingsStore.swift in Sources */,
+				8F640BCA4EFDC593CDECD15E /* SyncNowButton.swift in Sources */,
 				4491BB563114BD6C7986AE49 /* SystemAudioTap.swift in Sources */,
 				2F3C7714277F2D30ED7287DC /* Theme.swift in Sources */,
 				DE2B08AD32F642D985791269 /* TranscriptAISection.swift in Sources */,

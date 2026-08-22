@@ -576,6 +576,67 @@ final class HistoryStoreTests: XCTestCase {
         )
     }
 
+    // MARK: - PLAUD-duur reparatie (22 augustus 2026)
+
+    /// Simuleert een database van vóór de v7-migratie: rijen worden buiten
+    /// `HistoryStore` om ingevoegd (zoals een bug ze ooit heeft achtergelaten),
+    /// waarna een nieuwe `HistoryStore` over dezelfde queue de migratie draait.
+    /// Alleen de foutieve PLAUD-rij (duration in ms, > 24 uur) hoort te worden
+    /// gerepareerd; een echte mic-opname van 25 uur blijft ongemoeid.
+    func testPlaudDurationMigrationRepairsExistingRows() throws {
+        let queue = try DatabaseQueue()
+        try HistorySchema.migrator().migrate(queue)
+        try queue.write { db in
+            // Doe alsof v7 nog niet gedraaid heeft, zodat de rijen hieronder
+            // "bestaand" zijn op het moment dat de migratie straks draait.
+            try db.execute(sql: "DELETE FROM grdb_migrations WHERE identifier = 'v7_plaud_duration_ms_fix'")
+            try db.execute(sql: """
+                INSERT INTO transcripts
+                    (id, text, created_at, name, pinned, language, model, source, duration, segments, sort_key, speaker_names, modified_at, note_id)
+                VALUES
+                    ('plaud1', 'test', '2026-06-21T10:00:00+02:00', '', 0, 'nl', 'x', 'plaud.ios', 1346000, '[]', 0, '{}', 0, NULL)
+                """)
+            try db.execute(sql: """
+                INSERT INTO transcripts
+                    (id, text, created_at, name, pinned, language, model, source, duration, segments, sort_key, speaker_names, modified_at, note_id)
+                VALUES
+                    ('mic1', 'test', '2026-06-21T10:00:00+02:00', '', 0, 'nl', 'x', 'mic', 90000, '[]', 0, '{}', 0, NULL)
+                """)
+        }
+
+        let store = try HistoryStore(dbQueue: queue, retentionProvider: { nil })
+        let all = try store.entries()
+
+        let plaud = all.first { $0.id == "plaud1" }
+        let mic = all.first { $0.id == "mic1" }
+        XCTAssertEqual(plaud?.duration ?? -1, 1346, accuracy: 0.001, "plaud-rij van 1346000 ms hoort 1346 s te worden")
+        XCTAssertEqual(mic?.duration ?? -1, 90000, accuracy: 0.001, "mic-rij van 25 uur mag niet worden aangeraakt")
+    }
+
+    /// De migratie is idempotent: nog een keer migreren (bijvoorbeeld een
+    /// volgende appstart) mag een al-gerepareerde rij niet nog een keer delen.
+    func testPlaudDurationMigrationRunsOnlyOnce() throws {
+        let queue = try DatabaseQueue()
+        try HistorySchema.migrator().migrate(queue)
+        try queue.write { db in
+            try db.execute(sql: "DELETE FROM grdb_migrations WHERE identifier = 'v7_plaud_duration_ms_fix'")
+            try db.execute(sql: """
+                INSERT INTO transcripts
+                    (id, text, created_at, name, pinned, language, model, source, duration, segments, sort_key, speaker_names, modified_at, note_id)
+                VALUES
+                    ('plaud1', 'test', '2026-06-21T10:00:00+02:00', '', 0, 'nl', 'x', 'plaud.ios', 1346000, '[]', 0, '{}', 0, NULL)
+                """)
+        }
+        _ = try HistoryStore(dbQueue: queue, retentionProvider: { nil })
+        // Nogmaals migreren over dezelfde queue: v7 staat al als toegepast
+        // geregistreerd, dus dit mag geen effect meer hebben.
+        try HistorySchema.migrator().migrate(queue)
+
+        let store2 = try HistoryStore(dbQueue: queue, retentionProvider: { nil })
+        let plaud = try store2.entries().first { $0.id == "plaud1" }
+        XCTAssertEqual(plaud?.duration ?? -1, 1346, accuracy: 0.001)
+    }
+
     // MARK: - FTS pattern helper
 
     func testFTSPatternEscaping() {
