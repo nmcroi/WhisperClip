@@ -7,11 +7,16 @@ import SwiftUI
 /// Owns the menu bar status item and drives the app's activation policy so the
 /// Dock icon only appears while a window is open.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let environment = AppEnvironment()
 
     private var statusItem: NSStatusItem?
     private var statusMenuItem: NSMenuItem?
+    /// Bovenaan het menu: toont de iCloud-syncstatus, alleen ter info (22 augustus 2026).
+    private var icloudStatusMenuItem: NSMenuItem?
+    /// "Synchroniseer nu met iCloud" met cmd-S, staat bovenaan zodat Niels hem
+    /// niet meer in Instellingen ▸ Algemeen hoeft te zoeken (22 augustus 2026).
+    private var icloudSyncNowMenuItem: NSMenuItem?
     private var recordMenuItem: NSMenuItem?
     private var captionsMenuItem: NSMenuItem?
     private var downloadMenuItem: NSMenuItem?
@@ -91,6 +96,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         let menu = NSMenu()
+        menu.delegate = self
+
+        // iCloud-synchronisatie bovenaan: Niels zocht de knop steeds in
+        // Instellingen ▸ Algemeen, dus staat de status en de actie nu meteen
+        // hier (22 augustus 2026). De titel wordt bij elke opening ververst
+        // via `menuNeedsUpdate`, want @Observable trekt niet vanzelf aan een
+        // AppKit-menu.
+        let icloudStatus = NSMenuItem(title: icloudStatusTitle(), action: nil, keyEquivalent: "")
+        icloudStatus.isEnabled = false
+        menu.addItem(icloudStatus)
+        icloudStatusMenuItem = icloudStatus
+
+        let icloudSyncNow = makeItem(title: "Synchroniseer nu met iCloud", action: #selector(syncNowWithICloud), key: "s")
+        menu.addItem(icloudSyncNow)
+        icloudSyncNowMenuItem = icloudSyncNow
+
+        menu.addItem(.separator())
 
         let statusLine = NSMenuItem(title: environment.appState.statusText, action: nil, keyEquivalent: "")
         statusLine.isEnabled = false
@@ -173,6 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = item
         updateStatusIcon(for: environment.appState)
         updateMenuItems()
+        updateICloudMenuItems()
         refreshRecents()
     }
 
@@ -210,6 +233,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return String(singleLine.prefix(48)) + "…"
         }
         return singleLine.isEmpty ? "Zonder titel" : singleLine
+    }
+
+    /// Ververst het iCloud-item elke keer dat het statusbalkmenu opent, want
+    /// `@Observable` geeft geen automatische update voor AppKit-menu's
+    /// (22 augustus 2026).
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        updateICloudMenuItems()
+    }
+
+    private func icloudStatusTitle() -> String {
+        "iCloud: \(environment.historySync.status.dutchLabel)"
+    }
+
+    /// Zet de titel en de aan/uit-status van de iCloud-items in het
+    /// statusbalkmenu (22 augustus 2026).
+    private func updateICloudMenuItems() {
+        icloudStatusMenuItem?.title = icloudStatusTitle()
+
+        guard environment.settings.icloudSyncEnabled else {
+            icloudSyncNowMenuItem?.title = "Synchroniseren staat uit"
+            icloudSyncNowMenuItem?.isEnabled = false
+            return
+        }
+        if case .unavailable = environment.historySync.status {
+            icloudSyncNowMenuItem?.title = "iCloud niet beschikbaar"
+            icloudSyncNowMenuItem?.isEnabled = false
+            return
+        }
+        icloudSyncNowMenuItem?.title = "Synchroniseer nu met iCloud"
+        icloudSyncNowMenuItem?.isEnabled = true
     }
 
     /// Reflects model availability + recording phase in the menu item titles.
@@ -368,6 +421,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func downloadModel() {
         environment.downloadModel()
+    }
+
+    /// "Synchroniseer nu met iCloud" in het statusbalkmenu: meldt het resultaat
+    /// via een banner, want deze flow heeft geen inline UI (22 augustus 2026).
+    @objc private func syncNowWithICloud() {
+        Task {
+            await environment.historySync.syncNow()
+            if case .error(let message) = environment.historySync.status {
+                Notifications.post(message)
+            } else {
+                Notifications.post("iCloud gesynchroniseerd")
+            }
+        }
     }
 
     @objc private func importFile() {
