@@ -284,15 +284,9 @@ public final class HistorySyncEngine: NSObject {
     /// `SecTaskCopyValueForEntitlement`) — precise and non-trapping.
     ///
     /// On **iOS** those SecTask entitlement SPIs are not exposed in the public SDK
-    /// (they don't compile there — confirmed by CI). Instead we probe the exact
-    /// same entitlement via `FileManager.url(forUbiquityContainerIdentifier:)`: the
-    /// `com.apple.developer.icloud-container-identifiers` key covers BOTH CloudKit
-    /// containers and iCloud-Documents ubiquity containers, so this is testing the
-    /// real, signed grant, not a proxy. It is an official, documented, always-safe
-    /// Foundation API — returns nil whenever the app lacks the entitlement or
-    /// iCloud is unavailable, and never traps. This directly fixes the original
-    /// SIGTRAP: the previous iOS check read the embedded provisioning profile
-    /// (what the App ID *may* have), not the real, signed grant.
+    /// (they don't compile there). Sinds 22 augustus 2026 lezen we daar het
+    /// ingebedde provisioning-profiel; zie `iOSProfileProblem(for:)` voor waarom
+    /// dat nu wél betrouwbaar is en waarom de ubiquity-probe ertussen fout was.
     static func hasCloudKitEntitlement(for containerIdentifier: String) -> Bool {
         cloudKitEntitlementProblem(for: containerIdentifier) == nil
     }
@@ -330,11 +324,61 @@ public final class HistorySyncEngine: NSObject {
         }
         return nil
         #else
-        return FileManager.default.url(forUbiquityContainerIdentifier: containerIdentifier) == nil
-            ? "geen ubiquity-container voor \(containerIdentifier), deze build draagt het iCloud-recht niet"
-            : nil
+        return iOSProfileProblem(for: containerIdentifier)
         #endif
     }
+
+    #if !os(macOS)
+    /// iOS: leest de rechten uit het ingebedde provisioning-profiel.
+    ///
+    /// Waarom niet `FileManager.url(forUbiquityContainerIdentifier:)` (zoals
+    /// van 24 juli tot 22 augustus 2026): die API hoort bij iCloud Documents.
+    /// Deze app vraagt bij iCloud alleen CloudKit aan (zie
+    /// WhisperClipboardiOS.entitlements, `icloud-services` = CloudKit), dus er
+    /// bestaat geen ubiquity-container en de API geeft altijd nil. Gevolg: de
+    /// iPhone meldde sinds de build van 15 augustus "iCloud niet beschikbaar"
+    /// en stuurde niets meer, terwijl de Mac (die via SecTask de echte
+    /// handtekening leest) gewoon doorging. Niels zag daardoor op de Mac niets
+    /// nieuwer dan 31 juli.
+    ///
+    /// Waarom het profiel hier wél betrouwbaar is, terwijl dat eerder de
+    /// SIGTRAP gaf: toen vroeg het entitlements-bestand van de iPhone-app de
+    /// container niet aan, dus stond hij wel in het profiel maar niet in de
+    /// handtekening. Nu staat hij in beide, en Apple weigert te tekenen zodra
+    /// een aanvraag buiten het profiel valt. Een getekende toestel-build
+    /// draagt de container dus precies dan wanneer het profiel hem noemt.
+    /// Simulator- en CI-builds hebben geen ingebed profiel en blijven slapend.
+    /// De test `EntitlementsTests` bewaakt dat het entitlements-bestand de
+    /// container blijft noemen.
+    private static func iOSProfileProblem(for containerIdentifier: String) -> String? {
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let data = try? Data(contentsOf: url)
+        else {
+            return "geen ingebed provisioning-profiel (simulator of CI), deze build draagt het iCloud-recht niet"
+        }
+        // Het profiel is een CMS-envelop om een plist; de plist zelf staat er
+        // als platte tekst in. Knip hem eruit zonder het Security-framework.
+        guard let begin = data.range(of: Data("<?xml".utf8)),
+              let end = data.range(of: Data("</plist>".utf8))
+        else {
+            return "ingebed profiel is niet leesbaar"
+        }
+        let plistData = data[begin.lowerBound..<end.upperBound]
+        guard let plist = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
+              let entitlements = plist["Entitlements"] as? [String: Any]
+        else {
+            return "ingebed profiel bevat geen leesbare Entitlements"
+        }
+        let key = "com.apple.developer.icloud-container-identifiers"
+        guard let ids = entitlements[key] as? [String] else {
+            return "het profiel noemt geen CloudKit-containers, verwacht \(containerIdentifier)"
+        }
+        guard ids.contains(containerIdentifier) else {
+            return "profiel geldt voor \(ids.joined(separator: ", ")), maar de app verwacht \(containerIdentifier)"
+        }
+        return nil
+    }
+    #endif
 
     // MARK: - Outbound
 

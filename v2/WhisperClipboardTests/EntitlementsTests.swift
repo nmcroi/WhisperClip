@@ -61,6 +61,26 @@ final class EntitlementsTests: XCTestCase {
         }
     }
 
+    // MARK: - De iPhone-app vraagt de container en CloudKit aan
+
+    /// De iOS-entitlementcheck leest het provisioning-profiel en vertrouwt erop
+    /// dat een getekende build de container draagt. Dat klopt alleen zolang het
+    /// entitlements-bestand van de iPhone-app de container ook aanvraagt; valt
+    /// die regel ooit weg, dan geeft `CKContainer(identifier:)` de SIGTRAP van
+    /// juli terug. Daarom staat dit hier vast.
+    func testIPhoneEntitlementsVragenDeContainerEnCloudKitAan() throws {
+        let url = appSourceDirectory
+            .deletingLastPathComponent()
+            .appendingPathComponent("WhisperClipboardiOS/WhisperClipboardiOS.entitlements")
+        let data = try Data(contentsOf: url)
+        let plist = try XCTUnwrap(
+            try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        )
+        XCTAssertEqual(plist[Self.containerKey] as? [String], [HistorySyncEngine.containerIdentifier])
+        XCTAssertEqual(plist["com.apple.developer.icloud-services"] as? [String], ["CloudKit"],
+                       "alleen CloudKit; iCloud Documents is er bewust niet, dus een ubiquity-probe werkt hier nooit")
+    }
+
     // MARK: - De Debug-variant kan Production niet aanraken
 
     /// De harde randvoorwaarde: het CloudKit-schema is nog niet naar Production
