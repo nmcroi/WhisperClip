@@ -28,7 +28,14 @@ struct ActionCard: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled || action == nil)
-        .onHover { isHovering = $0 && enabled }
+        // AppKit roept `.onHover` altijd op de main thread aan, dus dit mag
+        // rechtstreeks naar `@State` schrijven. Een `Task { @MainActor }`-hop
+        // kostte hier één runlus vertraging op de randanimatie bij hover-in
+        // en -uit (review 22 augustus 2026). Dit verklaart de eerdere crash op
+        // dit frame (EXC_BREAKPOINT, 3 augustus 2026) nog niet: een mislukte
+        // isolatiecontrole geeft een trap op de plek waar iets vanaf een
+        // andere thread deze body evalueert, en dat spoor staat nog open.
+        .onHover { hovering in isHovering = hovering && enabled }
         .animation(.easeInOut(duration: 0.15), value: isHovering)
         .help(enabled ? "" : "Komt in een latere versie")
     }

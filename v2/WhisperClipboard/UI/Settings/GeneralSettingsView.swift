@@ -1,3 +1,4 @@
+import AppKit
 import Core
 import KeyboardShortcuts
 import ServiceManagement
@@ -11,6 +12,7 @@ struct GeneralSettingsView: View {
     @State private var loginItemEnabled = SMAppService.mainApp.status == .enabled
     @State private var loginItemError: String?
     @State private var showICloudMergeConfirmation = false
+    @State private var launchHistory: [LaunchHistoryEntry] = []
 
     var body: some View {
         ScrollView {
@@ -33,12 +35,17 @@ struct GeneralSettingsView: View {
                 hudSection
                 Divider().overlay(Theme.border)
                 loginItemSection
+                Divider().overlay(Theme.border)
+                stabilitySection
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Theme.window)
-        .onAppear { loginItemEnabled = SMAppService.mainApp.status == .enabled }
+        .onAppear {
+            loginItemEnabled = SMAppService.mainApp.status == .enabled
+            launchHistory = LaunchHealth.loadHistory()
+        }
     }
 
     private var header: some View {
@@ -392,6 +399,82 @@ struct GeneralSettingsView: View {
                     .foregroundStyle(Theme.danger)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    // MARK: - Stabiliteit
+
+    private var stabilitySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Stabiliteit")
+                .font(ThemeFont.ui(15, weight: .semibold))
+                .foregroundStyle(Theme.text)
+
+            Text("De laatste tien starts, met of de vorige run netjes eindigde.")
+                .font(ThemeFont.ui(11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if launchHistory.isEmpty {
+                Text("Geen onverwachte stops in de laatste tien starts.")
+                    .font(ThemeFont.ui(11))
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                // De lijst toont altijd alle bekende starts, niet alleen bij een
+                // onverwachte stop: de inleidende zin belooft "de laatste tien
+                // starts" en moet dat ook laten zien (review 22 augustus 2026).
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(launchHistory.enumerated()), id: \.offset) { _, entry in
+                        Text(Self.stabilityLine(for: entry))
+                            .font(ThemeFont.ui(11).monospaced())
+                            .foregroundStyle(entry.outcome == "onverwacht" ? Theme.danger : Theme.textSecondary)
+                    }
+                }
+            }
+
+            ActionButton(
+                title: "Open logmap",
+                systemImage: "folder",
+                role: .secondary,
+                size: .compact
+            ) {
+                NSWorkspace.shared.activateFileViewerSelecting([LaunchHealth.logsDirectory])
+            }
+        }
+    }
+
+    /// Eén keer aangemaakt in plaats van bij elke `body`-pass: `DateFormatter`
+    /// en `ISO8601DateFormatter` zijn beide relatief duur om te initialiseren
+    /// (review 22 augustus 2026).
+    private static let stabilityDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "nl_NL")
+        formatter.dateFormat = "d MMM HH:mm"
+        return formatter
+    }()
+
+    private static let stabilityISOFormatter = ISO8601DateFormatter()
+
+    /// Bijvoorbeeld "21 aug 14:02 · schoon" of
+    /// "20 aug 18:50 · onverwacht gestopt tijdens transcriberen".
+    private static func stabilityLine(for entry: LaunchHistoryEntry) -> String {
+        let timestamp = stabilityISOFormatter.date(from: entry.startedAt)
+            .map(stabilityDayFormatter.string) ?? entry.startedAt
+
+        if entry.outcome == "onverwacht" {
+            let fase = faseOmschrijving(entry.fase)
+            return "\(timestamp) · onverwacht gestopt tijdens \(fase)"
+        }
+        return "\(timestamp) · schoon"
+    }
+
+    private static func faseOmschrijving(_ fase: String?) -> String {
+        switch fase {
+        case "recording": return "opnemen"
+        case "transcribing": return "transcriberen"
+        case "inserting": return "invoegen"
+        case "idle": return "niets"
+        default: return "een onbekende fase"
         }
     }
 

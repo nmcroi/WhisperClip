@@ -188,10 +188,16 @@ final class DictationController: ObservableObject {
         start()
     }
 
-    /// Push-to-talk release.
+    /// Push-to-talk release. Gaat bewust niet via `stop()` (dat loopt door de
+    /// debouncer): een key-up is nooit een bounce van de key-down die de
+    /// opname startte, dus een druk-en-los korter dan de 250 ms debounce-
+    /// interval mocht niet de key-up laten slikken en de microfoon door laten
+    /// lopen tot de volgende druk (bevinding review 22 augustus 2026).
+    /// `performStop()` heeft dezelfde fase-guard, dus rechtstreeks aanroepen
+    /// is veilig.
     func pushToTalkUp() {
         guard phase == .recording || phase == .paused else { return }
-        stop()
+        performStop()
     }
 
     // MARK: - Pauze (HUD-knop)
@@ -213,6 +219,7 @@ final class DictationController: ObservableObject {
         guard phase == .paused else { return }
         if audioEngine.resume() {
             phase = .recording
+            LaunchHealth.setPhase(.recording)
         } else {
             Notifications.post("Hervatten mislukt, de opname wordt afgerond")
             performStop()
@@ -338,6 +345,7 @@ final class DictationController: ObservableObject {
         // Pas hier loopt de microfoon werkelijk; vanaf nu mag de app zeggen dat
         // er wordt opgenomen.
         phase = .recording
+        LaunchHealth.setPhase(.recording)
         onStateChange(.recording)
 
         Notifications.post("Opname gestart")
@@ -386,6 +394,7 @@ final class DictationController: ObservableObject {
 
         latency.markStop()
         phase = .transcribing
+        LaunchHealth.setPhase(.transcribing)
         onStateChange(.transcribing)
 
         audioEngine.stop()
@@ -441,6 +450,7 @@ final class DictationController: ObservableObject {
                 + "De opname is bewaard en wordt bij de volgende start opnieuw aangeboden."
         )
         phase = .idle
+        LaunchHealth.setPhase(.idle)
         onStateChange(.ready)
         finishHUD(success: false)
     }
@@ -489,6 +499,7 @@ final class DictationController: ObservableObject {
         // Direct insertion (M5): if wired + enabled, attempt to paste the text
         // into the app that was frontmost when recording started. De tekst blijft
         // hoe dan ook op het klembord staan, ook als de invoeging slaagt.
+        LaunchHealth.setPhase(.inserting)
         let outcome = insertionHandler?(processed, capturedInsertionTarget)
         lastInsertionOutcome = outcome
         capturedInsertionTarget = nil
@@ -577,10 +588,20 @@ final class DictationController: ObservableObject {
     private func handleFailure(_ error: Error) async {
         // Invalidate the session so any concurrent beginSession() bails.
         sessionToken = UUID()
-        feedTask?.cancel(); feedTask = nil
         partialsTask?.cancel(); partialsTask = nil
         stopElapsedTicker()
+        // audioEngine.cancel() vóór het feedTask-cancel/await: dat sluit de
+        // audio-stream deterministisch af (teardown(finishStream: true) in
+        // AudioEngine.swift), zodat de feed-loop in `beginSession` gegarandeerd
+        // eindigt in plaats van alleen op cancellation-propagatie te vertrouwen
+        // (bevinding review 22 augustus 2026).
         audioEngine.cancel()
+        // Net als in finishSession() eerst awaiten voordat sampleCollector loslaat:
+        // anders kan de feed-loop nog naar de buffer schrijven terwijl die net is
+        // vrijgegeven (22 augustus 2026).
+        feedTask?.cancel()
+        await feedTask?.value
+        feedTask = nil
 
         let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         Notifications.post(message)
@@ -638,6 +659,7 @@ final class DictationController: ObservableObject {
             try? await Task.sleep(for: .milliseconds(lingerMs))
             guard let self, !Task.isCancelled else { return }
             self.phase = .idle
+            LaunchHealth.setPhase(.idle)
         }
     }
 

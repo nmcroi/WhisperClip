@@ -53,6 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Zo vroeg mogelijk: kijkt of de vorige run onverwacht eindigde en
+        // installeert de crash-handlers, vóór de rest van de opbouw
+        // (22 augustus 2026).
+        LaunchHealth.recordLaunch()
+
         // Menu bar utility: no Dock icon until a window opens.
         NSApp.setActivationPolicy(.accessory)
 
@@ -451,6 +456,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    /// Nette afsluiting: marker weg, zodat de volgende start geen "onverwacht
+    /// gestopt" ziet (22 augustus 2026).
+    func applicationWillTerminate(_ notification: Notification) {
+        LaunchHealth.applicationWillTerminate()
     }
 }
 

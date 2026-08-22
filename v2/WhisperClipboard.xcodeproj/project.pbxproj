@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		035D4CFA72BB9CD172C2F866 /* WhisperClipboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B34E3F1AC782ABCCE39DD46 /* WhisperClipboardApp.swift */; };
 		06C4D66B424CFFD61225A861 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = 54A32D5460FC44D8ABE5A235 /* Core */; };
+		0810C57F6814A09105A85BC8 /* LaunchHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC4180626B3180CBB5C8BDB6 /* LaunchHealth.swift */; };
 		087D919C865B76AE66351D69 /* PlaudClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65B7B20B63834594A195E10 /* PlaudClient.swift */; };
 		0EE12090CE4D13F420025E08 /* TranscriptDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CD6C2FE48FA0953A1C105 /* TranscriptDetailView.swift */; };
 		1124BDA07515B84BA2F7CD2A /* ActionButtons.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14A49CBE7A64A0D88683620 /* ActionButtons.swift */; };
@@ -43,6 +44,7 @@
 		4491BB563114BD6C7986AE49 /* SystemAudioTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD66A6B9C9D7987E145C8B2D /* SystemAudioTap.swift */; };
 		460FE395FAA919110DD86D5B /* NoteDetailiOSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB53A07C2C48F5D23D96E4BC /* NoteDetailiOSView.swift */; };
 		463C978E557855ECA13C3458 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32A9004EDE806642B923E452 /* AppModel.swift */; };
+		4AFA787C6CFCE5459ABD2947 /* LaunchHealthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9521CADC85977B097BC658 /* LaunchHealthTests.swift */; };
 		4BDDCF7572F25E1E6DBBAA23 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBA22F137A5DF55B46EBD685 /* SettingsStore.swift */; };
 		4C505FF172728F76C3CC6ECA /* StopRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = F18298A8524EDB5C4AC2B7A5 /* StopRecordingIntent.swift */; };
 		4E8D973EBAB9038CB45D3734 /* PlaudClient+Wire.swift in Sources */ = {isa = PBXBuildFile; fileRef = 537600B94C3D5EF528A8F839 /* PlaudClient+Wire.swift */; };
@@ -287,6 +289,7 @@
 		C93F83536A9CB8C9B298982F /* ThemeiOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeiOS.swift; sourceTree = "<group>"; };
 		CA14638D8E4D06FC83FBE79D /* WhisperClipboardiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperClipboardiOSApp.swift; sourceTree = "<group>"; };
 		CCD515FAF7E91D752A8FF671 /* PauseToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseToggleButton.swift; sourceTree = "<group>"; };
+		CD9521CADC85977B097BC658 /* LaunchHealthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchHealthTests.swift; sourceTree = "<group>"; };
 		CE14FCA0B08F69A881534C49 /* HistoryDetailiOSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryDetailiOSView.swift; sourceTree = "<group>"; };
 		D6F851ED3A796AA4E4EE854F /* AccessibilityPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityPermission.swift; sourceTree = "<group>"; };
 		D7500F947869E624B24DFED7 /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
@@ -303,6 +306,7 @@
 		E46A46581981C43742CDC217 /* ParakeetDownloadLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetDownloadLogicTests.swift; sourceTree = "<group>"; };
 		EA70202789283B8455817753 /* AIRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRunnerView.swift; sourceTree = "<group>"; };
 		EB53A07C2C48F5D23D96E4BC /* NoteDetailiOSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailiOSView.swift; sourceTree = "<group>"; };
+		EC4180626B3180CBB5C8BDB6 /* LaunchHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchHealth.swift; sourceTree = "<group>"; };
 		ECC243434513F757853F766B /* ClaudeClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeClientTests.swift; sourceTree = "<group>"; };
 		EE4F2660720F65B2FB777D02 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		F18298A8524EDB5C4AC2B7A5 /* StopRecordingIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopRecordingIntent.swift; sourceTree = "<group>"; };
@@ -496,6 +500,7 @@
 				5ACB156EE28BE19D3F0F9C80 /* HistorySyncTests.swift */,
 				29387B38D94A0836DCEBC319 /* InsertionLogicTests.swift */,
 				1AF3E700DDA13883FF10D49C /* KeychainStoreTests.swift */,
+				CD9521CADC85977B097BC658 /* LaunchHealthTests.swift */,
 				826BBAD27D8C8176815452C8 /* ModesServiceTests.swift */,
 				E46A46581981C43742CDC217 /* ParakeetDownloadLogicTests.swift */,
 				262D15BDDAC407881937D976 /* PlaudClientIntegrationTests.swift */,
@@ -652,6 +657,7 @@
 				AC7B42FADEACCDC706B65AD4 /* AppState.swift */,
 				029416F2756C062AE6D4E7B6 /* Clipboard.swift */,
 				DCB334E92B82F0FFEDB89656 /* LatencyMetrics.swift */,
+				EC4180626B3180CBB5C8BDB6 /* LaunchHealth.swift */,
 				0ABF735D403D87E00A49F782 /* Notifications.swift */,
 				BBA22F137A5DF55B46EBD685 /* SettingsStore.swift */,
 			);
@@ -1127,6 +1133,7 @@
 				37AC8EBC86F80F24F85960F3 /* InsertionService.swift in Sources */,
 				80AC83D100A81BD05DDE7D1F /* InsertionSettingsView.swift in Sources */,
 				5F45F79D322F348A72B3D7CB /* LatencyMetrics.swift in Sources */,
+				0810C57F6814A09105A85BC8 /* LaunchHealth.swift in Sources */,
 				F74F4B88894C316AED16164E /* MeetingController.swift in Sources */,
 				3549905D032985FEE33E6263 /* MeetingSheet.swift in Sources */,
 				BEB5EE53A1A096082E0F74B4 /* NotesListView.swift in Sources */,
@@ -1180,6 +1187,7 @@
 				B8D15A97F1920833E01A4F2C /* HistorySyncTests.swift in Sources */,
 				2B499ED1D007731BA854B105 /* InsertionLogicTests.swift in Sources */,
 				D9D72C8E2222F74E989D0A57 /* KeychainStoreTests.swift in Sources */,
+				4AFA787C6CFCE5459ABD2947 /* LaunchHealthTests.swift in Sources */,
 				6C3562966E81A6BDF339669F /* ModesServiceTests.swift in Sources */,
 				4EC23057A189024DCE75043D /* ParakeetDownloadLogicTests.swift in Sources */,
 				8D2621B8B672C89D6DFFF324 /* PlaudClientIntegrationTests.swift in Sources */,
