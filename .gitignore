@@ -43,3 +43,6 @@ Releases/
 
 # Gedeelde loop-skills: symlinks naar de vault, niet naar GitHub
 .claude/skills/
+
+# Bewijsmateriaal onafhankelijke review van 1 augustus 2026, geen broncode
+/WhisperClip-final-run-20260801-SvPQWb/
