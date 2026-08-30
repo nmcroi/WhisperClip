@@ -166,6 +166,11 @@ final class AppModel: ObservableObject {
     /// Current model-download / readiness state, driving the onboarding card.
     @Published var modelStatus: ModelAssetStatus = .unknown
 
+    /// Aan tijdens het kopiëren van een handmatig geïmporteerde modelmap naar de
+    /// FluidAudio-cache. Los van `modelStatus`, want dat blijft `.needsDownload`
+    /// terwijl het kopiëren op de achtergrond loopt.
+    @Published var isImportingModel = false
+
     /// Byte-level download progress ("X van Y MB"), nil when not downloading.
     /// Kept separate from `modelStatus` so the fraction and the byte text update
     /// together without widening the shared `ModelAssetStatus` enum.
@@ -349,6 +354,41 @@ final class AppModel: ObservableObject {
             downloadBytes = nil
             modelStatus = .needsDownload(progress: 0)
             errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
+        }
+    }
+
+    /// Alternatieve importroute wanneer de download over het netwerk niet lukt:
+    /// Niels airdropt de map `parakeet-tdt-0.6b-v3` (~460 MB) van zijn Mac naar
+    /// de iPhone en kiest hem hier via een `fileImporter`. `pickedURL` is een
+    /// security-scoped resource (buiten de sandbox van deze app), dus toegang
+    /// moet expliciet aan en weer uit.
+    func importModel(from pickedURL: URL) async {
+        errorMessage = nil
+        let didAccess = pickedURL.startAccessingSecurityScopedResource()
+        defer {
+            if didAccess { pickedURL.stopAccessingSecurityScopedResource() }
+        }
+
+        // Niels kiest soms de modelmap zelf, soms de map eromheen (bijv. de
+        // hele AirDrop-ontvangstmap); resolve zoekt de juiste in beide gevallen.
+        let candidate = ParakeetModelImport.resolveModelDirectory(chosen: pickedURL)
+
+        switch ParakeetModelImport.validate(directory: candidate) {
+        case .failure(let validationError):
+            errorMessage = validationError.localizedDescriptionNL
+        case .success(let validated):
+            isImportingModel = true
+            defer { isImportingModel = false }
+            do {
+                // Bestandswerk op de achtergrond: dit kopieert ~460 MB, dat mag
+                // de UI niet blokkeren.
+                try await Task.detached(priority: .utility) {
+                    try ParakeetModelImport.install(from: validated)
+                }.value
+                await refreshModelStatus()
+            } catch {
+                errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
+            }
         }
     }
 

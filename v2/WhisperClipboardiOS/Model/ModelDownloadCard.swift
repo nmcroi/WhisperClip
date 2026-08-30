@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import WhisperShared
 
 /// First-launch onboarding card shown on the Record tab until the ~460 MB
@@ -6,6 +7,9 @@ import WhisperShared
 /// live progress. Once installed it disappears and the record button takes over.
 struct ModelDownloadCard: View {
     @EnvironmentObject private var app: AppModel
+
+    /// Open/dicht van de map-picker voor de secundaire importroute.
+    @State private var showingImporter = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -37,11 +41,33 @@ struct ModelDownloadCard: View {
         .frame(maxWidth: .infinity)
         .themeCard()
         .padding(.horizontal, 20)
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                Task { await app.importModel(from: url) }
+            case .failure(let error):
+                app.errorMessage = ErrorLocalization.message(for: error, language: app.interfaceLanguage)
+            }
+        }
     }
 
     @ViewBuilder
     private var content: some View {
         switch app.modelStatus {
+        case _ where app.isImportingModel:
+            // Kopiëren van de geïmporteerde map naar de FluidAudio-cache loopt
+            // op de achtergrond; geen fractie beschikbaar, dus een spinner.
+            VStack(spacing: 8) {
+                ProgressView()
+                Text("Model importeren…")
+                    .font(ThemeFont.ui(13))
+                    .foregroundStyle(Theme.textTertiary)
+            }
         case .downloading(let progress):
             VStack(spacing: 8) {
                 ProgressView(value: progress)
@@ -60,21 +86,34 @@ struct ModelDownloadCard: View {
                 .font(ThemeFont.ui(14))
                 .foregroundStyle(Theme.danger)
         default:
-            Button {
-                Task { await app.downloadModel() }
-            } label: {
-                // After a failure the button doubles as the retry action.
-                Text(app.errorMessage == nil
-                     ? L10n.string( "Download model", locale: app.interfaceLanguage.locale)
-                     : L10n.string( "Opnieuw proberen", locale: app.interfaceLanguage.locale))
-                    .font(ThemeFont.ui(16, weight: .semibold))
-                    .foregroundStyle(Theme.onAccent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Theme.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
+            VStack(spacing: 10) {
+                Button {
+                    Task { await app.downloadModel() }
+                } label: {
+                    // After a failure the button doubles as the retry action.
+                    Text(app.errorMessage == nil
+                         ? L10n.string( "Download model", locale: app.interfaceLanguage.locale)
+                         : L10n.string( "Opnieuw proberen", locale: app.interfaceLanguage.locale))
+                        .font(ThemeFont.ui(16, weight: .semibold))
+                        .foregroundStyle(Theme.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Theme.accent)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+                // Secundaire route wanneer de download over het netwerk niet
+                // lukt (bijv. schermvergrendeling breekt hem telkens af):
+                // handmatig een geairdropte modelmap importeren.
+                ActionButton(
+                    title: "Importeer model…",
+                    role: .secondary,
+                    size: .regular
+                ) {
+                    showingImporter = true
+                }
             }
-            .buttonStyle(.plain)
         }
     }
 
