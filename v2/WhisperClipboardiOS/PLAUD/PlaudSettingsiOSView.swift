@@ -115,26 +115,12 @@ struct PlaudSettingsContent: View {
                     }
                 }
 
-                Button {
-                    service.syncNow()
-                } label: {
-                    HStack(spacing: 8) {
-                        RotatingSyncIcon(active: service.isSyncing)
-                        Text("Synchroniseer PLAUD")
-                    }
-                    .font(ThemeFont.ui(16, weight: .semibold))
-                    .foregroundStyle(hasSavedCredentials && !service.isSyncing ? Theme.onAccent : Theme.textTertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 12)
-                    .background(hasSavedCredentials && !service.isSyncing ? Theme.accent : Theme.surfaceHover)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(!hasSavedCredentials || service.isSyncing)
+                // De synchroniseerknop staat sinds 31 aug 2026 op de pagina
+                // Geschiedenis; hier blijven alleen account en periode over.
+                Text("Ophalen doe je met de PLAUD-knop op de pagina Geschiedenis.")
+                    .font(ThemeFont.ui(13))
+                    .foregroundStyle(Theme.textSecondary)
+                    .listRowSeparator(.hidden)
 
                 if service.isSyncing {
                     ActionButton(
@@ -234,24 +220,6 @@ struct PlaudSettingsContent: View {
         } else {
             testMessage = L10n.string( "Verbinding geslaagd", locale: app.interfaceLanguage.locale)
             testSucceeded = true
-        }
-    }
-}
-
-/// Het vertrouwde synchronisatie-icoon is zelf de activiteitsindicator. Zo ziet
-/// de gebruiker meteen dat de tik is aangekomen, ook vóór de eerste opname is
-/// opgehaald en de voortgangsbalk kan bewegen.
-private struct RotatingSyncIcon: View {
-    let active: Bool
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !active)) { context in
-            let angle = active
-                ? context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1) * 360
-                : 0
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .rotationEffect(.degrees(angle))
-                .frame(width: 20, height: 20)
         }
     }
 }

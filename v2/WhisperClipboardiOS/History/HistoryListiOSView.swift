@@ -24,6 +24,8 @@ struct HistoryListiOSView: View {
     /// De opnames waarvoor de bevestiging om samen te voegen open staat.
     @State private var mergeTarget: MergeTarget?
     @State private var showDeleteSelectedConfirm = false
+    /// Waar terwijl "Synchroniseer iCloud" vanuit deze pagina loopt.
+    @State private var isCloudSyncing = false
     @FocusState private var searchFocused: Bool
 
     /// Identifiable-wikkel zodat `sheet(item:)` een losse entry-id kan dragen.
@@ -397,6 +399,13 @@ struct HistoryListiOSView: View {
                     selectButton
                     filterMenu
                     sortMenu
+                    // De syncknoppen staan hier en niet in Instellingen: Niels
+                    // synchroniseert vlak voordat hij de lijst bekijkt, dus de
+                    // knop hoort bij de lijst (wens 31 aug 2026).
+                    cloudSyncButton
+                    #if WHISPERCLIP_PERSONAL || !WHISPERCLIP_PUBLIC
+                    PlaudSyncHistoryButton(service: app.plaudSync, locale: app.interfaceLanguage.locale)
+                    #endif
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 10)
@@ -432,6 +441,38 @@ struct HistoryListiOSView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isSelecting ? "Klaar met selecteren" : "Selecteer opnames")
+    }
+
+    /// Synchroniseert de geschiedenis met iCloud, rechtstreeks vanaf deze
+    /// pagina. Grijs wanneer sync uitstaat of iCloud niet beschikbaar is.
+    private var cloudSyncButton: some View {
+        let sync = app.historySync
+        let available: Bool = {
+            guard app.icloudSyncEnabled, let sync else { return false }
+            switch sync.status {
+            case .active, .error: return true
+            case .disabled, .unavailable, .requiresApproval: return false
+            }
+        }()
+        return Button {
+            guard let sync, !isCloudSyncing else { return }
+            isCloudSyncing = true
+            Task {
+                await sync.syncNow()
+                isCloudSyncing = false
+            }
+        } label: {
+            IconActionLabel(
+                title: isCloudSyncing
+                    ? L10n.string( "Bezig…", locale: app.interfaceLanguage.locale)
+                    : "iCloud",
+                systemImage: "arrow.triangle.2.circlepath.icloud",
+                isEnabled: available && !isCloudSyncing
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!available || isCloudSyncing)
+        .accessibilityLabel("Synchroniseer met iCloud")
     }
 
     private var filterMenu: some View {
@@ -652,6 +693,32 @@ private enum SortOrder: String, CaseIterable, Identifiable {
     case .longest: L10n.string( "Langste eerst", locale: language.locale)
     case .shortest: L10n.string( "Kortste eerst", locale: language.locale)
     } }
+}
+
+/// De PLAUD-syncknop op de geschiedenispagina. Eigen view, zodat de knop de
+/// service observeert en meedraait met de voortgang; de lijstview zelf
+/// observeert alleen het AppModel.
+private struct PlaudSyncHistoryButton: View {
+    @ObservedObject var service: PlaudSynciOSService
+    let locale: Locale
+
+    var body: some View {
+        let configured = PlaudCredentials.load()?.isConfigured == true
+        Button {
+            service.syncNow()
+        } label: {
+            IconActionLabel(
+                title: service.isSyncing
+                    ? L10n.string( "Bezig…", locale: locale)
+                    : "PLAUD",
+                systemImage: "arrow.triangle.2.circlepath",
+                isEnabled: configured && !service.isSyncing
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!configured || service.isSyncing)
+        .accessibilityLabel("Synchroniseer met PLAUD")
+    }
 }
 
 // MARK: - Row

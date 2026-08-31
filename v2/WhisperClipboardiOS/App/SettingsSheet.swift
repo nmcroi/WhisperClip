@@ -312,13 +312,11 @@ struct SettingsSheet: View {
                             showICloudMergeConfirmation = true
                         }
                     } else if app.icloudSyncEnabled {
-                        ActionButton(
-                            title: L10n.string( "Synchroniseer iCloud", locale: app.interfaceLanguage.locale),
-                            systemImage: "arrow.triangle.2.circlepath",
-                            role: .primary
-                        ) {
-                            Task { await sync.syncNow() }
-                        }
+                        // De knop zelf staat sinds 31 aug 2026 op de pagina
+                        // Geschiedenis, waar Niels hem gebruikt.
+                        Text("Synchroniseren doe je met de iCloud-knop op de pagina Geschiedenis.")
+                            .font(ThemeFont.ui(13))
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
             } header: {
