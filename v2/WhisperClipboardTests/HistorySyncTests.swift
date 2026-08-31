@@ -74,6 +74,60 @@ final class HistorySyncTests: XCTestCase {
         XCTAssertEqual(back.entry.speakerNames, ["Spreker 1": "Klant", "Spreker 2": "Verkoper"])
     }
 
+    /// Een opname boven de inline-limiet reist als CKAsset (tekst en segmenten)
+    /// en komt identiek terug; de inline velden zijn dan leeg, zodat het record
+    /// zelf onder de servergrens van 1 MB blijft ("record too large", 31 aug 2026).
+    func testLargeTranscriptTravelsAsAssetsAndRoundTrips() throws {
+        let bigText = String(repeating: "Dit is een heel lange PLAUD-opname. ", count: 30_000)
+        XCTAssertGreaterThan(bigText.utf8.count, TranscriptCloudRecord.inlineByteLimit)
+        let segs = [TranscriptSegment(start: 0, end: 1, text: "Hallo", speaker: "Spreker 1")]
+        let local = TranscriptRecord(
+            entry: entry(id: "plaud-groot", text: bigText, source: "plaud", segments: segs),
+            modifiedAt: 1_700_000_000_000
+        )
+        let zoneID = CKRecordZone.ID(zoneName: TranscriptCloudRecord.zoneName)
+        let ck = CKRecord(
+            recordType: TranscriptCloudRecord.recordType,
+            recordID: CKRecord.ID(recordName: local.id, zoneID: zoneID)
+        )
+
+        TranscriptCloudRecord.apply(local, to: ck)
+
+        XCTAssertNotNil(ck[TranscriptCloudRecord.Field.textAsset] as? CKAsset)
+        XCTAssertNotNil(ck[TranscriptCloudRecord.Field.segmentsAsset] as? CKAsset)
+        XCTAssertEqual(ck[TranscriptCloudRecord.Field.text] as? String, "")
+        XCTAssertEqual((ck[TranscriptCloudRecord.Field.segments] as? Data)?.count, 0)
+
+        let back = TranscriptCloudRecord.local(from: ck)
+        XCTAssertEqual(back.text, bigText)
+        XCTAssertEqual(back.entry.segments.count, 1)
+        XCTAssertEqual(back.entry.segments.first?.speaker, "Spreker 1")
+    }
+
+    /// Een klein record blijft inline en draagt géén assets; en een record dat
+    /// eerder groot was verliest zijn assets zodra het klein opnieuw wordt
+    /// weggeschreven, anders wint de oude asset bij het lezen.
+    func testSmallTranscriptStaysInlineAndClearsStaleAssets() throws {
+        let zoneID = CKRecordZone.ID(zoneName: TranscriptCloudRecord.zoneName)
+        let ck = CKRecord(
+            recordType: TranscriptCloudRecord.recordType,
+            recordID: CKRecord.ID(recordName: "klein", zoneID: zoneID)
+        )
+        let big = TranscriptRecord(
+            entry: entry(id: "klein", text: String(repeating: "x", count: 700_000)),
+            modifiedAt: 1
+        )
+        TranscriptCloudRecord.apply(big, to: ck)
+        XCTAssertNotNil(ck[TranscriptCloudRecord.Field.textAsset] as? CKAsset)
+
+        let small = TranscriptRecord(entry: entry(id: "klein", text: "Kort"), modifiedAt: 2)
+        TranscriptCloudRecord.apply(small, to: ck)
+
+        XCTAssertNil(ck[TranscriptCloudRecord.Field.textAsset])
+        XCTAssertNil(ck[TranscriptCloudRecord.Field.segmentsAsset])
+        XCTAssertEqual(TranscriptCloudRecord.local(from: ck).text, "Kort")
+    }
+
     func testTranscriptCloudRecordRoundTripPreservesNoteLink() {
         let local = TranscriptRecord(
             entry: entry(id: "linked"),

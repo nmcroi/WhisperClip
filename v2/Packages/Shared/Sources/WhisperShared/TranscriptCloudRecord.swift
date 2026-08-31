@@ -34,13 +34,44 @@ public enum TranscriptCloudRecord {
         public static let modifiedAt = "modifiedAt"      // Int64 epoch ms (LWW clock)
         public static let noteId = "noteId"
         public static let noteLinkVersion = "noteLinkVersion"
+        /// CKAsset-varianten van `text` en `segments` voor opnames die anders
+        /// boven de recordlimiet van 1 MB uitkomen ("record too large" bij een
+        /// lange PLAUD-opname, 31 aug 2026). Assets tellen niet mee in die
+        /// limiet. Aanwezig alleen op grote records; kleine blijven inline.
+        public static let textAsset = "textAsset"
+        public static let segmentsAsset = "segmentsAsset"
     }
+
+    /// Boven deze gezamenlijke omvang van tekst plus segmenten (bytes) gaan
+    /// beide velden als CKAsset mee. Ruim onder de harde servergrens van 1 MB,
+    /// zodat de overige velden en CloudKit-overhead er altijd naast passen.
+    public static let inlineByteLimit = 600_000
 
     /// Writes the local record's fields onto a `CKRecord` (create the CKRecord
     /// with the transcript id as its recordName in the transcripts zone first,
     /// or reuse the server-provided one to preserve its change tag).
     public static func apply(_ local: TranscriptRecord, to ck: CKRecord) {
-        ck[Field.text] = local.text as CKRecordValue
+        let textData = Data(local.text.utf8)
+        let segmentsData = Data(local.segments.utf8)
+
+        if textData.count + segmentsData.count > inlineByteLimit,
+           let textURL = writeAssetFile(textData),
+           let segmentsURL = writeAssetFile(segmentsData) {
+            // Groot record: beide blobs als asset, inline leeg. Lukt het
+            // wegschrijven niet, dan valt de record terug op inline en weigert
+            // de server hem zoals voorheen; er gaat nooit stil iets verloren.
+            ck[Field.textAsset] = CKAsset(fileURL: textURL)
+            ck[Field.segmentsAsset] = CKAsset(fileURL: segmentsURL)
+            ck[Field.text] = "" as CKRecordValue
+            ck[Field.segments] = Data() as CKRecordValue
+        } else {
+            ck[Field.text] = local.text as CKRecordValue
+            ck[Field.segments] = segmentsData as CKRecordValue
+            // Een eerder groot record dat lokaal is ingekort mag zijn oude
+            // assets niet houden, anders wint de asset weer bij het lezen.
+            ck[Field.textAsset] = nil
+            ck[Field.segmentsAsset] = nil
+        }
         ck[Field.createdAt] = local.createdAt as CKRecordValue
         ck[Field.name] = local.name as CKRecordValue
         ck[Field.pinned] = (local.pinned ? 1 : 0) as CKRecordValue
@@ -48,11 +79,26 @@ public enum TranscriptCloudRecord {
         ck[Field.model] = local.model as CKRecordValue
         ck[Field.source] = local.source as CKRecordValue
         ck[Field.duration] = local.duration as CKRecordValue
-        ck[Field.segments] = Data(local.segments.utf8) as CKRecordValue
         ck[Field.speakerNames] = Data(local.speakerNames.utf8) as CKRecordValue
         ck[Field.modifiedAt] = local.modifiedAt as CKRecordValue
         ck[Field.noteId] = local.noteId as CKRecordValue?
         ck[Field.noteLinkVersion] = 1 as CKRecordValue
+    }
+
+    /// Schrijft één blob naar een tijdelijk bestand voor CKAsset. CloudKit
+    /// leest het bestand pas bij het daadwerkelijke opslaan, dus het blijft
+    /// staan tot het systeem de tijdelijke map opruimt.
+    private static func writeAssetFile(_ data: Data) -> URL? {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("whisperclip-ck-assets", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let url = dir.appendingPathComponent(UUID().uuidString)
+            try data.write(to: url, options: .atomic)
+            return url
+        } catch {
+            return nil
+        }
     }
 
     /// Reconstructs a local `TranscriptRecord` from a fetched `CKRecord`.
@@ -70,6 +116,18 @@ public enum TranscriptCloudRecord {
             // Also accept a raw string (defensive against schema drift).
             return ck[key] as? String ?? fallback
         }
+        // A large record carries its blobs as CKAsset files; the asset wins
+        // over the (emptied) inline field. An unreadable asset file falls back
+        // to inline so nothing crashes on a half-downloaded record.
+        func assetString(_ key: String) -> String? {
+            guard let asset = ck[key] as? CKAsset,
+                  let url = asset.fileURL,
+                  let data = try? Data(contentsOf: url),
+                  !data.isEmpty,
+                  let s = String(data: data, encoding: .utf8)
+            else { return nil }
+            return s
+        }
         let pinned: Bool
         if let n = ck[Field.pinned] as? Int64 { pinned = n != 0 }
         else if let n = ck[Field.pinned] as? Int { pinned = n != 0 }
@@ -86,7 +144,7 @@ public enum TranscriptCloudRecord {
 
         return TranscriptRecord(
             id: ck.recordID.recordName,
-            text: string(Field.text),
+            text: assetString(Field.textAsset) ?? string(Field.text),
             createdAt: createdAt,
             name: string(Field.name),
             pinned: pinned,
@@ -94,7 +152,7 @@ public enum TranscriptCloudRecord {
             model: string(Field.model),
             source: string(Field.source, "mic"),
             duration: ck[Field.duration] as? Double ?? 0,
-            segments: jsonString(Field.segments, "[]"),
+            segments: assetString(Field.segmentsAsset) ?? jsonString(Field.segments, "[]"),
             sortKey: sortKey,
             speakerNames: jsonString(Field.speakerNames, "{}"),
             modifiedAt: modifiedAt,
