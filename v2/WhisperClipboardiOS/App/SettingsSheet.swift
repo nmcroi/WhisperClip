@@ -85,11 +85,10 @@ struct SettingsSheet: View {
                 Text(iCloudApprovalMessage)
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Gereed") { dismiss() }
-                        .foregroundStyle(Theme.accentText)
-                }
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                dismiss()
             }
         }
         // Navigation titles/back labels are cached by iOS while a stack is
@@ -117,6 +116,22 @@ struct SettingsSheet: View {
                 .foregroundStyle(Theme.accentText)
         }
         .padding(.vertical, 7)
+    }
+
+    /// Dezelfde gele rij als op de hoofdpagina, maar dan voor een subpagina.
+    /// De subpagina's tekenden eerst een kale `NavigationLink` met de grijze
+    /// systeem-chevron, waardoor twee soorten doorklikrijen naast elkaar
+    /// stonden (2 sep 2026).
+    private func settingsNavigationRow<Destination: View>(
+        _ title: LocalizedStringKey,
+        symbol: String,
+        @ViewBuilder destination: () -> Destination
+    ) -> some View {
+        ZStack {
+            NavigationLink(destination: destination()) { EmptyView() }
+                .opacity(0)
+            settingsLink(title, symbol: symbol)
+        }
     }
 
     /// Een keuzeregel met de waarde in de exacte themakleur, als vervanging van
@@ -147,12 +162,24 @@ struct SettingsSheet: View {
     /// De keuzes voor "Terug naar Opnemen". 0 is uit.
     private static let returnOptions: [TimeInterval] = [0, 30, 60, 300, 900]
 
-    private static func returnLabel(_ seconden: TimeInterval) -> String {
+    private static func returnLabel(_ seconden: TimeInterval, locale: Locale) -> String {
         switch seconden {
-        case 0: return "Uit"
-        case ..<60: return "Na \(Int(seconden)) sec"
-        case 60: return "Na 1 min"
-        default: return "Na \(Int(seconden / 60)) min"
+        case 0:
+            return L10n.string( "Uit", locale: locale)
+        case ..<60:
+            return String(
+                format: L10n.string( "Na %lld sec", locale: locale),
+                locale: locale,
+                Int(seconden)
+            )
+        case 60:
+            return L10n.string( "Na 1 min", locale: locale)
+        default:
+            return String(
+                format: L10n.string( "Na %lld min", locale: locale),
+                locale: locale,
+                Int(seconden / 60)
+            )
         }
     }
 
@@ -201,10 +228,10 @@ struct SettingsSheet: View {
             Section {
                 inlinePickerRow(
                     title: "Terug naar Opnemen",
-                    value: Self.returnLabel(app.returnToRecordAfter)
+                    value: Self.returnLabel(app.returnToRecordAfter, locale: app.interfaceLanguage.locale)
                 ) {
                     ForEach(Self.returnOptions, id: \.self) { seconden in
-                        Button(Self.returnLabel(seconden)) {
+                        Button(Self.returnLabel(seconden, locale: app.interfaceLanguage.locale)) {
                             app.returnToRecordAfter = seconden
                         }
                     }
@@ -224,10 +251,8 @@ struct SettingsSheet: View {
     private var transcriptionSettings: some View {
         Form {
             Section {
-                NavigationLink {
+                settingsNavigationRow("Woordenlijst", symbol: "character.book.closed") {
                     DictionaryiOSView()
-                } label: {
-                    Label("Woordenlijst", systemImage: "character.book.closed")
                 }
             } footer: {
                 Text("Voeg eigen namen en woorden toe die de spraakherkenning moet corrigeren.")
@@ -251,10 +276,8 @@ struct SettingsSheet: View {
     private var meetingSettings: some View {
         Form {
             Section {
-                NavigationLink {
+                settingsNavigationRow("Vaste deelnemers", symbol: "person.2") {
                     MeetingContactsSettingsView()
-                } label: {
-                    Label("Vaste deelnemers", systemImage: "person.2")
                 }
             } footer: {
                 Text("Beheer ontvangers die je snel aan een vergadering kunt toevoegen.")
@@ -360,7 +383,7 @@ struct SettingsSheet: View {
             .listRowBackground(Theme.surface)
         }
         .settingsPageStyle()
-        .navigationTitle("Privacy en over")
+        .navigationTitle("Privacy en over WhisperClip")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -476,8 +499,10 @@ struct SettingsSheet: View {
 
                 switch testResults[provider] {
                 case .success:
+                    // Grijs, want dit is een uitkomst en geen knop. Bij PLAUD
+                    // stond dezelfde melding al grijs (2 sep 2026).
                     Label("Verbinding geslaagd; modellen bijgewerkt", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(Theme.accentText)
+                        .foregroundStyle(Theme.textSecondary)
                         .font(ThemeFont.ui(14))
                 case .failure(let message):
                     Label(message, systemImage: "exclamationmark.triangle.fill")
@@ -503,22 +528,30 @@ struct SettingsSheet: View {
 
         if let modes = app.modes {
             Section {
-                NavigationLink {
-                    APIUsageDetailView(modes: modes)
-                } label: {
-                    HStack {
-                        Label("API-verbruik", systemImage: "dollarsign.circle")
-                            .font(ThemeFont.ui(15, weight: .semibold))
+                ZStack {
+                    NavigationLink { APIUsageDetailView(modes: modes) } label: { EmptyView() }
+                        .opacity(0)
+                    HStack(spacing: 16) {
+                        Image(systemName: "dollarsign.circle")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(Theme.accentText)
+                            .frame(width: 32, alignment: .center)
+                        Text("API-verbruik")
+                            .foregroundStyle(Theme.text)
                         Spacer()
-                        // Deze rij navigeert naar een volgende pagina en heeft
-                        // dus al een pijltje; geel is hier voorbehouden aan
-                        // acties zonder pijltje (regel Niels, 2026-08-02).
+                        // Het bedrag zelf is informatie en blijft wit; het
+                        // pijltje erachter draagt de themakleur, net als op de
+                        // andere doorklikrijen (regel Niels, 2026-08-02).
                         Text(modes.estimatedCostUSD.formatted(
                             .currency(code: "USD").locale(app.interfaceLanguage.locale)
                         ))
                             .font(ThemeFont.ui(17, weight: .bold))
                             .foregroundStyle(Theme.text)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Theme.accentText)
                     }
+                    .padding(.vertical, 7)
                 }
             } footer: {
                 Text("Tokenaantallen en kosten zijn schattingen per aanbieder en model; de factuur van de aanbieder is altijd leidend.")
@@ -584,8 +617,8 @@ struct SettingsSheet: View {
             apiKeyInputs[provider] = ""
             testResults[provider] = nil
         } catch {
-            testResults[provider] = .failure(String(
-                localized: "Kon de API-key niet opslaan in de Keychain.",
+            testResults[provider] = .failure(L10n.string(
+                "Kon de API-key niet opslaan in de Keychain.",
                 locale: app.interfaceLanguage.locale
             ))
         }
@@ -644,6 +677,10 @@ private extension View {
             .scrollContentBackground(.hidden)
             .background(Theme.window)
             .foregroundStyle(Theme.text)
+            // Elke instellingenpagina met een invoerveld (PLAUD, deelnemers,
+            // API-keys) sluit het toetsenbord door naar beneden te vegen
+            // (2 sep 2026).
+            .scrollDismissesKeyboard(.interactively)
     }
 }
 
@@ -680,6 +717,7 @@ private struct APIUsageDetailView: View {
             } header: {
                 Text("Kostenverloop")
             }
+            .listRowBackground(Theme.surface)
 
             Section("Overzicht") {
                 usageRow(L10n.string( "Vandaag", locale: app.interfaceLanguage.locale), events: events(since: Calendar.current.startOfDay(for: Date())))
@@ -687,6 +725,7 @@ private struct APIUsageDetailView: View {
                 usageRow(L10n.string( "Deze maand", locale: app.interfaceLanguage.locale), events: events(since: startOfMonth))
                 LabeledContent("Totaal", value: currency(modes.estimatedCostUSD))
             }
+            .listRowBackground(Theme.surface)
 
             if !providerTotals.isEmpty {
                 Section("Per aanbieder en model") {
@@ -704,6 +743,7 @@ private struct APIUsageDetailView: View {
                         }
                     }
                 }
+                .listRowBackground(Theme.surface)
             }
 
             if !buckets.isEmpty {
@@ -729,6 +769,7 @@ private struct APIUsageDetailView: View {
                         }
                     }
                 }
+                .listRowBackground(Theme.surface)
             }
 
             if !modes.usageEvents.isEmpty {
@@ -737,8 +778,10 @@ private struct APIUsageDetailView: View {
                         LabeledContent(total.name, value: currency(total.cost))
                     }
                 }
+                .listRowBackground(Theme.surface)
             }
         }
+        .settingsPageStyle()
         .navigationTitle("API-verbruik")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -876,6 +919,7 @@ private struct MeetingContactsSettingsView: View {
             } footer: {
                 Text("Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe notulenopname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud.")
             }
+            .listRowBackground(Theme.surface)
 
             Section {
                 TextField("Naam", text: $newName)
@@ -898,8 +942,11 @@ private struct MeetingContactsSettingsView: View {
             } header: {
                 Text("Deelnemer toevoegen")
             }
+            .listRowBackground(Theme.surface)
         }
+        .settingsPageStyle()
         .navigationTitle("Vaste deelnemers")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private func addContact() {

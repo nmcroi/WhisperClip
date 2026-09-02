@@ -113,18 +113,39 @@ public enum ParakeetModelImport {
         AsrModels.defaultCacheDirectory(for: .v3)
     }
 
-    /// Kopieert een gevalideerde modelmap naar de doellocatie, en verwijdert
-    /// eerst een eventuele bestaande (halve) map op die plek. Puur
-    /// bestandswerk zonder UIKit, dus aan te roepen vanaf een achtergrondtaak.
+    /// Kopieert een gevalideerde modelmap naar de doellocatie. Puur bestandswerk
+    /// zonder UIKit, dus aan te roepen vanaf een achtergrondtaak.
+    ///
+    /// De kopie gaat eerst naar een tijdelijke buurmap en vervangt het doel pas
+    /// als hij compleet is. Voorheen werd het bestaande model als eerste
+    /// weggegooid: brak de kopie daarna af (te weinig ruimte, AirDrop-map
+    /// ingetrokken), dan had de gebruiker helemaal geen model meer.
     public static func install(from source: URL, to destination: URL = destinationDirectory) throws {
         let fm = FileManager.default
-        if fm.fileExists(atPath: destination.path) {
-            try fm.removeItem(at: destination)
-        }
-        try fm.createDirectory(
-            at: destination.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+        let parent = destination.deletingLastPathComponent()
+        try fm.createDirectory(at: parent, withIntermediateDirectories: true)
+
+        let staging = parent.appendingPathComponent(
+            ".\(destination.lastPathComponent).import-\(UUID().uuidString)"
         )
-        try fm.copyItem(at: source, to: destination)
+        do {
+            try fm.copyItem(at: source, to: staging)
+        } catch {
+            try? fm.removeItem(at: staging)
+            throw error
+        }
+
+        do {
+            if fm.fileExists(atPath: destination.path) {
+                // Wisselt de mappen om en ruimt de oude op; `staging` bestaat
+                // daarna niet meer.
+                _ = try fm.replaceItemAt(destination, withItemAt: staging)
+            } else {
+                try fm.moveItem(at: staging, to: destination)
+            }
+        } catch {
+            try? fm.removeItem(at: staging)
+            throw error
+        }
     }
 }

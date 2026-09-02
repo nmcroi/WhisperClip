@@ -8,6 +8,8 @@ import WhisperShared
 @MainActor
 final class PlaudSynciOSService: ObservableObject {
     @Published private(set) var isSyncing = false
+    /// Aan tussen het afbreken en het werkelijk klaar zijn van de sync.
+    @Published private(set) var isCancelling = false
     @Published private(set) var progressFraction = 0.0
     @Published private(set) var lastImportedCount = 0
     @Published private(set) var lastSyncedAt: Date?
@@ -46,16 +48,30 @@ final class PlaudSynciOSService: ObservableObject {
     }
 
     func syncNow() {
-        guard !isSyncing else { return }
+        guard !isSyncing, !isCancelling else { return }
+        // Synchroon zetten, nog vóór de Task: anders liep `isSyncing` pas bij de
+        // eerste await van `performSync` aan en startten twee snelle tikken twee
+        // syncs naast elkaar.
+        isSyncing = true
         task = Task { await performSync() }
     }
 
     func cancel() {
-        task?.cancel()
-        task = nil
-        isSyncing = false
-        progressState = .stopped
-        progressFraction = 0
+        guard let task, !isCancelling else { return }
+        // De knop blijft uit tot de afgebroken taak werkelijk klaar is: hij
+        // hangt aan `isSyncing`, en die zet `performSync` in zijn eigen defer
+        // terug. Anders kon je tijdens het afbreken alweer een nieuwe sync
+        // starten die met de vorige om dezelfde ledger vocht.
+        isCancelling = true
+        self.task = nil
+        task.cancel()
+        Task { [weak self] in
+            await task.value
+            guard let self else { return }
+            self.isCancelling = false
+            self.progressState = .stopped
+            self.progressFraction = 0
+        }
     }
 
     func testConnection(_ credentials: PlaudCredentials) async -> String? {
@@ -77,6 +93,10 @@ final class PlaudSynciOSService: ObservableObject {
     }
 
     private func performSync() async {
+        // `isSyncing` wordt in `syncNow()` gezet, dus ook de vroege uitgangen
+        // hieronder moeten hem weer uitzetten: vandaar deze defer helemaal
+        // bovenaan.
+        defer { isSyncing = false }
         guard let app, let history = app.history else {
             progressState = .failure(.historyUnavailable)
             return
@@ -86,11 +106,9 @@ final class PlaudSynciOSService: ObservableObject {
             return
         }
 
-        isSyncing = true
         lastImportedCount = 0
         progressFraction = 0
         progressState = .fetching
-        defer { isSyncing = false }
 
         let now = Date()
         let configuredHours = UserDefaults.standard.object(forKey: "ios.plaud.windowHours") as? Int

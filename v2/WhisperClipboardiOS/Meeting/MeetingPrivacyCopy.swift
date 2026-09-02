@@ -20,11 +20,8 @@ struct MeetingPrivacyCopy {
         let text: String
     }
 
-    let title: String
-    let subtitle: String
     let cards: [Card]
     let spokenText: String
-    let play: String
     let stop: String
     let voiceHint: String
     let voiceAccessibilityHint: String
@@ -56,12 +53,9 @@ struct MeetingPrivacyCopy {
             final = "De schakelaar AI-notulen staat aan. De transcriptietekst wordt daarom na afloop ook door een externe AI-dienst verwerkt tot bijvoorbeeld een samenvatting en actiepunten. De volledige oorspronkelijke transcriptie blijft onderdeel van het verslag."
         }
         return copy(
-            title: "WhisperClip Notulist",
-            subtitle: "Korte uitleg voor de aanwezigen",
             headings: ("Wat deze notulist doet", "Privacy tijdens de vergadering", "Na afloop", "Help de transcriptie", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "Dit is de WhisperClip Notulist. \(intro) \(pause) \(after) \(help) \(final)",
-            play: "Lees voor aan aanwezigen",
             stop: "Stop voorlezen",
             hint: "Voorlezen start geen opname en bewaart niets extra's.",
             accessibilityHint: "Speelt alleen de uitleg af en start geen opname"
@@ -87,12 +81,9 @@ struct MeetingPrivacyCopy {
             final = "The AI minutes switch is on. After the meeting, the transcript text is also processed by an external AI service to create items such as a summary and action points. The full original transcript remains part of the report."
         }
         return copy(
-            title: "WhisperClip Minute Taker",
-            subtitle: "Brief explanation for everyone present",
             headings: ("What this minute taker does", "Privacy during the meeting", "After the meeting", "Help the transcription", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "This is the WhisperClip Minute Taker. \(intro) \(pause) \(after) \(help) \(final)",
-            play: "Read aloud to attendees",
             stop: "Stop reading",
             hint: "Reading this aloud does not start a recording or save anything extra.",
             accessibilityHint: "Only reads the explanation aloud and does not start a recording"
@@ -118,12 +109,9 @@ struct MeetingPrivacyCopy {
             final = "Der Schalter KI-Protokoll ist eingeschaltet. Der Transkripttext wird daher nach der Besprechung auch von einem externen KI-Dienst verarbeitet, beispielsweise zu einer Zusammenfassung und Aktionspunkten. Das vollständige ursprüngliche Transkript bleibt Bestandteil des Berichts."
         }
         return copy(
-            title: "WhisperClip Protokoll",
-            subtitle: "Kurze Erklärung für alle Anwesenden",
             headings: ("Was diese Protokollfunktion tut", "Datenschutz während der Besprechung", "Nach der Besprechung", "Unterstützen Sie die Transkription", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "Dies ist die WhisperClip Protokollfunktion. \(intro) \(pause) \(after) \(help) \(final)",
-            play: "Anwesenden vorlesen",
             stop: "Vorlesen beenden",
             hint: "Das Vorlesen startet keine Aufnahme und speichert keine zusätzlichen Daten.",
             accessibilityHint: "Liest nur die Erklärung vor und startet keine Aufnahme"
@@ -131,19 +119,14 @@ struct MeetingPrivacyCopy {
     }
 
     private static func copy(
-        title: String,
-        subtitle: String,
         headings: (String, String, String, String, String),
         texts: (String, String, String, String, String),
         spoken: String,
-        play: String,
         stop: String,
         hint: String,
         accessibilityHint: String
     ) -> Self {
         Self(
-            title: title,
-            subtitle: subtitle,
             cards: [
                 Card(id: "purpose", title: headings.0, symbol: "person.2.wave.2.fill", text: texts.0),
                 Card(id: "pause", title: headings.1, symbol: "pause.circle.fill", text: texts.1),
@@ -152,7 +135,6 @@ struct MeetingPrivacyCopy {
                 Card(id: "ai", title: headings.4, symbol: "sparkles", text: texts.4),
             ],
             spokenText: spoken,
-            play: play,
             stop: stop,
             voiceHint: hint,
             voiceAccessibilityHint: accessibilityHint

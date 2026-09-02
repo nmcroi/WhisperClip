@@ -11,7 +11,7 @@ import Foundation
 struct RecordingActivityAttributes: ActivityAttributes {
     /// De dynamische, per-update-verversbare toestand van de opname.
     public struct ContentState: Codable, Hashable {
-        /// Recente, gladgestreken microfoonniveaus (0…1) — voedt de equalizer-
+        /// Recente, gladgestreken microfoonniveaus (0…1), voedt de equalizer-
         /// balken zodat ze onderling verschillen. Meestal 6–8 waarden.
         var levels: [Double]
         /// Wanneer de opname begon. De widget toont hiermee een native tikkende
@@ -24,5 +24,5 @@ struct RecordingActivityAttributes: ActivityAttributes {
 
     /// Statische, niet-veranderende identiteit van de activiteit. Leeg: alle
     /// zichtbare data zit in `ContentState`.
-    // (bewust geen velden — houdt de attributes klein en Codable-simpel)
+    // (bewust geen velden, dat houdt de attributes klein en Codable-simpel)
 }

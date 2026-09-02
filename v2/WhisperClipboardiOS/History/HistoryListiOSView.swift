@@ -188,6 +188,9 @@ struct HistoryListiOSView: View {
             controlsRow(visible: entries.count, total: total)
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
+                // Vaste balken die niet meescrollen dragen allemaal hetzelfde
+                // vlak, net als de selectiebalk onderaan (2 sep 2026).
+                .background(Theme.surface)
             if entries.isEmpty {
                 emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -282,7 +285,7 @@ struct HistoryListiOSView: View {
                     mergeTarget = MergeTarget(entries: chosen)
                 } label: {
                     IconActionLabel(
-                        title: "Merge",
+                        title: L10n.string( "Voeg samen", locale: app.interfaceLanguage.locale),
                         systemImage: "arrow.triangle.merge",
                         isEnabled: chosen.count >= 2
                     )
@@ -414,7 +417,12 @@ struct HistoryListiOSView: View {
                     // Eén syncknop voor iCloud én PLAUD samen: het onderscheid
                     // zei Niels niets, hij wil gewoon "alles binnenhalen"
                     // (2 sep 2026). Instellen blijft in Instellingen.
-                    SyncAllButton(app: app, plaud: app.plaudSync, isCloudSyncing: $isCloudSyncing)
+                    // Valt er niets te halen (geen iCloud én geen PLAUD-account),
+                    // dan staat de knop er helemaal niet; uitgegrijsd liet hij
+                    // een dode knop zien waar niets mee te doen was.
+                    if SyncAvailability.any(app) {
+                        SyncAllButton(app: app, plaud: app.plaudSync, isCloudSyncing: $isCloudSyncing)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 10)
@@ -423,11 +431,20 @@ struct HistoryListiOSView: View {
             // systeemscheiding van de lijst en die rendert lichter; het aantal
             // hing bovendien te dicht tegen de knoppen (13 aug 2026).
             Rectangle().fill(Theme.border).frame(height: Theme.Metrics.hairline)
-            Text(countLabel(visible: visible, total: total))
-                .font(ThemeFont.ui(13, weight: .medium))
-                .foregroundStyle(Theme.textSecondary)
-                .lineLimit(1)
-                .padding(.vertical, 12)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(countLabel(visible: visible, total: total))
+                    .lineLimit(1)
+                // De Sync-knop gaf geen enkel teken van leven. Zijn uitkomst
+                // hoort hier, in dezelfde grijze regel als het aantal
+                // (2 sep 2026).
+                if !isSelecting {
+                    SyncStatusLine(app: app, plaud: app.plaudSync, isCloudSyncing: isCloudSyncing)
+                }
+            }
+            .font(ThemeFont.ui(13, weight: .medium))
+            .foregroundStyle(Theme.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
             Rectangle().fill(Theme.border).frame(height: Theme.Metrics.hairline)
         }
     }
@@ -524,7 +541,10 @@ struct HistoryListiOSView: View {
     // the observed store.
     private func fetch() -> [TranscriptEntry] {
         _ = app.history?.revision
-        let entries = (try? app.history?.entries(query: query.isEmpty ? nil : query, filter: .all, limit: 500)) ?? []
+        // 5000 in plaats van 500: de filters draaien hier in het geheugen, maar
+        // de tellerregel eronder telt de hele database. Bij 500 klopte dat
+        // aantal dus niet zodra er meer opnames waren (2 sep 2026).
+        let entries = (try? app.history?.entries(query: query.isEmpty ? nil : query, filter: .all, limit: 5000)) ?? []
         return entries
             .filter(matchesFilters)
             .sorted(by: isOrdered)
@@ -672,6 +692,83 @@ private enum SortOrder: String, CaseIterable, Identifiable {
     } }
 }
 
+/// Of er überhaupt iets te synchroniseren valt. Gedeeld door de knop en de
+/// statusregel eronder, zodat ze nooit uit elkaar lopen.
+@MainActor
+private enum SyncAvailability {
+    static func cloud(_ app: AppModel) -> Bool {
+        guard app.icloudSyncEnabled, let sync = app.historySync else { return false }
+        switch sync.status {
+        case .active, .error: return true
+        case .disabled, .unavailable, .requiresApproval: return false
+        }
+    }
+
+    static var plaud: Bool {
+        #if WHISPERCLIP_PERSONAL || !WHISPERCLIP_PUBLIC
+        PlaudCredentials.load()?.isConfigured == true
+        #else
+        false
+        #endif
+    }
+
+    static func any(_ app: AppModel) -> Bool { cloud(app) || plaud }
+}
+
+/// De grijze regel onder de knoppenrij die vertelt wat de Sync-knop doet of
+/// heeft gedaan. Eigen view zodat hij met de PLAUD-service meedraait.
+private struct SyncStatusLine: View {
+    @ObservedObject var app: AppModel
+    @ObservedObject var plaud: PlaudSynciOSService
+    let isCloudSyncing: Bool
+
+    var body: some View {
+        if let text {
+            Text(text)
+                .foregroundStyle(errorText == nil ? Theme.textSecondary : Theme.danger)
+                .lineLimit(2)
+        }
+    }
+
+    private var text: String? {
+        let locale = app.interfaceLanguage.locale
+        if isCloudSyncing || plaud.isSyncing {
+            return plaud.progressText.isEmpty
+                ? L10n.string( "Synchroniseren…", locale: locale)
+                : plaud.progressText
+        }
+        if let errorText { return errorText }
+        guard let last = lastSynced else { return nil }
+        return String(
+            format: L10n.string( "Bijgewerkt om %@", locale: locale),
+            locale: locale,
+            last.formatted(.dateTime.hour().minute().locale(locale))
+        )
+    }
+
+    private var errorText: String? {
+        if let error = plaud.lastError { return error }
+        if case .error(let message) = app.historySync?.status {
+            return String(
+                format: L10n.string( "Fout: %@", locale: app.interfaceLanguage.locale),
+                locale: app.interfaceLanguage.locale,
+                message
+            )
+        }
+        return nil
+    }
+
+    /// Het jongste van beide momenten: één regel voor twee bronnen.
+    private var lastSynced: Date? {
+        var moments: [Date] = []
+        if let plaudMoment = plaud.lastSyncedAt { moments.append(plaudMoment) }
+        if case .active(let cloudMoment) = app.historySync?.status, let cloudMoment {
+            moments.append(cloudMoment)
+        }
+        return moments.max()
+    }
+}
+
 /// Eén knop die alles binnenhaalt: iCloud (als sync aanstaat en werkt) en
 /// PLAUD (als er een account is), tegelijk. Eigen view zodat hij de
 /// PLAUD-service observeert en meedraait met de voortgang.
@@ -680,21 +777,9 @@ private struct SyncAllButton: View {
     @ObservedObject var plaud: PlaudSynciOSService
     @Binding var isCloudSyncing: Bool
 
-    private var cloudAvailable: Bool {
-        guard app.icloudSyncEnabled, let sync = app.historySync else { return false }
-        switch sync.status {
-        case .active, .error: return true
-        case .disabled, .unavailable, .requiresApproval: return false
-        }
-    }
+    private var cloudAvailable: Bool { SyncAvailability.cloud(app) }
 
-    private var plaudAvailable: Bool {
-        #if WHISPERCLIP_PERSONAL || !WHISPERCLIP_PUBLIC
-        PlaudCredentials.load()?.isConfigured == true
-        #else
-        false
-        #endif
-    }
+    private var plaudAvailable: Bool { SyncAvailability.plaud }
 
     var body: some View {
         let busy = isCloudSyncing || plaud.isSyncing

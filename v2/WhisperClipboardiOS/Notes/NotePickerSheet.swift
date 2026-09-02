@@ -30,11 +30,10 @@ struct NotePickerSheet: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Annuleer") { dismiss() }
-                        .foregroundStyle(Theme.accentText)
-                }
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                dismiss()
             }
         }
     }

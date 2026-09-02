@@ -1,21 +1,6 @@
 import Core
 import SwiftUI
 
-struct PlaudSettingsiOSView: View {
-    @ObservedObject var service: PlaudSynciOSService
-
-    var body: some View {
-        Form {
-            PlaudSettingsContent(service: service)
-        }
-        .scrollContentBackground(.hidden)
-        .background(Theme.window)
-        .foregroundStyle(Theme.text)
-        .navigationTitle("PLAUD")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 /// Dezelfde PLAUD-instellingen kunnen rechtstreeks in Synchronisatie staan,
 /// zonder de gebruiker door nog een extra subpagina te sturen.
 struct PlaudSettingsContent: View {

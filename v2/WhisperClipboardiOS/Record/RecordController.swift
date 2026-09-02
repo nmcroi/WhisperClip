@@ -80,9 +80,25 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     private var tickTask: Task<Void, Never>?
     private var levelCancellable: AnyObject?
     private let liveActivity = RecordingLiveActivityController()
+    /// Of we bij `AppModel` als lopende opname staan aangemeld. Voorkomt dubbel
+    /// aan- of afmelden, want de foutpaden overlappen elkaar.
+    private var markedRecordingActive = false
 
     func attach(app: AppModel) {
         self.app = app
+    }
+
+    /// Meldt de lopende opname aan of af bij `AppModel`. Dat signaal bevriest de
+    /// herbouwsleutel van de schermboom, zodat een merk- of weergavewissel de
+    /// opname niet onder de motorkap weghaalt.
+    private func markRecording(_ active: Bool) {
+        guard markedRecordingActive != active else { return }
+        markedRecordingActive = active
+        if active {
+            app?.recordingBegan()
+        } else {
+            app?.recordingEnded()
+        }
     }
 
     /// Koppelt deze controller aan een notitie: elke afgeronde opname wordt áán
@@ -184,6 +200,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
             // seconden voordat er iets gebeurde (bevinding 2026-08-02).
             let stream = try await audio.start(convertingTo: format)
             isRecording = true
+            markRecording(true)
             status = .recording
             isPaused = false
             liveActivity.start()
@@ -207,6 +224,9 @@ final class RecordController: ObservableObject, RecordingStopHandling {
             }
         } catch {
             await engine.cancel()
+            // Ook bij een mislukte start opruimen: de audiosessie kan al
+            // geconfigureerd zijn en de onderbrekings-observers staan dan al.
+            audio.stop()
             self.audio = nil
             liveActivity.end()
             fail(ErrorLocalization.message(for: error, language: app.interfaceLanguage))
@@ -229,18 +249,26 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         fail(ErrorLocalization.message(for: error, language: app.interfaceLanguage))
     }
 
+    // MARK: - Ticker
+
     private func startTicking(audio: IOSAudioEngine) {
         tickTask?.cancel()
         tickTask = Task { [weak self] in
             while !Task.isCancelled {
-                await MainActor.run {
-                    guard let self, self.isRecording else { return }
+                // De uitkomst moet de lus zelf kunnen breken: een `guard ... else
+                // return` binnen de closure verliet alleen die closure, waarna de
+                // lus doortikte terwijl de controller al weg was.
+                let alive = await MainActor.run { () -> Bool in
+                    guard let self else { return false }
+                    guard self.isRecording else { return true }
                     self.elapsed = audio.elapsed
                     // Tijdens pauze geen levels doorsturen (blijft op 0 staan).
                     let live = audio.isPaused ? 0 : audio.levelMeter.level
                     self.level = live
                     self.liveActivity.push(level: live)
+                    return true
                 }
+                guard alive else { break }
                 try? await Task.sleep(nanoseconds: 60_000_000)
             }
         }
@@ -289,9 +317,15 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     private func stopAndTranscribe() async {
         guard isRecording, let app else { return }
         isRecording = false
+        // Meteen áán, nog vóór het stoppen en leegdraaien hieronder: die stappen
+        // zijn async, en zolang `isTranscribing` daar nog uit staat is de
+        // opnameknop even opnieuw aanklikbaar. Een tweede tik startte dan een
+        // nieuwe opname over de nog niet afgeronde heen en beide gingen verloren.
+        isTranscribing = true
         // Meteen mee omzetten: de knop werd al geel terwijl de regel eronder nog
         // "Bezig met opnemen" zei tijdens het leegdraaien (bevinding 2026-08-02).
         status = .transcribing
+        markRecording(false)
         isPaused = false
         pausedByInterruption = false
         RecordingStopBus.shared.deregister(self)
@@ -325,12 +359,12 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
         guard capturedDuration >= 0.35 else {
             await app.engine.cancel()
+            isTranscribing = false
             lastResult = nil
             status = .noAudio
             return
         }
 
-        isTranscribing = true
         status = .transcribing
 
         do {
@@ -354,8 +388,36 @@ final class RecordController: ObservableObject, RecordingStopHandling {
             onTranscriptReady?(processed, savedEntry)
         } catch {
             isTranscribing = false
-            fail(ErrorLocalization.message(for: error, language: app.interfaceLanguage))
+            await handleFinalizeFailure(error, app: app)
         }
+    }
+
+    /// Transcriberen mislukte, maar de opgenomen audio staat nog op schijf: de
+    /// engine laat het CAF-bestand bij een mislukte `finalize` bewust staan.
+    /// Eerst meteen een tweede poging via de gewone herstelronde; slaagt die,
+    /// dan staat de opname alsnog in Geschiedenis. Lukt ook dat niet, dan zegt de
+    /// melding expliciet dat de audio bewaard blijft en bij de volgende start van
+    /// de app opnieuw wordt geprobeerd, in plaats van alleen de technische fout.
+    private func handleFinalizeFailure(_ error: Error, app: AppModel) async {
+        let locale = app.interfaceLanguage.locale
+        // Alleen voor een losse opname. De herstelronde bewaart altijd in de
+        // Geschiedenis en kent geen notitie-koppeling, dus een opname die áán een
+        // notitie hoort zou er op de verkeerde plek uitkomen.
+        let saved = targetNoteId == nil ? await app.recoverPendingRecordingsNow() : 0
+        if saved > 0 {
+            lastResult = nil
+            status = .idle
+            app.noticeMessage = L10n.string(
+                "Transcriberen mislukte, maar de opname is alsnog hersteld en in Geschiedenis bewaard.",
+                locale: locale
+            )
+            return
+        }
+        let detail = ErrorLocalization.message(for: error, language: app.interfaceLanguage)
+        fail(detail + " " + L10n.string(
+            "Je opname is bewaard en wordt bij de volgende start van de app alsnog verwerkt.",
+            locale: locale
+        ))
     }
 
     // MARK: - Save
@@ -459,6 +521,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         pausedByInterruption = false
         isTranscribing = false
         RecordingStopBus.shared.deregister(self)
+        markRecording(false)
         tickTask?.cancel()
         tickTask = nil
         liveActivity.end()

@@ -82,9 +82,9 @@ struct MeetingRecordView: View {
                 case .saved:
                     mailStatus = L10n.string( "Bewaard als concept in Mail.", locale: app.interfaceLanguage.locale)
                 case .cancelled:
-                    mailStatus = L10n.string( "Versturen geannuleerd — je kunt het hieronder opnieuw proberen.", locale: app.interfaceLanguage.locale)
+                    mailStatus = L10n.string( "Versturen geannuleerd, je kunt het hieronder opnieuw proberen.", locale: app.interfaceLanguage.locale)
                 case .failed:
-                    mailStatus = L10n.string( "Versturen mislukt — probeer het opnieuw.", locale: app.interfaceLanguage.locale)
+                    mailStatus = L10n.string( "Versturen mislukt, probeer het opnieuw.", locale: app.interfaceLanguage.locale)
                 @unknown default: break
                 }
             }
@@ -230,26 +230,30 @@ struct MeetingRecordView: View {
                 .foregroundStyle(Theme.accentText)
         }
 
-        Button {
+        ActionButton(
+            title: L10n.string( "Verstuur notulen", locale: app.interfaceLanguage.locale),
+            systemImage: "envelope",
+            role: .primary,
+            isEnabled: !isCreatingAI
+        ) {
             presentMail(for: transcript)
-        } label: {
-            Label("Verstuur notulen", systemImage: "envelope")
-                .font(ThemeFont.ui(16, weight: .semibold))
-                .foregroundStyle(Theme.onAccent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .disabled(isCreatingAI)
 
         VStack(spacing: 10) {
             Text("Wat wil je met dit transcript doen?")
                 .font(ThemeFont.ui(15, weight: .semibold))
                 .foregroundStyle(Theme.text)
 
-            Button(savedEntryID == nil ? "Bewaren opnieuw proberen" : "Bewaar transcript") {
+            // "Bewaar transcript" beloofde iets wat al gebeurd was: het
+            // transcript staat al in de Geschiedenis en de knop sluit alleen
+            // het scherm. Vandaar "Klaar" (2 sep 2026). Ging het bewaren mis,
+            // dan blijft de foutstand staan en doet de knop wél iets.
+            ActionButton(
+                title: savedEntryID == nil
+                    ? L10n.string( "Bewaren opnieuw proberen", locale: app.interfaceLanguage.locale)
+                    : L10n.string( "Klaar", locale: app.interfaceLanguage.locale),
+                role: .primary
+            ) {
                 if savedEntryID != nil {
                     dismiss()
                 } else if let saved = controller.retryPendingSave() {
@@ -257,18 +261,13 @@ struct MeetingRecordView: View {
                     dismiss()
                 }
             }
-                .font(ThemeFont.ui(16, weight: .semibold))
-                .foregroundStyle(Theme.onAccent)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
 
-            Button("Verwijder transcript", role: .destructive) { confirmDelete = true }
-                .font(ThemeFont.ui(16, weight: .semibold))
-                .foregroundStyle(Theme.danger)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Theme.dangerSoft)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
+            ActionButton(
+                title: L10n.string( "Verwijder transcript", locale: app.interfaceLanguage.locale),
+                role: .destructive
+            ) {
+                confirmDelete = true
+            }
         }
 
         Text("Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulen).")
@@ -278,7 +277,7 @@ struct MeetingRecordView: View {
 
     /// Opent de best beschikbare mail-route: de composer (mailaccount aanwezig),
     /// anders `mailto:` (een andere mail-app kan die claimen), en als laatste
-    /// vangnet het deelvenster — het verslag mag nooit stranden.
+    /// vangnet het deelvenster: het verslag mag nooit stranden.
     private func presentMail(for transcript: String) {
         if MailComposeView.canSendMail {
             showMail = true
@@ -294,7 +293,7 @@ struct MeetingRecordView: View {
             UIApplication.shared.open(url) { opened in
                 if !opened {
                     showShare = true
-                    mailStatus = L10n.string( "Geen mail-app gevonden — deel het verslag via het deelvenster.", locale: app.interfaceLanguage.locale)
+                    mailStatus = L10n.string( "Geen mail-app gevonden, deel het verslag via het deelvenster.", locale: app.interfaceLanguage.locale)
                 }
             }
             return

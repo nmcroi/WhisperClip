@@ -22,7 +22,7 @@ struct NotesListiOSView: View {
     /// Notitie die "verwijderd" is via de veeg-actie maar nog binnen het
     /// undo-venster zit: hij is al uit de lijst verborgen, maar de echte
     /// DB-verwijdering gebeurt pas in ``commitPendingDelete()``. Sneuvelt de app
-    /// binnen dat venster, dan bestaat de notitie gewoon nog — veilige uitkomst.
+    /// binnen dat venster, dan bestaat de notitie gewoon nog, een veilige uitkomst.
     @State private var pendingDeleteNoteId: String?
     @State private var pendingDeleteTask: Task<Void, Never>?
 
@@ -31,7 +31,7 @@ struct NotesListiOSView: View {
             ZStack {
                 Theme.window.ignoresSafeArea()
                 // De lijst scrolt bóven de vaste onderbalk met de grote
-                // spreek-knop (net als het Opnemen-tabblad) — bewust niet
+                // spreek-knop (net als het Opnemen-tabblad), bewust niet
                 // zwevend over de rijen.
                 VStack(spacing: 0) {
                     MainPageHeader(title: "Notities")
@@ -60,7 +60,7 @@ struct NotesListiOSView: View {
                 }
             }
             // Verlaat de gebruiker dit scherm of de app vóór het undo-venster om
-            // is, voer de verwijdering dan meteen uit — hij mag niet zoekraken.
+            // is, voer de verwijdering dan meteen uit, hij mag niet zoekraken.
             .onDisappear { commitPendingDelete() }
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active { commitPendingDelete() }
@@ -68,7 +68,7 @@ struct NotesListiOSView: View {
         }
     }
 
-    /// Vaste onderbalk met de grote centrale spreek-knop — visueel gelijk aan de
+    /// Vaste onderbalk met de grote centrale spreek-knop, visueel gelijk aan de
     /// Opnemen-knop (gele ring + gele kern). Maakt een notitie, opent hem en start
     /// direct de opname (Niels' flow: tik = meteen inspreken, naam komt later).
     private var recordBar: some View {
@@ -103,7 +103,7 @@ struct NotesListiOSView: View {
                     ZStack {
                         NavigationLink(value: note.id) { EmptyView() }
                             .opacity(0)
-                        NoteRowiOS(note: note, preview: preview(for: note.id))
+                        NoteRowiOS(note: note)
                     }
                     .listRowBackground(Theme.window)
                     .listRowSeparatorTint(Theme.border)
@@ -134,7 +134,7 @@ struct NotesListiOSView: View {
                 .font(ThemeFont.ui(17, weight: .semibold))
                 .foregroundStyle(Theme.text)
             if app.showHelpTips {
-                Text("Tik op de knop hieronder om een notitie in te spreken — en voeg er later gewoon meer aan toe.")
+                Text("Tik op de knop hieronder om een notitie in te spreken, en voeg er later gewoon meer aan toe.")
                     .font(ThemeFont.ui(14))
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
@@ -196,16 +196,6 @@ struct NotesListiOSView: View {
         try? app.history?.note(id: id)
     }
 
-    /// Een kort staartje van de samengevoegde notitie-tekst voor de rij-preview.
-    private func preview(for noteId: String) -> String {
-        let entries = (try? app.history?.noteEntries(noteId: noteId)) ?? []
-        let joined = entries
-            .map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        return joined
-    }
-
     private func createNote() {
         let locale = app.interfaceLanguage.locale
         let formatter = DateFormatter()
@@ -231,7 +221,7 @@ struct NotesListiOSView: View {
 
 /// De centrale actieknop onder de Notities-lijst: gele ring met afgeronde gele
 /// kern, exact de rustlook van `RecordButton` uit RecordView en van het
-/// app-icoon — overal hetzelfde beeld, zonder extra glyph.
+/// app-icoon: overal hetzelfde beeld, zonder extra glyph.
 private struct NewNoteRecordButton: View {
     let action: () -> Void
 
@@ -258,7 +248,6 @@ private struct NewNoteRecordButton: View {
 struct NoteRowiOS: View {
     @EnvironmentObject private var app: AppModel
     let note: Note
-    let preview: String
 
     var body: some View {
         HStack(spacing: 12) {

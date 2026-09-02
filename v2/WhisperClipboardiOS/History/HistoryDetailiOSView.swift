@@ -15,6 +15,9 @@ struct HistoryDetailiOSView: View {
     @State private var showsAI = false
     @State private var showAddToNote = false
     @State private var showSettings = false
+    /// Verwijderen vroeg hier niets, terwijl dezelfde actie in de
+    /// meervoudsselectie wel een bevestiging kreeg (2 sep 2026).
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         ZStack {
@@ -50,6 +53,9 @@ struct HistoryDetailiOSView: View {
                 }
                 .padding(20)
             }
+            // Het AI-paneel heeft een invoerveld: naar beneden vegen sluit het
+            // toetsenbord (2 sep 2026).
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -73,6 +79,15 @@ struct HistoryDetailiOSView: View {
             SettingsSheet()
                 .environmentObject(app)
                 .preferredColorScheme(app.appearance.preferredColorScheme)
+        }
+        .alert(
+            L10n.string( "Opname verwijderen", locale: app.interfaceLanguage.locale),
+            isPresented: $showDeleteConfirm
+        ) {
+            Button("Verwijder", role: .destructive) { deleteTranscript() }
+            Button("Annuleer", role: .cancel) {}
+        } message: {
+            Text("Deze opname wordt definitief verwijderd.")
         }
     }
 
@@ -205,20 +220,23 @@ struct HistoryDetailiOSView: View {
             }
             .buttonStyle(.plain)
 
+            // Geel als de andere acties, met een bevestigvraag die een mistik
+            // opvangt. Dezelfde keuze als in de selectiebalk van de lijst
+            // (wens Niels, 2 sep 2026).
             Button {
-                deleteTranscript()
+                showDeleteConfirm = true
             } label: {
                 IconActionLabel(
                     title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
-                    systemImage: "trash",
-                    iconColor: Theme.danger
+                    systemImage: "trash"
                 )
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Theme.window)
+        // Vaste balken die niet meescrollen dragen allemaal hetzelfde vlak.
+        .background(Theme.surface)
         .overlay(alignment: .bottom) {
             Divider().overlay(Theme.border)
         }

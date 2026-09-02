@@ -6,9 +6,9 @@ import WhisperShared
 /// De "Waar hoort dit bij?"-sheet: verschijnt éénmalig nadat de éérste opname van
 /// een vers via de +-knop aangemaakte notitie klaar is. Twee uitkomsten:
 ///
-///  • **Bewaar** — hernoemt de tijdelijke notitie naar de getypte titel; de
+///  • **Bewaar**: hernoemt de tijdelijke notitie naar de getypte titel; de
 ///    gebruiker blijft in de (nu benoemde) notitie.
-///  • **Voeg toe aan een bestaande notitie** — verplaatst de zojuist opgenomen
+///  • **Voeg toe aan een bestaande notitie**: verplaatst de zojuist opgenomen
 ///    entry naar de gekozen notitie (``moveEntryToNote``), verwijdert de nu lege
 ///    tijdelijke notitie, en sluit het detail (``onMovedToOther``).
 ///
@@ -22,7 +22,7 @@ struct AssignNoteSheet: View {
     /// Voorgevulde titel (de auto-titel) voor het naamveld.
     let initialTitle: String
     /// Aangeroepen nadat de opname naar een ándere notitie is verplaatst en deze
-    /// tijdelijke notitie is verwijderd — zodat het detail zich kan sluiten.
+    /// tijdelijke notitie is verwijderd, zodat het detail zich kan sluiten.
     var onMovedToOther: (() -> Void)?
 
     @State private var titleText: String = ""
@@ -35,6 +35,11 @@ struct AssignNoteSheet: View {
             }
             .navigationTitle("Waar hoort dit bij?")
             .navigationBarTitleDisplayMode(.inline)
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                dismiss()
+            }
         }
         .onAppear {
             let trimmed = initialTitle.trimmingCharacters(in: .whitespacesAndNewlines)

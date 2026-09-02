@@ -3,7 +3,7 @@ import SwiftUI
 
 /// SwiftUI-wrapper om `MFMailComposeViewController`: de vooringevulde
 /// notulen-mail (alle ontvangers, onderwerp, identieke tekst). De gebruiker
-/// drukt zélf op versturen — de mail gaat via het eigen mailaccount, er is
+/// drukt zélf op versturen: de mail gaat via het eigen mailaccount, er is
 /// geen externe verzenddienst.
 struct MailComposeView: UIViewControllerRepresentable {
     let recipients: [String]

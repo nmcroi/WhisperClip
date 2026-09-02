@@ -4,7 +4,7 @@ import Foundation
 
 /// App Intent voor de stop-knop op de Live Activity (lock-screen + Dynamic
 /// Island). Omdat dit een `LiveActivityIntent` is, draait `perform()` IN HET
-/// APP-PROCES (op een achtergrondthread) i.p.v. in de widget-extensie — precies
+/// APP-PROCES (op een achtergrondthread) i.p.v. in de widget-extensie, precies
 /// wat we nodig hebben om de lopende opname netjes af te ronden.
 ///
 /// Dit bestand wordt in ZOWEL de app als de widget-extensie meegecompileerd (zie

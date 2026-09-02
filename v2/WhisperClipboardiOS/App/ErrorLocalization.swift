@@ -107,7 +107,7 @@ enum ErrorLocalization {
         case .downloadFailed(let detail):
             return String(format: L10n.string( "Het Parakeet-model kon niet worden gedownload: %@", locale: locale), locale: locale, detail)
         case .downloadStalled:
-            return L10n.string( "Download lijkt vast te zitten — controleer je verbinding en probeer opnieuw.", locale: locale)
+            return L10n.string( "Download lijkt vast te zitten, controleer je verbinding en probeer opnieuw.", locale: locale)
         case .modelNotLoaded:
             return L10n.string( "Het Parakeet-model is nog niet geladen.", locale: locale)
         case .notRecording:

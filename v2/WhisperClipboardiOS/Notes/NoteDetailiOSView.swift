@@ -34,6 +34,10 @@ struct NoteDetailiOSView: View {
     // MARK: Samenvoegen (task 4a)
     /// Toont de picker om deze hele notitie samen te voegen met een andere.
     @State private var showMergeSheet = false
+    /// De gekozen doelnotitie, zolang de bevestigvraag nog open staat.
+    /// Samenvoegen verwijdert deze notitie en deed dat eerst zonder te vragen
+    /// (2 sep 2026).
+    @State private var mergeTargetNoteId: String?
 
     // MARK: AI-samenvatten (i3)
     /// Toont de AI-sheet die op de samengevoegde notitie-tekst draait.
@@ -75,7 +79,7 @@ struct NoteDetailiOSView: View {
             controller.attach(app: app, targetNoteId: note.id)
             await app.refreshModelStatus()
             // Via de +-knop binnengekomen? Start dan direct de opname (eenmalig;
-            // alleen als het model er is — anders toont de balk de download-hint).
+            // alleen als het model er is, anders toont de balk de download-hint).
             if autoStartNoteId == note.id {
                 autoStartNoteId = nil
                 if app.modelStatus.isReady && !controller.isRecording {
@@ -124,7 +128,7 @@ struct NoteDetailiOSView: View {
                 header: L10n.string( "Alle opnames verhuizen naar de gekozen notitie", locale: app.interfaceLanguage.locale),
                 excludingNoteId: note.id
             ) { targetNoteId in
-                mergeNote(into: targetNoteId)
+                mergeTargetNoteId = targetNoteId
             }
             .environmentObject(app)
             .preferredColorScheme(app.appearance.preferredColorScheme)
@@ -151,6 +155,19 @@ struct NoteDetailiOSView: View {
             }
             .environmentObject(app)
             .preferredColorScheme(app.appearance.preferredColorScheme)
+        }
+        .alert(
+            L10n.string( "Notities samenvoegen", locale: app.interfaceLanguage.locale),
+            isPresented: Binding(
+                get: { mergeTargetNoteId != nil },
+                set: { if !$0 { mergeTargetNoteId = nil } }
+            ),
+            presenting: mergeTargetNoteId
+        ) { target in
+            Button("Voeg samen") { mergeNote(into: target) }
+            Button("Annuleer", role: .cancel) {}
+        } message: { _ in
+            Text("Alle opnames verhuizen naar de gekozen notitie. Deze notitie wordt daarna verwijderd; de opnames blijven bestaan.")
         }
         .alert("Notitie hernoemen", isPresented: $showRename) {
             TextField("Titel", text: $renameText)
@@ -263,24 +280,16 @@ struct NoteDetailiOSView: View {
     }
 
     private func copyButton(_ entries: [TranscriptEntry]) -> some View {
-        Button {
+        ActionButton(
+            title: didCopy
+                ? L10n.string( "Gekopieerd", locale: app.interfaceLanguage.locale)
+                : L10n.string( "Kopieer notitie", locale: app.interfaceLanguage.locale),
+            systemImage: didCopy ? "checkmark" : "doc.on.doc",
+            role: .primary
+        ) {
             UIPasteboard.general.string = concatenatedText(entries)
             didCopy = true
-        } label: {
-            Label(
-                didCopy
-                    ? L10n.string( "Gekopieerd", locale: app.interfaceLanguage.locale)
-                    : L10n.string( "Kopieer notitie", locale: app.interfaceLanguage.locale),
-                systemImage: didCopy ? "checkmark" : "doc.on.doc"
-            )
-                .font(ThemeFont.ui(16, weight: .semibold))
-                .foregroundStyle(Theme.onAccent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Theme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
         }
-        .buttonStyle(.plain)
         .padding(.top, 8)
     }
 
@@ -341,8 +350,8 @@ struct NoteDetailiOSView: View {
             let time = Self.formatElapsed(controller.elapsed)
             if controller.isPaused {
                 return controller.pausedByInterruption
-                    ? String(format: L10n.string( "%@ — gepauzeerd (onderbreking)", locale: app.interfaceLanguage.locale), locale: app.interfaceLanguage.locale, time)
-                    : String(format: L10n.string( "%@ — gepauzeerd", locale: app.interfaceLanguage.locale), locale: app.interfaceLanguage.locale, time)
+                    ? String(format: L10n.string( "%@, gepauzeerd (onderbreking)", locale: app.interfaceLanguage.locale), locale: app.interfaceLanguage.locale, time)
+                    : String(format: L10n.string( "%@, gepauzeerd", locale: app.interfaceLanguage.locale), locale: app.interfaceLanguage.locale, time)
             }
             return time
         }
@@ -408,7 +417,7 @@ struct NoteDetailiOSView: View {
                 showMergeSheet = true
             } label: {
                 IconActionLabel(
-                    title: "Merge",
+                    title: L10n.string( "Voeg samen", locale: app.interfaceLanguage.locale),
                     systemImage: "arrow.triangle.merge"
                 )
             }
@@ -426,20 +435,22 @@ struct NoteDetailiOSView: View {
             .buttonStyle(.plain)
             .disabled(app.modes == nil)
 
+            // Geel als de andere acties; de keuzevraag eronder vangt een mistik
+            // op (zelfde keuze als in Geschiedenis, 2 sep 2026).
             Button {
                 showDeleteConfirm = true
             } label: {
                 IconActionLabel(
                     title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
-                    systemImage: "trash",
-                    iconColor: Theme.danger
+                    systemImage: "trash"
                 )
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(Theme.window)
+        // Vaste balken die niet meescrollen dragen allemaal hetzelfde vlak.
+        .background(Theme.surface)
         .overlay(alignment: .bottom) {
             Divider().overlay(Theme.border)
         }

@@ -52,6 +52,9 @@ struct MeetingParticipantsView: View {
                 .listRowBackground(Theme.surface)
             }
             .scrollContentBackground(.hidden)
+            // Naar beneden vegen sluit het toetsenbord boven de naam- en
+            // e-mailvelden (2 sep 2026).
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("Deelnemers")
         .navigationBarTitleDisplayMode(.inline)

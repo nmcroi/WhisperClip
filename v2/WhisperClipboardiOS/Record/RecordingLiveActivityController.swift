@@ -6,7 +6,7 @@ import Foundation
 ///
 /// Start de activiteit wanneer de opname begint, ververst de niveau-samples op
 /// een getemperde cadans (ActivityKit knijpt agressieve lokale updates af, dus
-/// ~elke 0,8 s), en beëindigt de activiteit altijd — óók op foutpaden — zodat er
+/// ~elke 0,8 s), en beëindigt de activiteit altijd, óók op foutpaden, zodat er
 /// nooit een zombie-activiteit blijft hangen.
 ///
 /// Alles is defensief: als Live Activities uitstaan of een aanroep faalt, doen we
@@ -60,7 +60,7 @@ final class RecordingLiveActivityController {
                 content: .init(state: state, staleDate: staleDate(from: now))
             )
         } catch {
-            // Live Activity kon niet starten — geen ramp, opname loopt gewoon door.
+            // Live Activity kon niet starten, geen ramp, opname loopt gewoon door.
             activity = nil
             startedAt = nil
         }
@@ -110,7 +110,7 @@ final class RecordingLiveActivityController {
 
     // MARK: - End
 
-    /// Beëindigt de activiteit onmiddellijk. Idempotent — veilig meermaals aan te
+    /// Beëindigt de activiteit onmiddellijk. Idempotent en veilig meermaals aan te
     /// roepen (stop, annuleer, foutpad).
     func end() {
         guard let activity else { return }

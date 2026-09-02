@@ -87,27 +87,21 @@ struct ModelDownloadCard: View {
                 .foregroundStyle(Theme.danger)
         default:
             VStack(spacing: 10) {
-                Button {
+                // Na een mislukte poging is dit meteen de opnieuw-knop.
+                ActionButton(
+                    title: app.errorMessage == nil
+                        ? L10n.string( "Download model", locale: app.interfaceLanguage.locale)
+                        : L10n.string( "Opnieuw proberen", locale: app.interfaceLanguage.locale),
+                    role: .primary
+                ) {
                     Task { await app.downloadModel() }
-                } label: {
-                    // After a failure the button doubles as the retry action.
-                    Text(app.errorMessage == nil
-                         ? L10n.string( "Download model", locale: app.interfaceLanguage.locale)
-                         : L10n.string( "Opnieuw proberen", locale: app.interfaceLanguage.locale))
-                        .font(ThemeFont.ui(16, weight: .semibold))
-                        .foregroundStyle(Theme.onAccent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Theme.accent)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
                 }
-                .buttonStyle(.plain)
 
                 // Secundaire route wanneer de download over het netwerk niet
                 // lukt (bijv. schermvergrendeling breekt hem telkens af):
                 // handmatig een geairdropte modelmap importeren.
                 ActionButton(
-                    title: "Importeer model…",
+                    title: L10n.string( "Importeer model…", locale: app.interfaceLanguage.locale),
                     role: .secondary,
                     size: .regular
                 ) {

@@ -11,7 +11,7 @@ extension SyncStatus {
             return L10n.string( "iCloud niet beschikbaar", locale: locale)
         case .requiresApproval(let localCount, let accountChanged):
             let format = accountChanged
-                ? L10n.string( "Nieuw iCloud-account — %lld lokale items wachten op toestemming", locale: locale)
+                ? L10n.string( "Nieuw iCloud-account: %lld lokale items wachten op toestemming", locale: locale)
                 : L10n.string( "%lld lokale items wachten op toestemming", locale: locale)
             return String(
                 format: format,
@@ -25,7 +25,7 @@ extension SyncStatus {
             formatter.dateStyle = .none
             formatter.timeStyle = .short
             return String(
-                format: L10n.string( "Actief — laatst gesynchroniseerd om %@", locale: locale),
+                format: L10n.string( "Actief, laatst gesynchroniseerd om %@", locale: locale),
                 locale: locale,
                 formatter.string(from: lastSync)
             )

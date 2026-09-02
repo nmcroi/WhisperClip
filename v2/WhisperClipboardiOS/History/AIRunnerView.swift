@@ -82,20 +82,13 @@ struct AIRunnerView: View {
     }
 
     private var generatorButton: some View {
-        Button { showGenerator = true } label: {
-            HStack {
-                Label("Nieuwe genereren", systemImage: "sparkles.rectangle.stack")
-                Spacer()
-                Image(systemName: "chevron.right")
-            }
-            .font(ThemeFont.ui(15, weight: .semibold))
-            .foregroundStyle(Theme.onAccent)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(Theme.accent)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
+        ActionButton(
+            title: L10n.string( "Nieuwe genereren", locale: app.interfaceLanguage.locale),
+            systemImage: "sparkles.rectangle.stack",
+            role: .primary
+        ) {
+            showGenerator = true
         }
-        .buttonStyle(.plain)
     }
 
     private var generationSheet: some View {
@@ -125,10 +118,10 @@ struct AIRunnerView: View {
             .background(Theme.window)
             .navigationTitle("Nieuwe genereren")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Gereed") { showGenerator = false }
-                }
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                showGenerator = false
             }
         }
         .presentationDetents([.medium, .large])

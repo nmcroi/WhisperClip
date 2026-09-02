@@ -133,6 +133,28 @@
         }
       }
     },
+    "%@ (samengevoegd)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (zusammengeführt)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (merged)"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (samengevoegd)"
+          }
+        }
+      }
+    },
     "%@ gaf een onleesbaar antwoord. Probeer het opnieuw.": {
       "localizations": {
         "de": {
@@ -243,46 +265,68 @@
         }
       }
     },
-    "%@ — gepauzeerd": {
+    "%@, gepauzeerd": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — pausiert"
+            "value": "%@, pausiert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — paused"
+            "value": "%@, paused"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — gepauzeerd"
+            "value": "%@, gepauzeerd"
           }
         }
       }
     },
-    "%@ — gepauzeerd (onderbreking)": {
+    "%@, gepauzeerd (onderbreking)": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — pausiert (Unterbrechung)"
+            "value": "%@, pausiert (Unterbrechung)"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — paused (interruption)"
+            "value": "%@, paused (interruption)"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ — gepauzeerd (onderbreking)"
+            "value": "%@, gepauzeerd (onderbreking)"
+          }
+        }
+      }
+    },
+    "%lld geselecteerd": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ausgewählt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld selected"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld geselecteerd"
           }
         }
       }
@@ -393,6 +437,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld opnames"
+          }
+        }
+      }
+    },
+    "%lld opnames worden definitief verwijderd.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Aufnahmen werden endgültig gelöscht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld recordings will be permanently deleted."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld opnames worden definitief verwijderd."
+          }
+        }
+      }
+    },
+    "%lld opnames worden één nieuwe opname, op volgorde van tijd, oudste eerst.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Aufnahmen werden zu einer neuen Aufnahme, in zeitlicher Reihenfolge, älteste zuerst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld recordings become one new recording, in time order, oldest first."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld opnames worden één nieuwe opname, op volgorde van tijd, oudste eerst."
           }
         }
       }
@@ -837,6 +925,28 @@
         }
       }
     },
+    "AI-notulen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "KI-Protokoll"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI minutes"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI-notulen"
+          }
+        }
+      }
+    },
     "AI-notulen konden niet worden gemaakt: %@ De volledige transcriptie blijft beschikbaar.": {
       "localizations": {
         "de": {
@@ -1101,24 +1211,24 @@
         }
       }
     },
-    "Actief — laatst gesynchroniseerd om %@": {
+    "Actief, laatst gesynchroniseerd om %@": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aktiv — zuletzt um %@ synchronisiert"
+            "value": "Aktiv, zuletzt um %@ synchronisiert"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Active — last synced at %@"
+            "value": "Active, last synced at %@"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actief — laatst gesynchroniseerd om %@"
+            "value": "Actief, laatst gesynchroniseerd om %@"
           }
         }
       }
@@ -1229,6 +1339,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Alle opnames verhuizen naar de gekozen notitie"
+          }
+        }
+      }
+    },
+    "Alle opnames verhuizen naar de gekozen notitie. Deze notitie wordt daarna verwijderd; de opnames blijven bestaan.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Aufnahmen wechseln in die gewählte Notiz. Diese Notiz wird danach gelöscht; die Aufnahmen bleiben erhalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All recordings move to the chosen note. This note is then deleted; the recordings remain."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle opnames verhuizen naar de gekozen notitie. Deze notitie wordt daarna verwijderd; de opnames blijven bestaan."
           }
         }
       }
@@ -1365,6 +1497,28 @@
         }
       }
     },
+    "Audio-uitleg": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio-Erklärung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio explanation"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio-uitleg"
+          }
+        }
+      }
+    },
     "Audioformaat kon niet worden omgezet.": {
       "localizations": {
         "de": {
@@ -1493,6 +1647,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Belangrijkste punten"
+          }
+        }
+      }
+    },
+    "Ben je zo lang weg geweest uit de app, dan staat hij bij terugkomst weer klaar op het opnamescherm in plaats van op het scherm waar je hem achterliet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waren Sie so lange nicht in der App, steht sie bei Ihrer Rückkehr wieder auf dem Aufnahmebildschirm statt auf dem zuletzt geöffneten Bildschirm."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you have been away from the app this long, it is ready on the recording screen when you come back instead of on the screen where you left it."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ben je zo lang weg geweest uit de app, dan staat hij bij terugkomst weer klaar op het opnamescherm in plaats van op het scherm waar je hem achterliet."
           }
         }
       }
@@ -1717,6 +1893,28 @@
         }
       }
     },
+    "Bezig…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läuft…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bezig…"
+          }
+        }
+      }
+    },
     "Bij iedere AI-opdracht wordt zichtbaar welke aanbieder en welk model de gekozen transcripttekst ontvangen. Audio wordt nooit verstuurd.": {
       "localizations": {
         "de": {
@@ -1735,6 +1933,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bij iedere AI-opdracht wordt zichtbaar welke aanbieder en welk model de gekozen transcripttekst ontvangen. Audio wordt nooit verstuurd."
+          }
+        }
+      }
+    },
+    "Bijgewerkt om %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiert um %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updated at %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bijgewerkt om %@"
           }
         }
       }
@@ -1849,24 +2069,24 @@
         }
       }
     },
-    "Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts — hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’.": {
+    "Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts: hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Korrigieren Sie Wörter, die die Spracherkennung häufig falsch versteht. Jedes Wort links wird überall durch den Text rechts ersetzt — nur ganze Wörter, ohne Beachtung der Großschreibung. Zum Beispiel: ‚Clod‘ → ‚Claude‘."
+            "value": "Korrigieren Sie Wörter, die die Spracherkennung häufig falsch versteht. Jedes Wort links wird überall durch den Text rechts ersetzt: nur ganze Wörter, ohne Beachtung der Großschreibung. Zum Beispiel: ‚Clod‘ → ‚Claude‘."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Correct words that speech recognition often mishears. Each word on the left is replaced everywhere by the text on the right — whole words, case-insensitive. For example: ‘clod’ → ‘Claude’."
+            "value": "Correct words that speech recognition often mishears. Each word on the left is replaced everywhere by the text on the right: whole words, case-insensitive. For example: ‘clod’ → ‘Claude’."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts — hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’."
+            "value": "Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts: hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’."
           }
         }
       }
@@ -1959,6 +2179,28 @@
         }
       }
     },
+    "De Notulist": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Protokoll"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Minute Taker"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De Notulist"
+          }
+        }
+      }
+    },
     "De aanvraag bij %@ duurde te lang. Probeer het opnieuw.": {
       "localizations": {
         "de": {
@@ -2025,24 +2267,46 @@
         }
       }
     },
-    "De opname en transcriptie gebeuren volledig lokaal op deze iPhone — geen cloud, geen externe AI-dienst. Audio wordt alleen tijdelijk lokaal bewaard en na transcriptie verwijderd; gepauzeerde stukken worden nergens vastgelegd.": {
+    "De opname en transcriptie gebeuren volledig lokaal op deze iPhone: geen cloud, geen externe AI-dienst. Audio wordt alleen tijdelijk lokaal bewaard en na transcriptie verwijderd; gepauzeerde stukken worden nergens vastgelegd.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aufnahme und Transkription erfolgen vollständig lokal auf diesem iPhone — ohne Cloud und ohne externen KI-Dienst. Audio wird nur vorübergehend lokal gespeichert und nach der Transkription gelöscht; pausierte Abschnitte werden nirgends erfasst."
+            "value": "Aufnahme und Transkription erfolgen vollständig lokal auf diesem iPhone: ohne Cloud und ohne externen KI-Dienst. Audio wird nur vorübergehend lokal gespeichert und nach der Transkription gelöscht; pausierte Abschnitte werden nirgends erfasst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recording and transcription take place entirely on this iPhone — no cloud and no external AI service. Audio is stored only temporarily on the device and deleted after transcription; paused sections are not captured anywhere."
+            "value": "Recording and transcription take place entirely on this iPhone: no cloud and no external AI service. Audio is stored only temporarily on the device and deleted after transcription; paused sections are not captured anywhere."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De opname en transcriptie gebeuren volledig lokaal op deze iPhone — geen cloud, geen externe AI-dienst. Audio wordt alleen tijdelijk lokaal bewaard en na transcriptie verwijderd; gepauzeerde stukken worden nergens vastgelegd."
+            "value": "De opname en transcriptie gebeuren volledig lokaal op deze iPhone: geen cloud, geen externe AI-dienst. Audio wordt alleen tijdelijk lokaal bewaard en na transcriptie verwijderd; gepauzeerde stukken worden nergens vastgelegd."
+          }
+        }
+      }
+    },
+    "De opnames konden niet worden samengevoegd: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahmen konnten nicht zusammengeführt werden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recordings could not be merged: %@"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De opnames konden niet worden samengevoegd: %@"
           }
         }
       }
@@ -2179,6 +2443,28 @@
         }
       }
     },
+    "Deelnemers toevoegen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilnehmer hinzufügen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add participants"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deelnemers toevoegen"
+          }
+        }
+      }
+    },
     "Deelnemers: %@": {
       "localizations": {
         "de": {
@@ -2263,6 +2549,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deze opname verhuist naar de gekozen notitie"
+          }
+        }
+      }
+    },
+    "Deze opname wordt definitief verwijderd.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Aufnahme wird endgültig gelöscht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This recording will be permanently deleted."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deze opname wordt definitief verwijderd."
           }
         }
       }
@@ -2465,24 +2773,24 @@
         }
       }
     },
-    "Download lijkt vast te zitten — controleer je verbinding en probeer opnieuw.": {
+    "Download lijkt vast te zitten, controleer je verbinding en probeer opnieuw.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Download scheint festzustecken — prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+            "value": "Der Download scheint festzustecken, prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The download appears to be stuck — check your connection and try again."
+            "value": "The download appears to be stuck, check your connection and try again."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Download lijkt vast te zitten — controleer je verbinding en probeer opnieuw."
+            "value": "Download lijkt vast te zitten, controleer je verbinding en probeer opnieuw."
           }
         }
       }
@@ -3037,24 +3345,24 @@
         }
       }
     },
-    "Geen mail-app gevonden — deel het verslag via het deelvenster.": {
+    "Geen mail-app gevonden, deel het verslag via het deelvenster.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Mail-App gefunden — teilen Sie den Bericht über das Teilen-Menü."
+            "value": "Keine Mail-App gefunden, teilen Sie den Bericht über das Teilen-Menü."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No mail app found — share the report using the share sheet."
+            "value": "No mail app found, share the report using the share sheet."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Geen mail-app gevonden — deel het verslag via het deelvenster."
+            "value": "Geen mail-app gevonden, deel het verslag via het deelvenster."
           }
         }
       }
@@ -3543,6 +3851,28 @@
         }
       }
     },
+    "Hoe werkt de notulist?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie funktioniert das Protokoll?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How does the minute taker work?"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hoe werkt de notulist?"
+          }
+        }
+      }
+    },
     "Houd de app open tijdens het downloaden.": {
       "localizations": {
         "de": {
@@ -3583,6 +3913,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hulptips tonen"
+          }
+        }
+      }
+    },
+    "Importeer model…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modell importieren…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import model…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importeer model…"
           }
         }
       }
@@ -3719,6 +4071,28 @@
         }
       }
     },
+    "Je opname is bewaard en wordt bij de volgende start van de app alsnog verwerkt.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre Aufnahme wurde gespeichert und wird beim nächsten Start der App verarbeitet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your recording has been saved and will be processed the next time the app starts."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je opname is bewaard en wordt bij de volgende start van de app alsnog verwerkt."
+          }
+        }
+      }
+    },
     "Je wachtwoord wordt alleen in de beveiligde Sleutelhanger van deze iPhone bewaard. Kies bij Periode hoe ver WhisperClip terugzoekt. PLAUD-opnamen gebruiken de transcriptietaal onder Opnemen en transcriptie. Transcripties worden via iCloud met je Mac gesynchroniseerd wanneer iCloud hierboven aanstaat.": {
       "localizations": {
         "de": {
@@ -3781,6 +4155,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kies vaste deelnemer"
+          }
+        }
+      }
+    },
+    "Klaar": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fertig"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klaar"
+          }
+        }
+      }
+    },
+    "Klaar met selecteren": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswahl beenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done selecting"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Klaar met selecteren"
           }
         }
       }
@@ -4423,6 +4841,28 @@
         }
       }
     },
+    "Model importeren…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modell wird importiert…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing model…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model importeren…"
+          }
+        }
+      }
+    },
     "Model nog niet gereed. Download het via het Opnemen-tabblad.": {
       "localizations": {
         "de": {
@@ -4441,6 +4881,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "Model nog niet gereed. Download het via het Opnemen-tabblad."
+          }
+        }
+      }
+    },
+    "Na %lld min": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach %lld Min."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After %lld min"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na %lld min"
+          }
+        }
+      }
+    },
+    "Na %lld sec": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach %lld Sek."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After %lld sec"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na %lld sec"
+          }
+        }
+      }
+    },
+    "Na 1 min": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach 1 Min."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 1 min"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na 1 min"
           }
         }
       }
@@ -4621,24 +5127,46 @@
         }
       }
     },
-    "Nieuw iCloud-account — %lld lokale items wachten op toestemming": {
+    "Niets": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neues iCloud-Konto — %lld lokale Einträge warten auf Zustimmung"
+            "value": "Nichts"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "New iCloud account — %lld local items awaiting approval"
+            "value": "None"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nieuw iCloud-account — %lld lokale items wachten op toestemming"
+            "value": "Niets"
+          }
+        }
+      }
+    },
+    "Nieuw iCloud-account: %lld lokale items wachten op toestemming": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neues iCloud-Konto: %lld lokale Einträge warten auf Zustimmung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New iCloud account: %lld local items awaiting approval"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw iCloud-account: %lld lokale items wachten op toestemming"
           }
         }
       }
@@ -4929,6 +5457,28 @@
         }
       }
     },
+    "Notitie": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notiz"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notitie"
+          }
+        }
+      }
+    },
     "Notitie %@": {
       "localizations": {
         "de": {
@@ -5039,6 +5589,28 @@
         }
       }
     },
+    "Notities samenvoegen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notizen zusammenführen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merge notes"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notities samenvoegen"
+          }
+        }
+      }
+    },
     "Notule": {
       "localizations": {
         "de": {
@@ -5101,6 +5673,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Notulen-opname"
+          }
+        }
+      }
+    },
+    "Notulist": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protokoll"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minute Taker"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notulist"
           }
         }
       }
@@ -5259,6 +5853,28 @@
         }
       }
     },
+    "Ophalen doe je met de Sync-knop op de pagina Geschiedenis, die haalt iCloud en PLAUD in één keer binnen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Abrufen starten Sie mit der Sync-Taste auf der Seite Verlauf; sie holt iCloud und PLAUD in einem Durchgang."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You fetch with the Sync button on the History page; it brings in iCloud and PLAUD in one go."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ophalen doe je met de Sync-knop op de pagina Geschiedenis, die haalt iCloud en PLAUD in één keer binnen."
+          }
+        }
+      }
+    },
     "Opname %1$lld van %2$lld downloaden…": {
       "localizations": {
         "de": {
@@ -5347,6 +5963,28 @@
         }
       }
     },
+    "Opname verwijderen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete recording"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname verwijderen"
+          }
+        }
+      }
+    },
     "Opnamen ophalen": {
       "localizations": {
         "de": {
@@ -5365,6 +6003,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opnamen ophalen"
+          }
+        }
+      }
+    },
+    "Opnames samenvoegen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahmen zusammenführen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merge recordings"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnames samenvoegen"
+          }
+        }
+      }
+    },
+    "Opnames verwijderen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahmen löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete recordings"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opnames verwijderen"
           }
         }
       }
@@ -5853,28 +6535,6 @@
         }
       }
     },
-    "Privacy en over": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datenschutz und Info"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privacy and about"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privacy en over"
-          }
-        }
-      }
-    },
     "Privacy en over WhisperClip": {
       "localizations": {
         "de": {
@@ -5985,6 +6645,50 @@
         }
       }
     },
+    "Samenvoegen en originelen verwijderen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusammenführen und Originale löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merge and delete originals"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Samenvoegen en originelen verwijderen"
+          }
+        }
+      }
+    },
+    "Selecteer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auswählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecteer"
+          }
+        }
+      }
+    },
     "Slimme samenvatting": {
       "localizations": {
         "de": {
@@ -6003,6 +6707,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Slimme samenvatting"
+          }
+        }
+      }
+    },
+    "Sluiten": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sluiten"
           }
         }
       }
@@ -6403,6 +7129,28 @@
         }
       }
     },
+    "Stijl": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stil"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Style"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stijl"
+          }
+        }
+      }
+    },
     "Stop": {
       "localizations": {
         "de": {
@@ -6465,6 +7213,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Stopt de lopende opname en transcribeert."
+          }
+        }
+      }
+    },
+    "Sync": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
           }
         }
       }
@@ -6535,6 +7305,50 @@
         }
       }
     },
+    "Synchroniseer met iCloud en PLAUD": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit iCloud und PLAUD synchronisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronise with iCloud and PLAUD"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniseer met iCloud en PLAUD"
+          }
+        }
+      }
+    },
+    "Synchroniseren doe je met de Sync-knop op de pagina Geschiedenis.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierung starten Sie mit der Sync-Taste auf der Seite Verlauf."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You synchronise with the Sync button on the History page."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniseren doe je met de Sync-knop op de pagina Geschiedenis."
+          }
+        }
+      }
+    },
     "Synchroniseren via iCloud": {
       "localizations": {
         "de": {
@@ -6553,6 +7367,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Synchroniseren via iCloud"
+          }
+        }
+      }
+    },
+    "Synchroniseren…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird synchronisiert…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronising…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniseren…"
           }
         }
       }
@@ -6597,6 +7433,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Taal van de app"
+          }
+        }
+      }
+    },
+    "Terug naar Opnemen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zu Aufnehmen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to Record"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terug naar Opnemen"
           }
         }
       }
@@ -6689,24 +7547,24 @@
         }
       }
     },
-    "Tik op de knop hieronder om een notitie in te spreken — en voeg er later gewoon meer aan toe.": {
+    "Tik op de knop hieronder om een notitie in te spreken, en voeg er later gewoon meer aan toe.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tippen Sie unten, um eine Notiz aufzunehmen — später können Sie einfach weitere Inhalte hinzufügen."
+            "value": "Tippen Sie unten, um eine Notiz aufzunehmen, später können Sie einfach weitere Inhalte hinzufügen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap the button below to record a note — you can easily add more later."
+            "value": "Tap the button below to record a note, you can easily add more later."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tik op de knop hieronder om een notitie in te spreken — en voeg er later gewoon meer aan toe."
+            "value": "Tik op de knop hieronder om een notitie in te spreken, en voeg er later gewoon meer aan toe."
           }
         }
       }
@@ -6887,6 +7745,28 @@
         }
       }
     },
+    "Transcriberen mislukte, maar de opname is alsnog hersteld en in Geschiedenis bewaard.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Transkription ist fehlgeschlagen, die Aufnahme wurde jedoch wiederhergestellt und im Verlauf gespeichert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription failed, but the recording was recovered and saved to History."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcriberen mislukte, maar de opname is alsnog hersteld en in Geschiedenis bewaard."
+          }
+        }
+      }
+    },
     "Transcript verwijderen?": {
       "localizations": {
         "de": {
@@ -6971,6 +7851,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Transcriptietaal"
+          }
+        }
+      }
+    },
+    "Uit": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uit"
           }
         }
       }
@@ -7305,46 +8207,46 @@
         }
       }
     },
-    "Versturen geannuleerd — je kunt het hieronder opnieuw proberen.": {
+    "Versturen geannuleerd, je kunt het hieronder opnieuw proberen.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Senden abgebrochen — Sie können es unten erneut versuchen."
+            "value": "Senden abgebrochen, Sie können es unten erneut versuchen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sending cancelled — you can try again below."
+            "value": "Sending cancelled, you can try again below."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Versturen geannuleerd — je kunt het hieronder opnieuw proberen."
+            "value": "Versturen geannuleerd, je kunt het hieronder opnieuw proberen."
           }
         }
       }
     },
-    "Versturen mislukt — probeer het opnieuw.": {
+    "Versturen mislukt, probeer het opnieuw.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Senden fehlgeschlagen — versuchen Sie es erneut."
+            "value": "Senden fehlgeschlagen, versuchen Sie es erneut."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sending failed — try again."
+            "value": "Sending failed, try again."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Versturen mislukt — probeer het opnieuw."
+            "value": "Versturen mislukt, probeer het opnieuw."
           }
         }
       }
@@ -7653,6 +8555,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Voeg eigen namen en woorden toe die de spraakherkenning moet corrigeren."
+          }
+        }
+      }
+    },
+    "Voeg samen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusammenführen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merge"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg samen"
           }
         }
       }
@@ -8115,6 +9039,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wis resultaat"
+          }
+        }
+      }
+    },
+    "Wis zoekopdracht en sluit toetsenbord": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche löschen und Tastatur schließen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear search and close keyboard"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wis zoekopdracht en sluit toetsenbord"
           }
         }
       }

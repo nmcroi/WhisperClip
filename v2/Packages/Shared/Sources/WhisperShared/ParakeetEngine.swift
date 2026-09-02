@@ -176,7 +176,10 @@ public actor ParakeetEngine: TranscriptionEngine {
         guard Self.modelsPresentOnDisk else { return }
         guard await Self.modelDirectoryIsValid() else {
             Self.removeModelCache()
-            return
+            // Wél gooien: zonder fout keerde dit stil terug en bleef de
+            // aanroeper op `.installed` staan, terwijl het model net is gewist.
+            // De downloadkaart verscheen daardoor nooit meer.
+            throw ParakeetEngineError.modelNotLoaded
         }
         try await loadModelsIfNeeded()
     }
@@ -299,9 +302,13 @@ public actor ParakeetEngine: TranscriptionEngine {
         while true {
             attempt += 1
             do {
-                try await withDownloadWatchdog {
-                    try await self.performDownloadAndLoad(progressHandler: progressHandler)
+                // Alleen de download staat onder de waakhond. Het laden en
+                // compileren erna meldt geen voortgang en is niet af te breken,
+                // dus daar zou de stalklok altijd onterecht aflopen.
+                let models = try await withDownloadWatchdog {
+                    try await self.performDownload(progressHandler: progressHandler)
                 }
+                try await activate(models: models)
                 return
             } catch {
                 // A partial/corrupt on-disk model can't be resumed — it must be
@@ -389,9 +396,15 @@ public actor ParakeetEngine: TranscriptionEngine {
         return false
     }
 
-    /// Downloads (if needed) and loads the models into a live manager.
-    private func performDownloadAndLoad(progressHandler: @escaping DownloadUtils.ProgressHandler) async throws {
-        let models = try await AsrModels.downloadAndLoad(version: .v3, progressHandler: progressHandler)
+    /// Haalt de modelbestanden binnen (of vindt ze al op schijf). Dit is de enige
+    /// stap die voortgang meldt en dus de enige die onder de waakhond hoort.
+    private func performDownload(progressHandler: @escaping DownloadUtils.ProgressHandler) async throws -> AsrModels {
+        try await AsrModels.downloadAndLoad(version: .v3, progressHandler: progressHandler)
+    }
+
+    /// Laadt de gedownloade modellen in een levende manager. De CoreML-compilatie
+    /// hierin kan minuten duren zonder een teken van leven te geven.
+    private func activate(models: AsrModels) async throws {
         let manager = AsrManager(config: .default)
         try await manager.loadModels(models)
         self.manager = manager
@@ -477,7 +490,13 @@ public actor ParakeetEngine: TranscriptionEngine {
         let tick: UInt64 = 1_000_000_000  // 1s
         var lastProgress = downloadProgress
         var lastBytes = downloadedBytes
-        var lastAdvance = Date()
+        // Bewust een klok die stilstaat zolang het proces opgeschort is: met
+        // `Date()` telde de tijd dat de app in de achtergrond sliep mee als
+        // "geen vooruitgang", waarna de waakhond bij terugkomst meteen afging op
+        // een download die niets mankeerde. Hij is bovendien monotoon, dus een
+        // verzette systeemklok kan hem ook niet meer voor of achter zetten.
+        let clock = SuspendingClock()
+        var lastAdvance = clock.now
 
         while true {
             try await Task.sleep(nanoseconds: tick)
@@ -486,16 +505,21 @@ public actor ParakeetEngine: TranscriptionEngine {
                 lastBytes: lastBytes,
                 currentProgress: downloadProgress,
                 currentBytes: downloadedBytes,
-                secondsSinceLastAdvance: Date().timeIntervalSince(lastAdvance),
+                secondsSinceLastAdvance: Self.seconds(lastAdvance.duration(to: clock.now)),
                 timeout: Self.watchdogTimeout
             )
             if sample.advanced {
                 lastProgress = downloadProgress
                 lastBytes = downloadedBytes
-                lastAdvance = Date()
+                lastAdvance = clock.now
             }
             if sample.stalled { return }
         }
+    }
+
+    private static func seconds(_ duration: Duration) -> TimeInterval {
+        let parts = duration.components
+        return TimeInterval(parts.seconds) + TimeInterval(parts.attoseconds) / 1e18
     }
 
     // MARK: - Audio format
@@ -668,7 +692,13 @@ public actor ParakeetEngine: TranscriptionEngine {
     public func recoverOrphanedRecordings(
         defaultLocale: Locale
     ) async throws -> RecordingRecoveryBatch {
-        let urls = Self.orphanedRecordingURLs()
+        // Nooit herstellen terwijl er wordt opgenomen: het lopende CAF-bestand is
+        // dan nog in gebruik en zou halverwege getranscribeerd en verwijderd
+        // worden.
+        guard !isRecording else {
+            return RecordingRecoveryBatch(recordings: [], failedCount: 0)
+        }
+        let urls = orphanedRecordingURLs()
         guard !urls.isEmpty else {
             return RecordingRecoveryBatch(recordings: [], failedCount: 0)
         }
@@ -853,13 +883,22 @@ public actor ParakeetEngine: TranscriptionEngine {
         recordingWriteError = nil
     }
 
-    private static func orphanedRecordingURLs() -> [URL] {
+    /// Het bestand van de lopende sessie valt er altijd buiten, zodat een
+    /// herstelronde nooit de opname raakt waar op dit moment in geschreven wordt.
+    private func orphanedRecordingURLs() -> [URL] {
+        Self.orphanedRecordingURLs(excluding: recordingFileURL)
+    }
+
+    private static func orphanedRecordingURLs(excluding current: URL?) -> [URL] {
         let directory = FileManager.default.temporaryDirectory
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: [.creationDateKey]
         ) else { return [] }
-        return urls.filter { $0.lastPathComponent.hasPrefix(recordingFilePrefix) }
+        let currentPath = current?.standardizedFileURL.path
+        return urls
+            .filter { $0.lastPathComponent.hasPrefix(recordingFilePrefix) }
+            .filter { $0.standardizedFileURL.path != currentPath }
             .sorted { lhs, rhs in
                 let left = try? lhs.resourceValues(forKeys: [.creationDateKey]).creationDate
                 let right = try? rhs.resourceValues(forKeys: [.creationDateKey]).creationDate

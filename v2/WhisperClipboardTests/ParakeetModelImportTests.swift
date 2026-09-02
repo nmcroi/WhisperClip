@@ -103,6 +103,61 @@ final class ParakeetModelImportTests: XCTestCase {
         }
     }
 
+    // MARK: - Installeren: het oude model blijft staan tot de kopie compleet is
+
+    func testInstallReplacesExistingModelDirectory() throws {
+        let fm = FileManager.default
+        let fixture = try makeFixtureDirectory(
+            encoderWeightsBytes: Int(ParakeetModelImport.minimumEncoderWeightsBytes) + 1
+        )
+        let destinationParent = fm.temporaryDirectory
+            .appendingPathComponent("wc-parakeet-dest-\(UUID().uuidString)")
+        let destination = destinationParent.appendingPathComponent(ParakeetModelImport.modelFolderName)
+        defer {
+            try? fm.removeItem(at: fixture)
+            try? fm.removeItem(at: destinationParent)
+        }
+
+        // Een oud, half model op de doelplek.
+        try fm.createDirectory(at: destination, withIntermediateDirectories: true)
+        try Data("oud".utf8).write(to: destination.appendingPathComponent("oud.txt"))
+
+        try ParakeetModelImport.install(from: fixture, to: destination)
+
+        XCTAssertTrue(fm.fileExists(
+            atPath: destination.appendingPathComponent(ParakeetModelImport.RequiredFile.vocabulary).path
+        ))
+        XCTAssertFalse(fm.fileExists(atPath: destination.appendingPathComponent("oud.txt").path))
+        // Geen achtergebleven tijdelijke importmap naast het doel.
+        let leftovers = try fm.contentsOfDirectory(atPath: destinationParent.path)
+            .filter { $0.contains(".import-") }
+        XCTAssertTrue(leftovers.isEmpty, "Tijdelijke importmap bleef staan: \(leftovers)")
+    }
+
+    func testFailedInstallLeavesExistingModelIntact() throws {
+        let fm = FileManager.default
+        let destinationParent = fm.temporaryDirectory
+            .appendingPathComponent("wc-parakeet-dest-\(UUID().uuidString)")
+        let destination = destinationParent.appendingPathComponent(ParakeetModelImport.modelFolderName)
+        defer { try? fm.removeItem(at: destinationParent) }
+
+        // Het werkende model dat er al staat.
+        try fm.createDirectory(at: destination, withIntermediateDirectories: true)
+        let marker = destination.appendingPathComponent("werkend.txt")
+        try Data("werkend".utf8).write(to: marker)
+
+        // Een bron die niet bestaat: de kopieerstap mislukt.
+        let missingSource = fm.temporaryDirectory
+            .appendingPathComponent("wc-parakeet-bestaat-niet-\(UUID().uuidString)")
+
+        XCTAssertThrowsError(try ParakeetModelImport.install(from: missingSource, to: destination))
+
+        XCTAssertTrue(fm.fileExists(atPath: marker.path), "Het oude model is weg na een mislukte import")
+        let leftovers = try fm.contentsOfDirectory(atPath: destinationParent.path)
+            .filter { $0.contains(".import-") }
+        XCTAssertTrue(leftovers.isEmpty, "Tijdelijke importmap bleef staan: \(leftovers)")
+    }
+
     // MARK: - Mapstructuur: submap versus de gekozen map zelf
 
     func testResolveModelDirectoryFindsNestedSubfolder() throws {

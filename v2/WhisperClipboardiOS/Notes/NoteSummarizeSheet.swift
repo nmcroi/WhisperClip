@@ -5,7 +5,7 @@ import WhisperShared
 /// De AI-samenvat-sheet voor een hele notitie (i3): dezelfde modus-chips en
 /// vrije-prompt als bij een transcript, maar dan op de samengevoegde tekst van
 /// alle opnames in de notitie. Het resultaat streamt live in de sheet met een
-/// kopieerknop. Resultaten worden bewust niet bewaard (v1) — zie
+/// kopieerknop. Resultaten worden bewust niet bewaard (v1), zie
 /// `NoteDetailiOSView.summarizeEntry()`.
 struct NoteSummarizeSheet: View {
     @EnvironmentObject private var app: AppModel
@@ -40,14 +40,16 @@ struct NoteSummarizeSheet: View {
                     }
                     .padding(20)
                 }
+                // Het AI-paneel heeft een invoerveld: naar beneden vegen sluit
+                // het toetsenbord (2 sep 2026).
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Samenvatten")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Gereed") { dismiss() }
-                        .foregroundStyle(Theme.accentText)
-                }
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                dismiss()
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()

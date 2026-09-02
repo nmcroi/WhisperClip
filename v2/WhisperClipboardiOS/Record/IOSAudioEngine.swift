@@ -376,6 +376,10 @@ final class IOSAudioEngine {
     func stop() { teardown() }
 
     private func teardown() {
+        // De observers worden al bij het configureren van de sessie geplaatst,
+        // dus vóór `isRunning` waar wordt. Bij een mislukte start stapelden ze
+        // zich anders op: elke volgende poging plaatste er weer twee bij.
+        removeInterruptionObserver()
         guard isRunning else { return }
         isRunning = false
         pauseReason = nil
@@ -389,7 +393,6 @@ final class IOSAudioEngine {
         continuation?.finish()
         continuation = nil
         converter = nil
-        removeInterruptionObserver()
         // Release the session so other apps regain audio.
         try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
     }

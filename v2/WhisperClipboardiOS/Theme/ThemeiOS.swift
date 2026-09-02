@@ -47,7 +47,7 @@ extension Color {
 
     /// A **dynamic** color that resolves to `lightHex` under a light appearance
     /// and `darkHex` under a dark appearance. Backed by a `UIColor` dynamic
-    /// provider so a single token follows the active trait collection — call
+    /// provider so a single token follows the active trait collection, call
     /// sites use the same `Theme.xxx` tokens as the mac app, so views read
     /// identically across platforms.
     init(lightHex: String, darkHex: String) {
@@ -160,7 +160,7 @@ enum Theme {
 
     // MARK: Accents
 
-    /// Primary accent for **fills / highlights** — the "Kopieer" button, level
+    /// Primary accent for **fills / highlights**: the "Kopieer" button, level
     /// bars, the record ring. GHX: Innovation Orange, keuze van Niels
     /// (13 aug 2026); witte tekst erop, zoals de gids op oranje vlakken doet.
     static var accent: Color {
@@ -181,7 +181,7 @@ enum Theme {
             ? Color(lightHex: "CC4B15", darkHex: "CC4B15")
             : Color(lightHex: "C9A800", darkHex: "C9A800")
     }
-    /// Secondary accent — recording state, destructive actions. GHX: een
+    /// Secondary accent: recording state, destructive actions. GHX: een
     /// donkerder, koeler rood (kardinaalrood) in plaats van Spark Red #FF0000,
     /// want dat lag te dicht tegen Innovation Orange aan (13 aug 2026).
     static var danger: Color {

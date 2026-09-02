@@ -7,7 +7,7 @@ import SwiftUI
 ///    met chevron), ook voor uitleg-vensters.
 /// 2. Kies hier: witte tekst links, gele waarde rechts (inline Picker).
 /// 3. Aan of uit: Toggle met `Theme.accent`-tint.
-/// 4. Doe iets nu: ALTIJD een knop met vorm — dit bestand. Kale gele
+/// 4. Doe iets nu: ALTIJD een knop met vorm, dit bestand. Kale gele
 ///    tekstregels bestaan niet meer.
 ///
 /// Kernregel: geel is een gekozen waarde of een knop met vorm; al het andere is
@@ -24,7 +24,7 @@ enum ActionButtonRole {
 enum ActionButtonSize {
     /// 16pt semibold, verticale padding 12, volle breedte. Losstaande knoppen.
     case regular
-    /// 14pt semibold, verticale padding 10. Actiebalken en bedieningsrijen.
+    /// 12pt semibold, verticale padding 8. Actiebalken en bedieningsrijen.
     case compact
 }
 
@@ -150,6 +150,41 @@ struct IconActionLabel: View {
         .contentShape(Rectangle())
     }
 }
+
+#if os(iOS)
+/// De ene sluitknop van elke sheet: een geel kruisje rechtsboven in de
+/// navigatiebalk. Daarvoor stond er op de ene sheet "Annuleer" linksboven, op de
+/// andere "Gereed" rechtsboven en op `AssignNoteSheet` helemaal niets, waardoor
+/// die alleen weg te vegen was (2 sep 2026).
+struct SheetCloseToolbar: ViewModifier {
+    let label: String
+    let onClose: () -> Void
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(label)
+            }
+        }
+    }
+}
+
+extension View {
+    /// Zet de vaste sluitknop rechtsboven op een sheet. `label` is de
+    /// voorleestekst, in de taal van de app.
+    func sheetCloseButton(label: String, onClose: @escaping () -> Void) -> some View {
+        modifier(SheetCloseToolbar(label: label, onClose: onClose))
+    }
+}
+#endif
 
 /// De knop zelf. `.buttonStyle(.plain)` zit erin, zodat de vorm in een List of
 /// Form niet door de rij-stijl wordt overschreven.

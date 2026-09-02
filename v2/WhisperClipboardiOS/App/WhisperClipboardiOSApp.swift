@@ -41,9 +41,28 @@ private struct ContentShell: View {
     /// De tab met het opnamescherm. Zie `RootView`, waar de tags worden gezet.
     private static let recordTab = 0
 
+    /// De sleutel die de herbouw van de schermboom stuurt. Bewust een eigen
+    /// `@State` en niet rechtstreeks merk plus weergave: een wissel tijdens een
+    /// opname zou de hele boom vervangen en daarmee de `RecordController` met de
+    /// lopende opname weggooien zonder hem netjes af te sluiten. De sleutel loopt
+    /// daarom pas mee zodra er niets meer opneemt.
+    @State private var rebuildKey = ""
+
+    private var themeKey: String {
+        "\(app.brand.rawValue)-\(app.appearance.rawValue)"
+    }
+
+    private func refreshRebuildKey() {
+        guard !app.isRecordingActive else { return }
+        rebuildKey = themeKey
+    }
+
     var body: some View {
         RootView(selection: $selectedTab, showSettings: $showSettings)
-            .id("\(app.brand.rawValue)-\(app.appearance.rawValue)")
+            .id(rebuildKey)
+            .onAppear { rebuildKey = themeKey }
+            .onChange(of: themeKey) { _, _ in refreshRebuildKey() }
+            .onChange(of: app.isRecordingActive) { _, _ in refreshRebuildKey() }
             .onChange(of: scenePhase) { _, phase in
                 handle(phase)
             }

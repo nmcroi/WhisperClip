@@ -183,6 +183,24 @@ final class AppModel: ObservableObject {
 
     private var didAttemptRecordingRecovery = false
 
+    /// True zolang er ergens in de app een opname loopt. Gezet door
+    /// ``RecordController``; gebruikt om de herbouw van de schermboom bij een
+    /// merk- of weergavewissel uit te stellen tot na de opname.
+    @Published private(set) var isRecordingActive = false
+    /// Er kan meer dan één opnamescherm bestaan (Opnemen en Notulist), dus tellen
+    /// in plaats van een enkele vlag.
+    private var activeRecordings = 0
+
+    func recordingBegan() {
+        activeRecordings += 1
+        isRecordingActive = true
+    }
+
+    func recordingEnded() {
+        activeRecordings = max(0, activeRecordings - 1)
+        isRecordingActive = activeRecordings > 0
+    }
+
     private static let appearanceKey = "ios.appearance"
     private static let interfaceLanguageKey = "ios.interfaceLanguage"
     private static let showHelpTipsKey = "ios.showHelpTips"
@@ -241,9 +259,15 @@ final class AppModel: ObservableObject {
         // Retention is unlimited for now (settings round adds a control). The DB
         // lives in this app's own sandbox, isolated from the Mac's copy.
         let store: HistoryStore?
+        var storeFailure: String?
         do {
             store = try HistoryStore(retentionProvider: { nil })
         } catch {
+            // Zonder dit verdween de enige aanwijzing waaróm de database niet
+            // openging, en zat de gebruiker met een app zonder geschiedenis en
+            // een melding waar niemand iets mee kan.
+            NSLog("WhisperClip: HistoryStore kon niet worden geopend: %@", error.localizedDescription)
+            storeFailure = error.localizedDescription
             store = nil
         }
         self.history = store
@@ -276,10 +300,11 @@ final class AppModel: ObservableObject {
             self?.objectWillChange.send()
         }
         if store == nil {
-            self.errorMessage = L10n.string(
+            let base = L10n.string(
                 "De geschiedenis kon niet worden geopend.",
                 locale: interfaceLanguage.locale
             )
+            self.errorMessage = storeFailure.map { "\(base) (\($0))" } ?? base
         }
 
         // Woordenlijst-sync: pas een remote lijst toe onder de vlag (didSet
@@ -311,6 +336,9 @@ final class AppModel: ObservableObject {
         if status.isReady {
             do {
                 try await engine.prepare()
+                // Opnieuw afleiden: `prepare()` kan een kapot model hebben gewist,
+                // en dan is `.installed` van hierboven niet meer waar.
+                modelStatus = await engine.assetStatus(for: transcriptionLanguage.locale)
                 await recoverInterruptedRecordingsIfNeeded()
             } catch {
                 modelStatus = await engine.assetStatus(for: transcriptionLanguage.locale)
@@ -328,6 +356,11 @@ final class AppModel: ObservableObject {
         // from (Issue 3). Restored in the defer below.
         UIApplication.shared.isIdleTimerDisabled = true
         defer { UIApplication.shared.isIdleTimerDisabled = false }
+        // En vraag extra achtergrondtijd aan: zonder dit wordt de app opgeschort
+        // zodra Niels tijdens de download even naar een andere app kijkt, en ligt
+        // de download stil tot hij terugkomt.
+        beginDownloadBackgroundTask()
+        defer { endDownloadBackgroundTask() }
 
         // Poll the engine's fraction *and* byte progress while the download runs
         // so both the bar and the "X van Y MB" text keep moving.
@@ -355,6 +388,26 @@ final class AppModel: ObservableObject {
             modelStatus = .needsDownload(progress: 0)
             errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
         }
+    }
+
+    /// Loopt tijdens de modeldownload; `.invalid` als er geen aanvraag openstaat.
+    private var downloadBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+
+    private func beginDownloadBackgroundTask() {
+        endDownloadBackgroundTask()
+        downloadBackgroundTask = UIApplication.shared.beginBackgroundTask(
+            withName: "Parakeet-modeldownload"
+        ) {
+            // iOS trekt de extra tijd in. Netjes teruggeven, anders beëindigt het
+            // systeem de app hard.
+            Task { @MainActor [weak self] in self?.endDownloadBackgroundTask() }
+        }
+    }
+
+    private func endDownloadBackgroundTask() {
+        guard downloadBackgroundTask != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(downloadBackgroundTask)
+        downloadBackgroundTask = .invalid
     }
 
     /// Alternatieve importroute wanneer de download over het netwerk niet lukt:
@@ -388,6 +441,10 @@ final class AppModel: ObservableObject {
                 await refreshModelStatus()
             } catch {
                 errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
+                // Ook na een mislukte import de stand opnieuw afleiden: het
+                // eerder geïnstalleerde model staat er nog en de kaart moet dat
+                // laten zien in plaats van te blijven hangen.
+                await refreshModelStatus()
             }
         }
     }
@@ -396,8 +453,22 @@ final class AppModel: ObservableObject {
     /// alsnog om in gewone geschiedenis-items. Het audiobestand wordt pas gewist
     /// nadat de database-write is geslaagd.
     private func recoverInterruptedRecordingsIfNeeded() async {
-        guard !didAttemptRecordingRecovery, let history else { return }
+        guard !didAttemptRecordingRecovery else { return }
         didAttemptRecordingRecovery = true
+        await runRecordingRecovery(announcing: true)
+    }
+
+    /// Directe herstelronde buiten de eenmalige start-sweep om, voor een opname
+    /// die net na Stop niet getranscribeerd kon worden. Geeft terug hoeveel
+    /// opnamen alsnog in Geschiedenis staan; meldt zelf niets, de aanroeper
+    /// bepaalt wat de gebruiker te zien krijgt.
+    func recoverPendingRecordingsNow() async -> Int {
+        await runRecordingRecovery(announcing: false)
+    }
+
+    @discardableResult
+    private func runRecordingRecovery(announcing: Bool) async -> Int {
+        guard let history else { return 0 }
 
         do {
             let batch = try await engine.recoverOrphanedRecordings(
@@ -437,6 +508,8 @@ final class AppModel: ObservableObject {
                 }
             }
 
+            guard announcing else { return savedCount }
+
             if failedCount > 0 {
                 // RootView toont fout- en succesmeldingen met twee aparte alerts.
                 // Bied bij een gemengd resultaat alleen de fout aan, zodat twee
@@ -461,8 +534,12 @@ final class AppModel: ObservableObject {
                     savedCount
                 )
             }
+            return savedCount
         } catch {
-            errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
+            if announcing {
+                errorMessage = ErrorLocalization.message(for: error, language: interfaceLanguage)
+            }
+            return 0
         }
     }
 

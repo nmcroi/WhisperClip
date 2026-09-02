@@ -52,7 +52,7 @@ struct MeetingSetupView: View {
         ZStack {
             Theme.window.ignoresSafeArea()
             VStack(spacing: 0) {
-                meetingPageHeader
+                MainPageHeader(title: "De Notulist")
                 List {
                     // Vier blokken, elk precies één regel, volgens de
                     // knoppentaal in START_PROMPT_NEXT_CHAT.md (13 aug 2026).
@@ -166,18 +166,6 @@ struct MeetingSetupView: View {
         }
         .frame(minHeight: 32)
         .contentShape(Rectangle())
-    }
-
-    private var meetingPageHeader: some View {
-        HStack(spacing: 12) {
-            Text("De Notulist")
-                .font(ThemeFont.ui(34, weight: .bold))
-                .foregroundStyle(Theme.text)
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
     }
 
     /// De start van een notule is bewust losgezet van deelnemersbeheer: dezelfde

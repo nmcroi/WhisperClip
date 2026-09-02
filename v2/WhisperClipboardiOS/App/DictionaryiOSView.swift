@@ -32,11 +32,14 @@ struct DictionaryiOSView: View {
                         app.replacements.append(Replacement(find: "", replace: ""))
                     }
                 } footer: {
-                    Text("Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts — hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’.")
+                    Text("Corrigeer woorden die de spraakherkenning vaak verkeerd verstaat. Elk woord links wordt overal vervangen door de tekst rechts: hele woorden, hoofdletterongevoelig. Bijvoorbeeld: ‘klot’ → ‘Claude’.")
                 }
                 .listRowBackground(Theme.surface)
             }
             .scrollContentBackground(.hidden)
+            // Naar beneden vegen sluit het toetsenbord boven de invulvelden
+            // (2 sep 2026).
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationTitle("Woordenlijst")
         .navigationBarTitleDisplayMode(.inline)

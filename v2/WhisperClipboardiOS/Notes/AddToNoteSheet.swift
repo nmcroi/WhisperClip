@@ -5,7 +5,7 @@ import WhisperShared
 
 /// Een sheet die een bestaande opname (uit de Geschiedenis) áán een notitie
 /// toevoegt. Toont een lijst van bestaande notities plus "Nieuwe notitie…". Bij
-/// keuze wordt de opname z'n `note_id` gezet — daarmee verdwijnt hij uit de losse
+/// keuze wordt de opname z'n `note_id` gezet, daarmee verdwijnt hij uit de losse
 /// Geschiedenis (die filtert op `note_id IS NULL`) en verschijnt hij in de notitie.
 struct AddToNoteSheet: View {
     @EnvironmentObject private var app: AppModel
@@ -27,11 +27,10 @@ struct AddToNoteSheet: View {
             }
             .navigationTitle("Voeg toe aan notitie")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Annuleer") { dismiss() }
-                        .foregroundStyle(Theme.accentText)
-                }
+            .sheetCloseButton(
+                label: L10n.string( "Sluiten", locale: app.interfaceLanguage.locale)
+            ) {
+                dismiss()
             }
             .alert("Nieuwe notitie", isPresented: $showNewNote) {
                 TextField("Titel", text: $newNoteTitle)
