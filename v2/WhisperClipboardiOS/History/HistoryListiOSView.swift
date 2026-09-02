@@ -116,11 +116,13 @@ struct HistoryListiOSView: View {
         )
         guard let merged = TranscriptMerge.merge(entries, naam: naam) else { return }
         do {
-            try history.add(merged)
+            // Eén transactie: mislukt het verwijderen van een origineel, dan komt
+            // ook de samengevoegde opname er niet, in plaats van een dubbele
+            // geschiedenis met de helft van de originelen er nog in.
             if deleteOriginals {
-                for entry in ordered {
-                    try history.delete(id: entry.id)
-                }
+                try history.mergeAndReplace(merged: merged, deleting: ordered.map(\.id))
+            } else {
+                try history.add(merged)
             }
             selection = []
             isSelecting = false
@@ -342,9 +344,9 @@ struct HistoryListiOSView: View {
     private func deleteSelected() {
         guard let history = app.history else { return }
         do {
-            for id in selection {
-                try history.delete(id: id)
-            }
+            // In één transactie: een fout halverwege liet anders een deel van de
+            // selectie verwijderd achter.
+            try history.deleteMany(ids: Array(selection))
             selection = []
             isSelecting = false
         } catch {

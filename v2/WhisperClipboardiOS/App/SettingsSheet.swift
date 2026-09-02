@@ -49,7 +49,7 @@ struct SettingsSheet: View {
                         ZStack {
                             NavigationLink { meetingSettings } label: { EmptyView() }
                                 .opacity(0)
-                            settingsLink("Notulen", symbol: "person.2.wave.2")
+                            settingsLink("Notulist", symbol: "person.2.wave.2")
                         }
                         ZStack {
                             NavigationLink { aiSettings } label: { EmptyView() }
@@ -284,7 +284,7 @@ struct SettingsSheet: View {
             }
             .listRowBackground(Theme.surface)
             Section {
-                Toggle("AI bij Notulen toestaan", isOn: $app.allowMeetingAI)
+                Toggle("AI bij de Notulist toestaan", isOn: $app.allowMeetingAI)
                     .tint(Theme.accent)
                     .disabled(!app.hasAPIKey(for: app.aiProvider))
             } footer: {
@@ -296,7 +296,7 @@ struct SettingsSheet: View {
                     ))
                 } else {
                     Text(String(
-                        format: L10n.string( "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor Notulen toestaan.", locale: app.interfaceLanguage.locale),
+                        format: L10n.string( "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor de Notulist toestaan.", locale: app.interfaceLanguage.locale),
                         locale: app.interfaceLanguage.locale,
                         app.aiProvider.displayName
                     ))
@@ -305,7 +305,7 @@ struct SettingsSheet: View {
             .listRowBackground(Theme.surface)
         }
         .settingsPageStyle()
-        .navigationTitle("Notulen")
+        .navigationTitle("Notulist")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -917,7 +917,7 @@ private struct MeetingContactsSettingsView: View {
             } header: {
                 Text("Opgeslagen")
             } footer: {
-                Text("Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe notulenopname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud.")
+                Text("Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe Notulist-opname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud.")
             }
             .listRowBackground(Theme.surface)
 

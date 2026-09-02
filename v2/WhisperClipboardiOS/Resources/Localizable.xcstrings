@@ -881,24 +881,24 @@
         }
       }
     },
-    "AI bij Notulen toestaan": {
+    "AI bij de Notulist toestaan": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "KI für Protokolle erlauben"
+            "value": "KI beim Protokollanten erlauben"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Allow AI for minutes"
+            "value": "Allow AI in the Minute taker"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "AI bij Notulen toestaan"
+            "value": "AI bij de Notulist toestaan"
           }
         }
       }
@@ -2184,13 +2184,13 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Protokoll"
+            "value": "Der Protokollant"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The Minute Taker"
+            "value": "The Minute taker"
           }
         },
         "nl": {
@@ -3741,24 +3741,24 @@
         }
       }
     },
-    "Hervatten lukte niet — opname wordt afgerond…": {
+    "Hervatten lukte niet, opname wordt afgerond…": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fortsetzen nicht möglich — Aufnahme wird abgeschlossen…"
+            "value": "Fortsetzen nicht möglich, Aufnahme wird abgeschlossen…"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Could not resume — finishing the recording…"
+            "value": "Could not resume, finishing the recording…"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hervatten lukte niet — opname wordt afgerond…"
+            "value": "Hervatten lukte niet, opname wordt afgerond…"
           }
         }
       }
@@ -3851,24 +3851,24 @@
         }
       }
     },
-    "Hoe werkt de notulist?": {
+    "Hoe werkt de Notulist?": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wie funktioniert das Protokoll?"
+            "value": "Wie funktioniert der Protokollant?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "How does the minute taker work?"
+            "value": "How does the Minute taker work?"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hoe werkt de notulist?"
+            "value": "Hoe werkt de Notulist?"
           }
         }
       }
@@ -5655,40 +5655,18 @@
         }
       }
     },
-    "Notulen-opname": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Protokollaufnahme"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Minutes recording"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notulen-opname"
-          }
-        }
-      }
-    },
     "Notulist": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protokoll"
+            "value": "Protokollant"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Minute Taker"
+            "value": "Minute taker"
           }
         },
         "nl": {
@@ -5915,6 +5893,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opname %1$lld van %2$lld transcriberen…"
+          }
+        }
+      }
+    },
+    "Opname hernoemen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme umbenennen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename recording"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opname hernoemen"
           }
         }
       }
@@ -6953,24 +6953,24 @@
         }
       }
     },
-    "Start notulen-opname": {
+    "Start Notulist-opname": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Protokollaufnahme starten"
+            "value": "Protokollant-Aufnahme starten"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start minutes recording"
+            "value": "Start minute taker recording"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Start notulen-opname"
+            "value": "Start Notulist-opname"
           }
         }
       }
@@ -7085,24 +7085,24 @@
         }
       }
     },
-    "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor Notulen toestaan.": {
+    "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor de Notulist toestaan.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hinterlegen Sie zuerst unter KI einen API-Schlüssel für %@. Danach können Sie KI für Protokolle erlauben."
+            "value": "Hinterlegen Sie zuerst unter KI einen API-Schlüssel für %@. Danach können Sie KI beim Protokollanten erlauben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "First set an API key for %@ under AI. You can then allow AI for minutes."
+            "value": "First set an API key for %@ under AI. You can then allow AI in the Minute taker."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor Notulen toestaan."
+            "value": "Stel eerst onder AI een API-key voor %@ in. Daarna kun je AI voor de Notulist toestaan."
           }
         }
       }
@@ -7591,24 +7591,24 @@
         }
       }
     },
-    "Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe notulenopname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud.": {
+    "Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe Notulist-opname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tippen Sie auf einen Namen oder eine E-Mail-Adresse, um sie zu ändern. ‚Das bin ich‘ wird bei einer neuen Protokollaufnahme vorausgewählt. Die Liste wird über iCloud mit Ihrem Mac synchronisiert."
+            "value": "Tippen Sie auf einen Namen oder eine E-Mail-Adresse, um sie zu ändern. ‚Das bin ich‘ wird bei einer neuen Protokollant-Aufnahme vorausgewählt. Die Liste wird über iCloud mit Ihrem Mac synchronisiert."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap a name or email address to change it. ‘This is me’ is preselected for a new meeting recording. The list syncs with your Mac via iCloud."
+            "value": "Tap a name or email address to change it. ‘This is me’ is preselected for a new Minute taker recording. The list syncs with your Mac through iCloud."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe notulenopname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud."
+            "value": "Tik op een naam of e-mailadres om het te wijzigen. ‘Dit ben ik’ wordt bij een nieuwe Notulist-opname alvast geselecteerd. De lijst synchroniseert met je Mac via iCloud."
           }
         }
       }
@@ -7723,24 +7723,24 @@
         }
       }
     },
-    "Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulen).": {
+    "Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulist).": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bis Sie eine Auswahl treffen, bleibt der Bericht sicher im Verlauf gespeichert (Quelle: Protokoll)."
+            "value": "Bis Sie eine Auswahl treffen, bleibt der Bericht sicher im Verlauf gespeichert (Quelle: Protokollant)."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Until you choose, the report remains safely stored in History (source: Minutes)."
+            "value": "Until you choose, the report remains safely stored in History (source: Minute taker)."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulen)."
+            "value": "Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulist)."
           }
         }
       }

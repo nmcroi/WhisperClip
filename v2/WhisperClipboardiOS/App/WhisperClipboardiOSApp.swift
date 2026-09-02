@@ -1,11 +1,11 @@
 import Core
 import SwiftUI
 
-/// The iOS companion app entry point: a four-tab shell ("Opnemen" / "Notule" /
+/// The iOS companion app entry point: a four-tab shell ("Opnemen" / "Notulist" /
 /// "Notities" / "Geschiedenis") with a Settings gear in the toolbar. Record →
 /// transcribe locally with Parakeet (Dutch) → history, iCloud-synced with the Mac
 /// in a later round. Notities are doorlopende, benoemde notities waaraan je kunt
-/// blijven toevoegen (i2; nog niet gesynct — zie HistorySchema/TranscriptCloudRecord).
+/// blijven toevoegen (i2; nog niet gesynct, zie HistorySchema/TranscriptCloudRecord).
 @main
 struct WhisperClipboardiOSApp: App {
     @StateObject private var app = AppModel()
@@ -156,7 +156,7 @@ struct RootView: View {
         .overlay(alignment: .topTrailing) {
             // Settings gear floats over de tab-content (elke tab is z'n eigen
             // NavigationStack, dus een gedeelde toolbar-knop zou dupliceren).
-            // Bewust op ÉLKE pagina zichtbaar — ook in gepushte detailweergaven.
+            // Bewust op ÉLKE pagina zichtbaar, ook in gepushte detailweergaven.
             // Die detailschermen zetten hun eigen knoppen daarom links (topBarLeading),
             // zodat niets rechtsboven met dit tandwiel botst.
             Button {

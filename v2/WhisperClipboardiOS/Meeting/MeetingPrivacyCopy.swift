@@ -38,7 +38,7 @@ struct MeetingPrivacyCopy {
         let intro = "De app helpt vergaderingen notuleren door het gesproken gesprek lokaal op deze zichtbare telefoon te transcriberen."
         let pause = "Wil iemand iets buiten de notulen bespreken, dan wordt de opname gepauzeerd. Wat tijdens die pauze wordt gezegd, wordt niet opgenomen en komt dus niet in de transcriptie."
         let after = "Aan het einde van de vergadering wordt de transcriptie afgerond. De geluidsopname wordt daarna van de telefoon verwijderd. Vervolgens wordt een e-mail voorbereid voor iedereen die voor deze vergadering een e-mailadres heeft opgegeven; iedereen ontvangt hetzelfde verslag nadat de gebruiker de e-mail heeft verstuurd."
-        let help = "De notulist verwerkt alleen geluid. Beschrijf daarom kort wat op een scherm of whiteboard gebeurt en spel bijzondere namen of termen. Een lokaal transcriptiemodel kan woorden verkeerd of fonetisch uitschrijven, maar zulke fouten zijn bij het nalezen meestal uit de context te herstellen."
+        let help = "De Notulist verwerkt alleen geluid. Beschrijf daarom kort wat op een scherm of whiteboard gebeurt en spel bijzondere namen of termen. Een lokaal transcriptiemodel kan woorden verkeerd of fonetisch uitschrijven, maar zulke fouten zijn bij het nalezen meestal uit de context te herstellen."
         let final: String
         let finalHeading: String
         switch ai {
@@ -53,7 +53,7 @@ struct MeetingPrivacyCopy {
             final = "De schakelaar AI-notulen staat aan. De transcriptietekst wordt daarom na afloop ook door een externe AI-dienst verwerkt tot bijvoorbeeld een samenvatting en actiepunten. De volledige oorspronkelijke transcriptie blijft onderdeel van het verslag."
         }
         return copy(
-            headings: ("Wat deze notulist doet", "Privacy tijdens de vergadering", "Na afloop", "Help de transcriptie", finalHeading),
+            headings: ("Wat de Notulist doet", "Privacy tijdens de vergadering", "Na afloop", "Help de transcriptie", finalHeading),
             texts: (intro, pause, after, help, final),
             spoken: "Dit is de WhisperClip Notulist. \(intro) \(pause) \(after) \(help) \(final)",
             stop: "Stop voorlezen",
@@ -66,7 +66,7 @@ struct MeetingPrivacyCopy {
         let intro = "The app helps take minutes by transcribing the spoken conversation locally on this visible phone."
         let pause = "If anyone wants to discuss something off the record, the recording will be paused. Anything said during that pause is not recorded and will not appear in the transcript."
         let after = "At the end of the meeting, the transcript is completed. The audio recording is then removed from the phone. An email is prepared for everyone who provided an email address for this meeting; everyone receives the same report after the user sends the email."
-        let help = "The minute taker processes sound only. Briefly describe anything shown on a screen or whiteboard, and spell unusual names or terms. A local transcription model may write words incorrectly or phonetically, but these errors can usually be resolved from context during review."
+        let help = "The Minute taker processes sound only. Briefly describe anything shown on a screen or whiteboard, and spell unusual names or terms. A local transcription model may write words incorrectly or phonetically, but these errors can usually be resolved from context during review."
         let final: String
         let finalHeading: String
         switch ai {
@@ -81,9 +81,9 @@ struct MeetingPrivacyCopy {
             final = "The AI minutes switch is on. After the meeting, the transcript text is also processed by an external AI service to create items such as a summary and action points. The full original transcript remains part of the report."
         }
         return copy(
-            headings: ("What this minute taker does", "Privacy during the meeting", "After the meeting", "Help the transcription", finalHeading),
+            headings: ("What the Minute taker does", "Privacy during the meeting", "After the meeting", "Help the transcription", finalHeading),
             texts: (intro, pause, after, help, final),
-            spoken: "This is the WhisperClip Minute Taker. \(intro) \(pause) \(after) \(help) \(final)",
+            spoken: "This is the WhisperClip Minute taker. \(intro) \(pause) \(after) \(help) \(final)",
             stop: "Stop reading",
             hint: "Reading this aloud does not start a recording or save anything extra.",
             accessibilityHint: "Only reads the explanation aloud and does not start a recording"
@@ -94,7 +94,7 @@ struct MeetingPrivacyCopy {
         let intro = "Die App unterstützt bei der Protokollierung, indem sie das gesprochene Gespräch lokal auf diesem sichtbaren Telefon transkribiert."
         let pause = "Möchte jemand etwas außerhalb des Protokolls besprechen, wird die Aufnahme pausiert. Was während dieser Pause gesagt wird, wird nicht aufgenommen und erscheint daher nicht im Transkript."
         let after = "Am Ende der Besprechung wird das Transkript fertiggestellt. Anschließend wird die Audioaufnahme vom Telefon entfernt. Danach wird eine E-Mail für alle vorbereitet, die für diese Besprechung eine E-Mail-Adresse angegeben haben; alle erhalten denselben Bericht, nachdem der Benutzer die E-Mail gesendet hat."
-        let help = "Die Protokollfunktion verarbeitet ausschließlich Ton. Beschreiben Sie deshalb kurz, was auf einem Bildschirm oder Whiteboard geschieht, und buchstabieren Sie besondere Namen oder Begriffe. Ein lokales Transkriptionsmodell kann Wörter falsch oder phonetisch schreiben; solche Fehler lassen sich beim Durchlesen meist aus dem Zusammenhang klären."
+        let help = "Der Protokollant verarbeitet ausschließlich Ton. Beschreiben Sie deshalb kurz, was auf einem Bildschirm oder Whiteboard geschieht, und buchstabieren Sie besondere Namen oder Begriffe. Ein lokales Transkriptionsmodell kann Wörter falsch oder phonetisch schreiben; solche Fehler lassen sich beim Durchlesen meist aus dem Zusammenhang klären."
         let final: String
         let finalHeading: String
         switch ai {
@@ -109,9 +109,9 @@ struct MeetingPrivacyCopy {
             final = "Der Schalter KI-Protokoll ist eingeschaltet. Der Transkripttext wird daher nach der Besprechung auch von einem externen KI-Dienst verarbeitet, beispielsweise zu einer Zusammenfassung und Aktionspunkten. Das vollständige ursprüngliche Transkript bleibt Bestandteil des Berichts."
         }
         return copy(
-            headings: ("Was diese Protokollfunktion tut", "Datenschutz während der Besprechung", "Nach der Besprechung", "Unterstützen Sie die Transkription", finalHeading),
+            headings: ("Was der Protokollant tut", "Datenschutz während der Besprechung", "Nach der Besprechung", "Unterstützen Sie die Transkription", finalHeading),
             texts: (intro, pause, after, help, final),
-            spoken: "Dies ist die WhisperClip Protokollfunktion. \(intro) \(pause) \(after) \(help) \(final)",
+            spoken: "Dies ist der WhisperClip Protokollant. \(intro) \(pause) \(after) \(help) \(final)",
             stop: "Vorlesen beenden",
             hint: "Das Vorlesen startet keine Aufnahme und speichert keine zusätzlichen Daten.",
             accessibilityHint: "Liest nur die Erklärung vor und startet keine Aufnahme"

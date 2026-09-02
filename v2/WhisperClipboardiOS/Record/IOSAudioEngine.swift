@@ -42,15 +42,15 @@ final class AudioLevelMeter: ObservableObject {
 
 /// iOS microphone capture: activates an `AVAudioSession` in `.record` /
 /// `.measurement` mode, taps `AVAudioEngine`'s input node, converts each buffer
-/// to 16 kHz mono Float32 and yields `AudioBufferBox`es as an `AsyncStream` —
+/// to 16 kHz mono Float32 and yields `AudioBufferBox`es as an `AsyncStream`,
 /// exactly what ``ParakeetEngine`` consumes via `feed(_:)`.
 ///
 /// Confined to the main actor like the mac `AudioEngine`: `AVAudioEngine` and its
 /// tap callbacks aren't `Sendable`; the tap hops back to the main actor to
 /// convert and yield. Adds the two iOS-only concerns the mac engine doesn't
 /// need: audio-session activation/deactivation and interruption handling (an
-/// incoming call, Siri, etc. stops the tap — we finish the stream so the record
-/// controller can gracefully stop).
+/// incoming call, Siri, etc. stops the tap, so we finish the stream and the
+/// record controller can gracefully stop).
 @MainActor
 final class IOSAudioEngine {
     let levelMeter = AudioLevelMeter()
@@ -67,7 +67,7 @@ final class IOSAudioEngine {
     private var nativeFormat: AVAudioFormat?
 
     /// Called (on the main actor) when the OS interrupts capture and we could NOT
-    /// keep it alive — the record controller finalizes what was captured so far.
+    /// keep it alive: the record controller finalizes what was captured so far.
     /// Used as the fallback (media-services reset, `.ended` zonder `shouldResume`,
     /// of een mislukte hervatting).
     var onInterruption: (() -> Void)?
@@ -91,8 +91,8 @@ final class IOSAudioEngine {
     var onNeedsManualResume: (() -> Void)?
 
     /// Waarom de capture gepauzeerd is. Een gebruikerspauze (de pauzeknop) en
-    /// een OS-onderbreking (telefoontje, Siri) delen hetzelfde mechanisme —
-    /// tap eraf, engine gepauzeerd, sessie en stream blijven leven — maar
+    /// een OS-onderbreking (telefoontje, Siri) delen hetzelfde mechanisme
+    /// (tap eraf, engine gepauzeerd, sessie en stream blijven leven), maar
     /// verschillen in wie mag hervatten: een gebruikerspauze wordt NOOIT
     /// automatisch hervat door het einde van een onderbreking.
     enum PauseReason { case user, interruption }
@@ -142,7 +142,7 @@ final class IOSAudioEngine {
     private func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
         do {
-            // `.measurement` gives the flattest, least-processed mic path — best
+            // `.measurement` gives the flattest, least-processed mic path, best
             // for downstream ASR (no AGC/EQ colouring the samples).
             try session.setCategory(.record, mode: .measurement, options: [])
             try session.setActive(true, options: [])
@@ -182,8 +182,8 @@ final class IOSAudioEngine {
             }
         }
 
-        // Defensief: bij een media-services-reset is de hele audiostack weg —
-        // hervatten kan niet, dus we vallen terug op stop-and-transcribe.
+        // Defensief: bij een media-services-reset is de hele audiostack weg.
+        // Hervatten kan niet, dus we vallen terug op stop-and-transcribe.
         mediaResetObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.mediaServicesWereResetNotification,
             object: AVAudioSession.sharedInstance(),
@@ -209,14 +209,14 @@ final class IOSAudioEngine {
 
     // MARK: - Pause / resume (gebruiker + onderbreking)
 
-    /// Gebruikerspauze (de pauzeknop): capture stopt ONMIDDELLIJK — de tap gaat
+    /// Gebruikerspauze (de pauzeknop): capture stopt ONMIDDELLIJK, de tap gaat
     /// eraf, dus niets van ná de druk kan de opname in. Sessie en stream blijven
     /// leven; hervatten gaat naadloos verder in dezelfde opname.
     func pauseByUser() {
         performPause(reason: .user)
     }
 
-    /// Hervatten na een gebruikerspauze. Geeft `false` bij falen — de aanroeper
+    /// Hervatten na een gebruikerspauze. Geeft `false` bij falen: de aanroeper
     /// rondt de opname dan af met alles tot het pauzemoment.
     func resumeByUser() -> Bool {
         guard isRunning, pauseReason == .user else { return false }
@@ -242,7 +242,7 @@ final class IOSAudioEngine {
 
     /// Onderbreking begonnen: pauzeer via het gedeelde pad. Was de gebruiker al
     /// zelf aan het pauzeren, dan blijft dat zo (de tap is toch al weg) en houdt
-    /// de gebruikerspauze voorrang — het einde van de onderbreking mag hem niet
+    /// de gebruikerspauze voorrang: het einde van de onderbreking mag hem niet
     /// zelf hervatten.
     private func handleInterruptionBegan() {
         performPause(reason: .interruption)
@@ -250,7 +250,7 @@ final class IOSAudioEngine {
 
     /// Onderbreking klaar: hervat de capture als dat mag én lukt; anders val terug
     /// op stop-and-transcribe. Een GEBRUIKERSpauze wordt hier bewust nooit
-    /// hervat — alleen de gebruiker heft die op.
+    /// hervat, alleen de gebruiker heft die op.
     private func handleInterruptionEnded(shouldResume: Bool) {
         guard isRunning, pauseReason == .interruption else { return }
         guard shouldResume, resumeCapture() else {
@@ -280,7 +280,7 @@ final class IOSAudioEngine {
     /// dat oude formaat niet meer bij het huidige formaat van de node en gooit
     /// `installTap` een `NSInternalInconsistencyException`. Dat is een
     /// ObjC-exceptie, geen Swift-fout: de `do/catch` hieronder ving hem niet en
-    /// kón hem ook niet vangen — het proces ging er hard op onderuit. We lezen
+    /// kón hem ook niet vangen: het proces ging er hard op onderuit. We lezen
     /// het formaat nu opnieuw uit de node en bouwen zo nodig de converter
     /// opnieuw, zodat een gewijzigd formaat via het bestaande foutpad (`false`)
     /// wordt afgehandeld.
@@ -494,7 +494,7 @@ private extension AVAudioPCMBuffer {
     /// pointer per buffer in de `AudioBufferList`; bij een interleaved formaat is
     /// dat er precies één, met alle kanalen door elkaar (`stride ==
     /// channelCount`). De lus indexeerde dan meer pointers dan er buffers zijn en
-    /// kopieerde bovendien het verkeerde aantal elementen — kanaal 1 schreef over
+    /// kopieerde bovendien het verkeerde aantal elementen: kanaal 1 schreef over
     /// kanaal 0 heen en de laatste kanalen lazen langs het einde van het blok.
     /// Draait op de CoreAudio-realtimethread voor élke buffer van élke opname.
     /// Identiek aan de macOS-versie in `AudioEngine.swift`.

@@ -122,8 +122,7 @@ public final class HistoryStore: ObservableObject {
     /// Inserts (or replaces) an entry, then prunes to the retention limit.
     public func add(_ entry: TranscriptEntry) throws {
         let prunedIDs = try dbQueue.write { db -> [String] in
-            try TranscriptRecord(entry: entry).insert(db)
-            return try Self.prune(db, retention: self.retentionProvider())
+            try Self.insert(entry, in: db, retention: self.retentionProvider())
         }
         emit(.upsert(id: entry.id))
         // bevinding 2026-08-03: door retentie verwijderde rijen worden nu ook als
@@ -138,6 +137,58 @@ public final class HistoryStore: ObservableObject {
         }
         emit(.delete(id: id))
         bump()
+    }
+
+    /// Verwijdert meerdere opnames in één transactie: óf ze verdwijnen allemaal,
+    /// óf er verandert niets. `delete(id:)` in een lus liet bij een fout halverwege
+    /// een deel verwijderd achter, en de gebruiker met een halve selectie.
+    ///
+    /// De bijeffecten zijn identiek aan die van `delete(id:)`: de FTS-index loopt
+    /// via de triggers mee en er gaat per opname één sync-verwijdering de deur uit.
+    public func deleteMany(ids: [String]) throws {
+        guard !ids.isEmpty else { return }
+        try dbQueue.write { db in
+            try Self.delete(ids: ids, in: db)
+        }
+        for id in ids { emit(.delete(id: id)) }
+        bump()
+    }
+
+    /// Bewaart de samengevoegde opname en verwijdert de originelen in één
+    /// transactie, zodat een fout nooit een half samengevoegde geschiedenis
+    /// achterlaat: óf de nieuwe opname staat er mét de originelen verdwenen, óf
+    /// er is niets veranderd.
+    ///
+    /// Doet verder precies wat `delete(id:)` plus `add(_:)` doen: revision-bump,
+    /// FTS via de triggers, en per wijziging een sync-melding. Eerst verwijderen
+    /// en dan invoegen, zodat het bewaarlimiet over de nieuwe stand telt.
+    public func mergeAndReplace(merged: TranscriptEntry, deleting ids: [String]) throws {
+        let prunedIDs = try dbQueue.write { db -> [String] in
+            try Self.delete(ids: ids, in: db)
+            return try Self.insert(merged, in: db, retention: self.retentionProvider())
+        }
+        for id in ids { emit(.delete(id: id)) }
+        emit(.upsert(id: merged.id))
+        for prunedID in prunedIDs { emit(.delete(id: prunedID)) }
+        bump()
+    }
+
+    /// De databasekant van `add(_:)`: invoegen plus retentie-pruning. Gedeeld met
+    /// ``mergeAndReplace(merged:deleting:)`` zodat een samenvoeging binnen één
+    /// transactie exact dezelfde bijeffecten heeft. Geeft de gepruunde ids terug;
+    /// de aanroeper zendt ze ná de transactie uit (zie `prune`).
+    private static func insert(
+        _ entry: TranscriptEntry,
+        in db: Database,
+        retention: Int?
+    ) throws -> [String] {
+        try TranscriptRecord(entry: entry).insert(db)
+        return try prune(db, retention: retention)
+    }
+
+    /// De databasekant van `delete(id:)`, voor één of meer ids.
+    private static func delete(ids: [String], in db: Database) throws {
+        try TranscriptRecord.deleteAll(db, keys: ids)
     }
 
     public func rename(id: String, name: String) throws {

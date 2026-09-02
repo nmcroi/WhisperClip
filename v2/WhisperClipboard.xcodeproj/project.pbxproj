@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		035D4CFA72BB9CD172C2F866 /* WhisperClipboardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B34E3F1AC782ABCCE39DD46 /* WhisperClipboardApp.swift */; };
+		057F6775F6E86DD57C7671CB /* HistoryTransactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2192D1BA7DB8F15FED572183 /* HistoryTransactionTests.swift */; };
 		06C4D66B424CFFD61225A861 /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = 54A32D5460FC44D8ABE5A235 /* Core */; };
 		0810C57F6814A09105A85BC8 /* LaunchHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC4180626B3180CBB5C8BDB6 /* LaunchHealth.swift */; };
 		087D919C865B76AE66351D69 /* PlaudClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C65B7B20B63834594A195E10 /* PlaudClient.swift */; };
@@ -209,6 +210,7 @@
 		1AF3E700DDA13883FF10D49C /* KeychainStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStoreTests.swift; sourceTree = "<group>"; };
 		1B15A1A7AFE523CD57EDBB55 /* AutomationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationTests.swift; sourceTree = "<group>"; };
 		1D5B2668F998A0297B2B2E44 /* AppFeatureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFeatureConfiguration.swift; sourceTree = "<group>"; };
+		2192D1BA7DB8F15FED572183 /* HistoryTransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryTransactionTests.swift; sourceTree = "<group>"; };
 		233038A608A9010A03FD4894 /* NotesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesListView.swift; sourceTree = "<group>"; };
 		2332D4851324194112A19294 /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Packages/Core; sourceTree = SOURCE_ROOT; };
 		262D15BDDAC407881937D976 /* PlaudClientIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaudClientIntegrationTests.swift; sourceTree = "<group>"; };
@@ -502,6 +504,7 @@
 				3EBDC0CAE1917D0966227CD7 /* FileImportTests.swift */,
 				3E44C52D87944BB2ACF887D5 /* HistoryStoreTests.swift */,
 				5ACB156EE28BE19D3F0F9C80 /* HistorySyncTests.swift */,
+				2192D1BA7DB8F15FED572183 /* HistoryTransactionTests.swift */,
 				29387B38D94A0836DCEBC319 /* InsertionLogicTests.swift */,
 				1AF3E700DDA13883FF10D49C /* KeychainStoreTests.swift */,
 				CD9521CADC85977B097BC658 /* LaunchHealthTests.swift */,
@@ -1192,6 +1195,7 @@
 				ECFD72BECB52043A9E5B1AFC /* FileImportTests.swift in Sources */,
 				81098231E10D346FF13C9760 /* HistoryStoreTests.swift in Sources */,
 				B8D15A97F1920833E01A4F2C /* HistorySyncTests.swift in Sources */,
+				057F6775F6E86DD57C7671CB /* HistoryTransactionTests.swift in Sources */,
 				2B499ED1D007731BA854B105 /* InsertionLogicTests.swift in Sources */,
 				D9D72C8E2222F74E989D0A57 /* KeychainStoreTests.swift in Sources */,
 				4AFA787C6CFCE5459ABD2947 /* LaunchHealthTests.swift in Sources */,

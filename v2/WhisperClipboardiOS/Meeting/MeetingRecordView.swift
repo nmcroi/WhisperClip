@@ -3,9 +3,9 @@ import MessageUI
 import SwiftUI
 import WhisperShared
 
-/// Stap 2 van de private notulist: de opname zelf. Start automatisch bij
+/// Stap 2 van de private Notulist: de opname zelf. Start automatisch bij
 /// verschijnen, met een prominente pauzeknop ("gepauzeerde stukken worden niet
-/// opgenomen"). Na stoppen wordt lokaal getranscribeerd, als "Notulen" in de
+/// opgenomen"). Na stoppen wordt lokaal getranscribeerd, als "Notulist" in de
 /// Geschiedenis bewaard en opent de vooringevulde mail met het verslag voor
 /// alle deelnemers.
 struct MeetingRecordView: View {
@@ -47,7 +47,7 @@ struct MeetingRecordView: View {
             }
             .padding(20)
         }
-        .navigationTitle("Notulen-opname")
+        .navigationTitle("Notulist")
         .navigationBarTitleDisplayMode(.inline)
         // Tijdens de opname niet per ongeluk terug-swipen.
         .navigationBarBackButtonHidden(
@@ -270,7 +270,7 @@ struct MeetingRecordView: View {
             }
         }
 
-        Text("Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulen).")
+        Text("Totdat je kiest, blijft het verslag veilig in Geschiedenis staan (bron: Notulist).")
             .font(ThemeFont.ui(12))
             .foregroundStyle(Theme.textTertiary)
     }

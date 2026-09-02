@@ -18,6 +18,8 @@ struct HistoryDetailiOSView: View {
     /// Verwijderen vroeg hier niets, terwijl dezelfde actie in de
     /// meervoudsselectie wel een bevestiging kreeg (2 sep 2026).
     @State private var showDeleteConfirm = false
+    @State private var showRename = false
+    @State private var renameText = ""
 
     var body: some View {
         ZStack {
@@ -88,6 +90,20 @@ struct HistoryDetailiOSView: View {
             Button("Annuleer", role: .cancel) {}
         } message: {
             Text("Deze opname wordt definitief verwijderd.")
+        }
+        .alert("Opname hernoemen", isPresented: $showRename) {
+            TextField("Titel", text: $renameText)
+            Button("Bewaar") { renameTranscript() }
+            Button("Annuleer", role: .cancel) {}
+        }
+    }
+
+    private func renameTranscript() {
+        guard let history = app.history else { return }
+        do {
+            try history.rename(id: entry.id, name: renameText)
+        } catch {
+            app.presentDataChangeError(error)
         }
     }
 
@@ -198,6 +214,17 @@ struct HistoryDetailiOSView: View {
             .buttonStyle(.plain)
 
             Button {
+                renameText = liveName
+                showRename = true
+            } label: {
+                IconActionLabel(
+                    title: L10n.string( "Hernoem", locale: app.interfaceLanguage.locale),
+                    systemImage: "pencil"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
                 showAddToNote = true
             } label: {
                 IconActionLabel(
@@ -242,8 +269,19 @@ struct HistoryDetailiOSView: View {
         }
     }
 
+    /// De naam zoals hij nú in de database staat. Dit scherm krijgt `entry` als
+    /// vaste waarde mee, dus zonder deze herlezing bleef de oude titel staan na
+    /// het hernoemen. De revisie-lezing zorgt dat de view opnieuw tekent.
+    private var liveName: String {
+        _ = app.history?.revision
+        guard let history = app.history,
+              let record = try? history.record(id: entry.id)
+        else { return entry.name }
+        return record.name
+    }
+
     private var title: String {
-        let trimmedName = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedName = liveName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmedName.isEmpty && trimmedName.localizedCaseInsensitiveCompare("PLAUD-opname") != .orderedSame {
             return trimmedName
         }
@@ -281,7 +319,7 @@ struct HistoryDetailiOSView: View {
         case "file": L10n.string( "Bestand", locale: app.interfaceLanguage.locale)
         case "captions": L10n.string( "Ondertitels", locale: app.interfaceLanguage.locale)
         case "plaud": "PLAUD"
-        case "meeting": L10n.string( "Notulen", locale: app.interfaceLanguage.locale)
+        case "meeting": L10n.string( "Notulist", locale: app.interfaceLanguage.locale)
         default: "iPhone"
         }
     }

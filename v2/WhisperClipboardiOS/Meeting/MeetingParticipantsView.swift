@@ -1,7 +1,7 @@
 import Core
 import SwiftUI
 
-/// Het deelnemersbeheer van de notulist, losgetrokken uit `MeetingSetupView`.
+/// Het deelnemersbeheer van de Notulist, losgetrokken uit `MeetingSetupView`.
 ///
 /// Niels' opdracht van 13 augustus 2026: het notulescherm toonde alles tegelijk
 /// (invulvelden per deelnemer, twee toevoegknoppen, twee lappen uitlegtekst, de

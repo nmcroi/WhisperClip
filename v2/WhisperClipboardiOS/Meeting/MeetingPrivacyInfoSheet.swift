@@ -1,7 +1,7 @@
 import AVFoundation
 import SwiftUI
 
-/// Heldere uitleg vóór een notulen-opname. Deze wordt pas op verzoek getoond
+/// Heldere uitleg vóór een Notulist-opname. Deze wordt pas op verzoek getoond
 /// of voorgelezen; het openen of afspelen start nadrukkelijk géén opname.
 struct MeetingPrivacyInfoSheet: View {
     @EnvironmentObject private var app: AppModel

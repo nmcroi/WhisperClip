@@ -9,7 +9,7 @@ import WhisperShared
 /// the GRDB history store (in this app's own sandboxed Application Support), the
 /// current appearance, and the model-download state machine.
 ///
-/// Kept deliberately small — this is the i0+i1 scaffold. Settings beyond the
+/// Kept deliberately small: this is the i0+i1 scaffold. Settings beyond the
 /// theme (replacements, retention, filler removal) and iCloud sync come in later
 /// rounds; the data layer is already sync-compatible with the Mac (identical
 /// `TranscriptEntry` schema via `WhisperShared`).
@@ -19,7 +19,7 @@ final class AppModel: ObservableObject {
     /// The one shared transcription engine (pre-warmed, kept alive across records).
     let engine = ParakeetEngine()
 
-    /// The history store, or `nil` if the DB couldn't be opened (rare — surfaced
+    /// The history store, or `nil` if the DB couldn't be opened (rare, surfaced
     /// as an error banner rather than crashing).
     let history: HistoryStore?
 
@@ -127,7 +127,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// De woordenlijst (find → replace-regels), toegepast op elke transcriptie —
+    /// De woordenlijst (find → replace-regels), toegepast op elke transcriptie,
     /// zelfde regels als op de Mac. Lokaal bewaard als JSON in `UserDefaults`
     /// (`ios.replacements`) en gesynct met de Mac via ``ReplacementsCloudSync``
     /// (iCloud key-value store, last-writer-wins).
@@ -137,13 +137,13 @@ final class AppModel: ObservableObject {
             Self.persistReplacements(replacements)
             // Publiceer alleen eigen bewerkingen; een binnengekomen remote lijst
             // (applyingRemoteReplacements) mag niet terug de cloud in echoën.
-            // publish() is gedebounced — tikken in de editor spamt de store niet.
+            // publish() is gedebounced: tikken in de editor spamt de store niet.
             guard !applyingRemoteReplacements else { return }
             replacementsSync.publish(replacements)
         }
     }
 
-    /// Herbruikbare deelnemers voor Notulen, lokaal bewaard en via iCloud met
+    /// Herbruikbare deelnemers voor de Notulist, lokaal bewaard en via iCloud met
     /// de Mac gedeeld. Maximaal één contact is gemarkeerd als 'ik'.
     @Published var meetingContacts: [SavedMeetingContact] {
         didSet {
@@ -288,7 +288,7 @@ final class AppModel: ObservableObject {
         // Zombie-sweep bij app-start: een opname sterft mét het proces, dus bij
         // launch loopt er nooit een legitieme opname. Alles wat nog als Live
         // Activity op het lock-screen hangt, is achtergebleven door een gekild
-        // proces — ruim het onmiddellijk op. Draait ook als de gebruiker nooit een
+        // proces, ruim het onmiddellijk op. Draait ook als de gebruiker nooit een
         // nieuwe opname start (RecordingLiveActivityController.start() zou anders
         // pas bij de volgende opname opruimen).
         Task { await RecordingStopBus.endAllActivities() }
@@ -351,7 +351,7 @@ final class AppModel: ObservableObject {
     func downloadModel() async {
         errorMessage = nil
         modelStatus = .downloading(progress: 0)
-        // Keep the screen awake for the duration — a multi-minute download over
+        // Keep the screen awake for the duration: a multi-minute download over
         // a locked/dimmed screen is where interrupted, half-written models come
         // from (Issue 3). Restored in the defer below.
         UIApplication.shared.isIdleTimerDisabled = true
@@ -483,13 +483,19 @@ final class AppModel: ObservableObject {
                     clean: true,
                     language: recovered.language == .automatic ? "" : recovered.language.rawValue
                 )
-                guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                // De opschoning kan alles wegpoetsen terwijl de herkenning wél
+                // iets opleverde. Het bestand dan weggooien kostte de hele
+                // opname, dus valt de herstelronde in dat geval terug op de ruwe
+                // tekst. Alleen als ook die leeg is valt er niets te bewaren.
+                let cleaned = processed.trimmingCharacters(in: .whitespacesAndNewlines)
+                let raw = recovered.result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !cleaned.isEmpty || !raw.isEmpty else {
                     await engine.discardRecoveredRecording(id: recovered.recoveryID)
                     continue
                 }
                 let entry = TranscriptEntry(
                     id: UUID().uuidString,
-                    text: processed,
+                    text: cleaned.isEmpty ? raw : processed,
                     createdAt: ISO8601DateFormatter().string(from: recovered.createdAt),
                     name: "",
                     pinned: false,

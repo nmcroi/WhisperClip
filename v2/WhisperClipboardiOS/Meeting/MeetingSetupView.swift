@@ -1,7 +1,7 @@
 import Core
 import SwiftUI
 
-/// Stap 1 van de private notulist: e-mailontvangers invoeren. Ontvangers zijn
+/// Stap 1 van de private Notulist: e-mailontvangers invoeren. Ontvangers zijn
 /// optioneel, zodat de Notulist ook volledig lokaal en zonder e-mail kan worden
 /// gebruikt. Een lege rij wordt genegeerd; een deels ingevulde rij moet geldig
 /// zijn voordat de opname kan starten.
@@ -111,7 +111,7 @@ struct MeetingSetupView: View {
                         Button {
                             showPrivacyInfo = true
                         } label: {
-                            navRow("Hoe werkt de notulist?")
+                            navRow("Hoe werkt de Notulist?")
                         }
                         .buttonStyle(.plain)
                     }
@@ -186,7 +186,7 @@ struct MeetingSetupView: View {
             }
             .buttonStyle(.plain)
             .disabled(!canStart)
-            .accessibilityLabel("Start notulen-opname")
+            .accessibilityLabel("Start Notulist-opname")
 
             if !app.modelStatus.isReady {
                 Text("Download eerst het spraakmodel via Opnemen.")

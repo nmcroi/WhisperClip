@@ -17,7 +17,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     @Published private(set) var isTranscribing = false
     @Published private(set) var isPaused = false
     /// True wanneer de huidige pauze door een OS-onderbreking komt (telefoontje,
-    /// Siri) in plaats van de pauzeknop — de UI benoemt dat onderscheid en de
+    /// Siri) in plaats van de pauzeknop: de UI benoemt dat onderscheid en de
     /// hervat-knop werkt dan niet (het systeem hervat zelf zodra het kan).
     @Published private(set) var pausedByInterruption = false
     @Published private(set) var elapsed: Double = 0
@@ -42,7 +42,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         case .recording: L10n.string( "Bezig met opnemen…", locale: locale)
         case .paused: L10n.string( "Gepauzeerd", locale: locale)
         case .pausedByInterruption: L10n.string( "Gepauzeerd (onderbreking)", locale: locale)
-        case .resumeFailed: L10n.string( "Hervatten lukte niet — opname wordt afgerond…", locale: locale)
+        case .resumeFailed: L10n.string( "Hervatten lukte niet, opname wordt afgerond…", locale: locale)
         case .noAudio: L10n.string( "Geen audio gehoord. Tik om opnieuw op te nemen.", locale: locale)
         case .transcribing: L10n.string( "Bezig met transcriberen…", locale: locale)
         case .noSpeech: L10n.string( "Geen audio of spraak herkend. Tik om opnieuw op te nemen.", locale: locale)
@@ -61,7 +61,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     /// "one-off"-gedrag van het Opnemen-tabblad (ongewijzigd). Zie ``save``.
     private var targetNoteId: String?
     /// De `source` waarmee opnames worden opgeslagen. Standaard "mic"; de
-    /// notulist-flow zet hem op "meeting" (label "Notulen" in de Geschiedenis).
+    /// Notulist-flow zet hem op "meeting" (label "Notulist" in de Geschiedenis).
     var transcriptSource = "mic"
     /// Per-opnamekeuze. Wordt bij start bevroren zodat een latere
     /// instellingenwijziging de lopende opname niet kan veranderen.
@@ -73,7 +73,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     var hasPendingSave: Bool { pendingSave != nil }
     /// Wanneer gezet, krijgt deze closure de verwerkte transcript-tekst zodra
     /// een opname klaar is (naast de normale opslag in de Geschiedenis). De
-    /// notulist-flow gebruikt dit om de mail-composer te openen.
+    /// Notulist-flow gebruikt dit om de mail-composer te openen.
     var onTranscriptReady: ((String, TranscriptEntry?) -> Void)?
     private var audio: IOSAudioEngine?
     private var feedTask: Task<Void, Never>?
@@ -278,7 +278,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
     /// Pauzeert of hervat de lopende opname. Pauze stopt de capture onmiddellijk
     /// (niets van ná de druk komt de opname in); hervatten gaat naadloos verder
-    /// in dezelfde opname — de stukken plakken automatisch aan elkaar. Tijdens
+    /// in dezelfde opname: de stukken plakken automatisch aan elkaar. Tijdens
     /// een ONDERBREKINGS-pauze doet deze knop niets: het systeem hervat zelf.
     func togglePause() {
         guard isRecording, let audio else { return }
@@ -337,7 +337,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
         // `stop()` beëindigt de AsyncStream-continuation, dus de feed-loop draait
         // de laatste gebufferde buffers nog leeg en eindigt dan vanzelf. We WACHTEN
-        // daarop (niet cancellen — dat zou juist de laatste woorden droppen). Een
+        // daarop (niet cancellen, dat zou juist de laatste woorden droppen). Een
         // korte timeout-guard voorkomt vastlopen mocht de stream onverhoopt niet
         // eindigen; daarna cancellen we alsnog als vangnet.
         audio?.stop()
@@ -490,7 +490,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
     }
 
     /// Wist het resultaat van het scherm en zet de statusregel terug op de
-    /// ruststand. Raakt de Geschiedenis NIET aan — de opgeslagen entry blijft
+    /// ruststand. Raakt de Geschiedenis NIET aan: de opgeslagen entry blijft
     /// gewoon in het Geschiedenis-tabblad staan; dit leegt alleen het scherm.
     func clearResult() {
         guard pendingSave == nil else {
@@ -505,7 +505,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
     /// Wist het resultaat wanneer het langer dan vijf minuten geleden verscheen.
     /// Aangeroepen op foreground-events (scenePhase → .active) en bij het
-    /// verschijnen van het tabblad — bewust geen achtergrond-timer, zodat er
+    /// verschijnen van het tabblad, bewust geen achtergrond-timer, zodat er
     /// niets tikt terwijl de app niet in beeld is.
     func clearResultIfExpired(now: Date = Date()) {
         guard let lastResultAt,
