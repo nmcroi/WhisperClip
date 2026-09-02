@@ -183,20 +183,15 @@ struct HistoryListiOSView: View {
         let entries = fetch()
         let total = totalCount()
         VStack(spacing: 0) {
+            // De knoppenrij staat buiten de List en scrolt dus niet mee weg:
+            // Niels scrolde naar beneden en was zijn knoppen kwijt (2 sep 2026).
+            controlsRow(visible: entries.count, total: total)
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
             if entries.isEmpty {
-                VStack(spacing: 0) {
-                    controlsRow(visible: entries.count, total: total)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                    Divider().overlay(Theme.border)
-                    emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
+                emptyState.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List {
-                    controlsRow(visible: entries.count, total: total)
-                        .listRowBackground(Theme.window)
-                        .listRowSeparator(.hidden)
-
                     ForEach(entries, id: \.id) { entry in
                         Group {
                             if isSelecting {
@@ -305,29 +300,20 @@ struct HistoryListiOSView: View {
                 .buttonStyle(.plain)
                 .disabled(chosen.isEmpty)
 
+                // Geel als de andere acties; de bevestigvraag vangt een
+                // mistik op. Rood is voor het kruisje bovenaan, dat de
+                // selectie afbreekt (wens Niels, 2 sep 2026).
                 Button {
                     showDeleteSelectedConfirm = true
                 } label: {
                     IconActionLabel(
                         title: L10n.string( "Verwijder", locale: app.interfaceLanguage.locale),
                         systemImage: "trash",
-                        iconColor: Theme.danger,
                         isEnabled: !chosen.isEmpty
                     )
                 }
                 .buttonStyle(.plain)
                 .disabled(chosen.isEmpty)
-
-                Button {
-                    isSelecting = false
-                    selection = []
-                } label: {
-                    IconActionLabel(
-                        title: L10n.string( "Klaar", locale: app.interfaceLanguage.locale),
-                        systemImage: "xmark"
-                    )
-                }
-                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 20)
@@ -392,20 +378,43 @@ struct HistoryListiOSView: View {
     /// eronder en grijs.
     private func controlsRow(visible: Int, total: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Tijdens het selecteren geen knoppen bovenaan: Klaar zit in de
-            // balk onderaan, die scrolt niet mee uit beeld (13 aug 2026).
-            if !isSelecting {
+            if isSelecting {
+                // Tijdens het selecteren: het aantal links, het kruisje
+                // rechtsboven, waar iedereen een sluitknop verwacht. Rood,
+                // want het breekt de selectie af (wens Niels, 2 sep 2026).
+                HStack {
+                    Text(String(
+                        format: L10n.string( "%lld geselecteerd", locale: app.interfaceLanguage.locale),
+                        locale: app.interfaceLanguage.locale,
+                        selection.count
+                    ))
+                    .font(ThemeFont.ui(15, weight: .medium))
+                    .foregroundStyle(Theme.text)
+                    Spacer()
+                    Button {
+                        isSelecting = false
+                        selection = []
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(Theme.danger)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Klaar met selecteren")
+                }
+                .frame(height: 48)
+                .padding(.bottom, 4)
+            } else {
                 HStack(spacing: 10) {
                     selectButton
                     filterMenu
                     sortMenu
-                    // De syncknoppen staan hier en niet in Instellingen: Niels
-                    // synchroniseert vlak voordat hij de lijst bekijkt, dus de
-                    // knop hoort bij de lijst (wens 31 aug 2026).
-                    cloudSyncButton
-                    #if WHISPERCLIP_PERSONAL || !WHISPERCLIP_PUBLIC
-                    PlaudSyncHistoryButton(service: app.plaudSync, locale: app.interfaceLanguage.locale)
-                    #endif
+                    // Eén syncknop voor iCloud én PLAUD samen: het onderscheid
+                    // zei Niels niets, hij wil gewoon "alles binnenhalen"
+                    // (2 sep 2026). Instellen blijft in Instellingen.
+                    SyncAllButton(app: app, plaud: app.plaudSync, isCloudSyncing: $isCloudSyncing)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 10)
@@ -441,38 +450,6 @@ struct HistoryListiOSView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isSelecting ? "Klaar met selecteren" : "Selecteer opnames")
-    }
-
-    /// Synchroniseert de geschiedenis met iCloud, rechtstreeks vanaf deze
-    /// pagina. Grijs wanneer sync uitstaat of iCloud niet beschikbaar is.
-    private var cloudSyncButton: some View {
-        let sync = app.historySync
-        let available: Bool = {
-            guard app.icloudSyncEnabled, let sync else { return false }
-            switch sync.status {
-            case .active, .error: return true
-            case .disabled, .unavailable, .requiresApproval: return false
-            }
-        }()
-        return Button {
-            guard let sync, !isCloudSyncing else { return }
-            isCloudSyncing = true
-            Task {
-                await sync.syncNow()
-                isCloudSyncing = false
-            }
-        } label: {
-            IconActionLabel(
-                title: isCloudSyncing
-                    ? L10n.string( "Bezig…", locale: app.interfaceLanguage.locale)
-                    : "iCloud",
-                systemImage: "arrow.triangle.2.circlepath.icloud",
-                isEnabled: available && !isCloudSyncing
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(!available || isCloudSyncing)
-        .accessibilityLabel("Synchroniseer met iCloud")
     }
 
     private var filterMenu: some View {
@@ -695,29 +672,57 @@ private enum SortOrder: String, CaseIterable, Identifiable {
     } }
 }
 
-/// De PLAUD-syncknop op de geschiedenispagina. Eigen view, zodat de knop de
-/// service observeert en meedraait met de voortgang; de lijstview zelf
-/// observeert alleen het AppModel.
-private struct PlaudSyncHistoryButton: View {
-    @ObservedObject var service: PlaudSynciOSService
-    let locale: Locale
+/// Eén knop die alles binnenhaalt: iCloud (als sync aanstaat en werkt) en
+/// PLAUD (als er een account is), tegelijk. Eigen view zodat hij de
+/// PLAUD-service observeert en meedraait met de voortgang.
+private struct SyncAllButton: View {
+    @ObservedObject var app: AppModel
+    @ObservedObject var plaud: PlaudSynciOSService
+    @Binding var isCloudSyncing: Bool
+
+    private var cloudAvailable: Bool {
+        guard app.icloudSyncEnabled, let sync = app.historySync else { return false }
+        switch sync.status {
+        case .active, .error: return true
+        case .disabled, .unavailable, .requiresApproval: return false
+        }
+    }
+
+    private var plaudAvailable: Bool {
+        #if WHISPERCLIP_PERSONAL || !WHISPERCLIP_PUBLIC
+        PlaudCredentials.load()?.isConfigured == true
+        #else
+        false
+        #endif
+    }
 
     var body: some View {
-        let configured = PlaudCredentials.load()?.isConfigured == true
+        let busy = isCloudSyncing || plaud.isSyncing
+        let available = cloudAvailable || plaudAvailable
         Button {
-            service.syncNow()
+            guard !busy else { return }
+            if cloudAvailable, let sync = app.historySync {
+                isCloudSyncing = true
+                Task {
+                    await sync.syncNow()
+                    isCloudSyncing = false
+                }
+            }
+            if plaudAvailable {
+                plaud.syncNow()
+            }
         } label: {
             IconActionLabel(
-                title: service.isSyncing
-                    ? L10n.string( "Bezig…", locale: locale)
-                    : "PLAUD",
+                title: busy
+                    ? L10n.string( "Bezig…", locale: app.interfaceLanguage.locale)
+                    : L10n.string( "Sync", locale: app.interfaceLanguage.locale),
                 systemImage: "arrow.triangle.2.circlepath",
-                isEnabled: configured && !service.isSyncing
+                isEnabled: available && !busy
             )
         }
         .buttonStyle(.plain)
-        .disabled(!configured || service.isSyncing)
-        .accessibilityLabel("Synchroniseer met PLAUD")
+        .disabled(!available || busy)
+        .accessibilityLabel("Synchroniseer met iCloud en PLAUD")
     }
 }
 

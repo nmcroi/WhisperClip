@@ -314,7 +314,7 @@ struct SettingsSheet: View {
                     } else if app.icloudSyncEnabled {
                         // De knop zelf staat sinds 31 aug 2026 op de pagina
                         // Geschiedenis, waar Niels hem gebruikt.
-                        Text("Synchroniseren doe je met de iCloud-knop op de pagina Geschiedenis.")
+                        Text("Synchroniseren doe je met de Sync-knop op de pagina Geschiedenis.")
                             .font(ThemeFont.ui(13))
                             .foregroundStyle(Theme.textSecondary)
                     }

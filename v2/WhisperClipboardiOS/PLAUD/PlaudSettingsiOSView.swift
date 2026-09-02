@@ -117,7 +117,7 @@ struct PlaudSettingsContent: View {
 
                 // De synchroniseerknop staat sinds 31 aug 2026 op de pagina
                 // Geschiedenis; hier blijven alleen account en periode over.
-                Text("Ophalen doe je met de PLAUD-knop op de pagina Geschiedenis.")
+                Text("Ophalen doe je met de Sync-knop op de pagina Geschiedenis, die haalt iCloud en PLAUD in één keer binnen.")
                     .font(ThemeFont.ui(13))
                     .foregroundStyle(Theme.textSecondary)
                     .listRowSeparator(.hidden)
