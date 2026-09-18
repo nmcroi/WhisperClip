@@ -1,5 +1,7 @@
 # Whisper Clipboard
 
+> Actuele overdracht (18 september 2026): [v2/CURRENT_STATUS.md](v2/CURRENT_STATUS.md). Onderstaande oudere instructies/plannen zijn historisch en kunnen verouderde paden of status bevatten.
+
 Lokale transcriptie met een sneltoets. Druk op de hotkey om opname te starten, druk opnieuw om te stoppen. De transcriptie wordt direct op je klembord gezet.
 
 ## Installeren

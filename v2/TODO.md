@@ -1,5 +1,7 @@
 # WhisperClip — complete werklijst
 
+> Actuele overdracht (18 september 2026): [CURRENT_STATUS.md](CURRENT_STATUS.md). Onderstaande oudere instructies/plannen zijn historisch en kunnen verouderde paden of status bevatten.
+
 > Het uitvoeringsplan voor de eenmalige iPhone-final-run staat in
 > `FINAL_RUN_IPHONE.md`. Dit bestand blijft de brede productbacklog.
 

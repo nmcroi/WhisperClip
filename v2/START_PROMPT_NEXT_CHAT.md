@@ -1,5 +1,7 @@
 # Startprompt — WhisperClip iPhone final run
 
+> Actuele overdracht (18 september 2026): [CURRENT_STATUS.md](CURRENT_STATUS.md). Onderstaande oudere instructies/plannen zijn historisch en kunnen verouderde paden of status bevatten.
+
 We werken aan **WhisperClip** in:
 
 `/Users/nielscroiset/Documents/Development Niels/Whisper Clipboard/v2`
