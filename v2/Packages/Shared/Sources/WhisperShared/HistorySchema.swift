@@ -14,11 +14,7 @@ public enum HistorySchema {
     /// Builds the `DatabaseMigrator` used by both the live store and tests.
     public static func migrator() -> DatabaseMigrator {
         var migrator = DatabaseMigrator()
-        // During development we allow schema erasure on incompatible changes.
-        // (Safe: the history DB is derived; the v1 JSON remains the source of truth.)
-        #if DEBUG
-        migrator.eraseDatabaseOnSchemaChange = true
-        #endif
+        // Never erase an existing database when migration definitions change.
 
         migrator.registerMigration("v1_transcripts") { db in
             try db.create(table: "transcripts") { t in
@@ -174,6 +170,24 @@ public enum HistorySchema {
             }
         }
 
+        migrator.registerMigration("v8_recording_lifecycle") { db in
+            try db.execute(sql: """
+                CREATE TABLE recording_commits (id TEXT PRIMARY KEY NOT NULL);
+                CREATE TABLE audio_deletions (id TEXT PRIMARY KEY NOT NULL);
+                CREATE TRIGGER transcript_audio_cleanup AFTER DELETE ON transcripts BEGIN
+                    INSERT OR IGNORE INTO recording_commits(id) VALUES (OLD.id);
+                    INSERT OR IGNORE INTO audio_deletions(id) VALUES (OLD.id);
+                END;
+                """)
+        }
+        migrator.registerMigration("v9_explicit_audio_deletion") { db in
+            try db.execute(sql: """
+                CREATE TABLE audio_discarded (id TEXT PRIMARY KEY NOT NULL);
+                CREATE TRIGGER transcript_audio_discarded AFTER DELETE ON transcripts BEGIN
+                    INSERT OR IGNORE INTO audio_discarded(id) VALUES (OLD.id);
+                END;
+                """)
+        }
         return migrator
     }
 }

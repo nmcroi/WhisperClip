@@ -18,6 +18,8 @@ struct ModelDownloadCard: View {
                 .foregroundStyle(Theme.accentText)
 
             Text("Spraakmodel downloaden")
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .font(ThemeFont.ui(18, weight: .semibold))
                 .foregroundStyle(Theme.text)
 

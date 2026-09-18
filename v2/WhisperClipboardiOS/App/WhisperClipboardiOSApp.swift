@@ -114,10 +114,6 @@ struct RootView: View {
     @Binding var selection: Int
     @Binding var showSettings: Bool
 
-    /// De tabbalk tekent de systeemtint met een waas, waardoor het oranje er
-    /// lichter uitzag dan op de knoppen (13 aug 2026). Hier pinnen we de
-    /// exacte themakleur; RootView wordt bij een merk- of weergavewissel
-    /// herbouwd, dus dit loopt vanzelf mee.
     private func applyTabBarColors() {
         let appearance = UITabBarAppearance()
         appearance.configureWithDefaultBackground()
@@ -167,6 +163,8 @@ struct RootView: View {
                     .foregroundStyle(Theme.accentText)
                     .padding(10)
             }
+            .accessibilityLabel("Instellingen")
+            .accessibilityIdentifier("settings.open")
             .padding(.trailing, 8)
             .padding(.top, 4)
         }

@@ -37,6 +37,11 @@ actor AppleSpeechEngine: TranscriptionEngine {
 
     // MARK: - Session state
 
+    private var recordingSession: RecordingSession?
+    private var recordingFile: AVAudioFile?
+    private var recordedDuration: Double = 0
+    private var recordingError: String?
+    private let recordingRepository = RecordingRepository.live
     private var analyzer: SpeechAnalyzer?
     private var transcriber: SpeechTranscriber?
     private var inputContinuation: AsyncStream<AnalyzerInput>.Continuation?
@@ -142,6 +147,19 @@ actor AppleSpeechEngine: TranscriptionEngine {
 
     // MARK: - Streaming
 
+    func configureRecording(_ session: RecordingSession) async throws {
+        recordingSession = session
+    }
+    func updateRecordingRetention(_ keep: Bool, for sessionID: String) async throws {
+        guard recordingSession?.id == sessionID else { return }
+        try await setRecordingRetention(keep)
+    }
+    func setRecordingRetention(_ keep: Bool) async throws {
+        guard var session = recordingSession else { return }
+        session.keepAudio = keep && !session.source.hasPrefix("meeting")
+        try recordingRepository.save(session)
+        recordingSession = session
+    }
     func startStreaming(locale: Locale) async throws {
         let resolved = Self.canonical(locale)
         let status = await assetStatus(for: resolved)
@@ -153,6 +171,14 @@ actor AppleSpeechEngine: TranscriptionEngine {
         }
 
         accumulator = PartialAccumulator()
+        let session = recordingSession ?? RecordingSession(source: "mic.mac", language: locale.language.languageCode?.identifier ?? "nl", model: "apple-speech")
+        recordingSession = session
+        try recordingRepository.save(session)
+        guard let format = await bestAudioFormat() else { throw RecordingStorageError.missingAudio }
+        recordingFile = try AVAudioFile(forWriting: recordingRepository.audioURL(session.id),
+            settings: format.settings, commonFormat: format.commonFormat, interleaved: format.isInterleaved)
+        recordedDuration = 0
+        recordingError = nil
 
         let transcriber = Self.makeTranscriber(locale: resolved)
         self.transcriber = transcriber
@@ -187,16 +213,28 @@ actor AppleSpeechEngine: TranscriptionEngine {
                 partialsContinuation.yield(accumulator.partial)
             }
         } catch {
-            // Stream ended with an error mid-session: keep whatever we accumulated.
+            recordingError = error.localizedDescription
         }
     }
 
     func feed(_ buffer: AudioBufferBox) async {
+        do {
+            try recordingFile?.write(from: buffer.buffer)
+            recordedDuration += Double(buffer.buffer.frameLength) / buffer.buffer.format.sampleRate
+        } catch { recordingError = error.localizedDescription }
         inputContinuation?.yield(AnalyzerInput(buffer: buffer.buffer))
     }
 
+    func finalizeRecording(keepAudio: Bool) async throws -> TranscriptionResult {
+        if var session = recordingSession {
+            session.keepAudio = keepAudio && !session.source.hasPrefix("meeting")
+            recordingSession = session
+        }
+        return try await finalize()
+    }
     func finalize() async throws -> TranscriptionResult {
         guard let analyzer else { throw AppleSpeechEngineError.notStreaming }
+        defer { recordingFile = nil; recordingSession = nil; teardownSession() }
 
         // Signal end of input, then drain and finalize.
         inputContinuation?.finish()
@@ -205,18 +243,32 @@ actor AppleSpeechEngine: TranscriptionEngine {
         do {
             try await analyzer.finalizeAndFinishThroughEndOfInput()
         } catch {
-            // Even on a finalize error, keep the accumulated transcript.
+            recordingError = error.localizedDescription
         }
 
         // Let the results task drain any final results the finalize produced.
         await resultsTask?.value
 
-        let result = accumulator.result
+        var result = accumulator.result
+        recordingFile = nil
+        if var session = recordingSession {
+            session.entry = session.transcript(text: result.text, segments: result.segments, duration: recordedDuration)
+            session.warning = recordingError
+            try recordingRepository.save(session)
+            result.recording = session
+            result.preservedAudioURL = try recordingRepository.audioURL(session.id)
+            result.audioDuration = recordedDuration
+            result.partialFailure = recordingError
+        }
+        recordingSession = nil
         teardownSession()
         return result
     }
 
     func cancel() async {
+        recordingFile = nil
+        if let session = recordingSession { try? recordingRepository.finish(session, keep: false) }
+        recordingSession = nil
         inputContinuation?.finish()
         inputContinuation = nil
         resultsTask?.cancel()

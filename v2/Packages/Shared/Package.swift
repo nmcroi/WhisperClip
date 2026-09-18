@@ -37,6 +37,7 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "FluidAudio", package: "FluidAudio")
             ]
-        )
+        ),
+        .testTarget(name: "WhisperSharedTests", dependencies: ["WhisperShared", .product(name: "GRDB", package: "GRDB.swift")])
     ]
 )

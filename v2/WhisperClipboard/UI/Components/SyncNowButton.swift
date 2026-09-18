@@ -17,20 +17,41 @@ struct SyncNowButton: View {
     let historySync: HistorySyncEngine
     /// Met tekst ernaast (Home) of alleen het icoon (Geschiedenis).
     var showsLabel = false
+    /// Geschiedenis gebruikt dit om de zichtbare cache na elke handmatige sync
+    /// opnieuw uit de database op te bouwen, ook als CloudKit geen mutatie-event
+    /// meer levert omdat de records vlak daarvoor al zijn opgeslagen.
+    var onCompletion: () -> Void = {}
 
     @State private var isSyncing = false
+    @State private var result: ResultState?
+
+    private enum ResultState {
+        case success
+        case failure
+    }
 
     var body: some View {
         Button {
             guard !isSyncing else { return }
+            result = nil
             isSyncing = true
+            NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
             Task {
                 await historySync.syncNow()
+                onCompletion()
                 isSyncing = false
+                if case .active = historySync.status {
+                    result = .success
+                    NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+                } else {
+                    result = .failure
+                }
+                try? await Task.sleep(for: .seconds(1.6))
+                result = nil
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "arrow.triangle.2.circlepath")
+                Image(systemName: iconName)
                     .font(.system(size: 12, weight: .medium))
                     .rotationEffect(.degrees(isSyncing ? 360 : 0))
                     .animation(
@@ -40,7 +61,7 @@ struct SyncNowButton: View {
                         value: isSyncing
                     )
                 if showsLabel {
-                    Text(isSyncing ? "Synchroniseert…" : "Synchroniseer met iCloud")
+                    Text(buttonLabel)
                         .font(ThemeFont.ui(12, weight: .medium))
                 }
             }
@@ -67,6 +88,34 @@ struct SyncNowButton: View {
         .disabled(!isAvailable || isSyncing)
         .help(tooltip)
         .accessibilityLabel("Synchroniseer met iCloud")
+        .accessibilityValue(accessibilityValue)
+    }
+
+    private var iconName: String {
+        if isSyncing { return "arrow.triangle.2.circlepath" }
+        switch result {
+        case .success: return "checkmark.circle.fill"
+        case .failure: return "exclamationmark.triangle.fill"
+        case nil: return "arrow.triangle.2.circlepath"
+        }
+    }
+
+    private var buttonLabel: String {
+        if isSyncing { return "Synchroniseert…" }
+        switch result {
+        case .success: return "Bijgewerkt"
+        case .failure: return "Controleer iCloud"
+        case nil: return "Synchroniseer met iCloud"
+        }
+    }
+
+    private var accessibilityValue: String {
+        if isSyncing { return "Bezig met synchroniseren" }
+        switch result {
+        case .success: return "Synchronisatie voltooid"
+        case .failure: return historySync.status.dutchLabel
+        case nil: return historySync.status.dutchLabel
+        }
     }
 
     /// Bij `disabled` staat de schakelaar uit, bij `unavailable` draagt deze

@@ -6,20 +6,24 @@ struct WhisperClipboardApp: App {
 
     var body: some Scene {
         Window("", id: "main") {
-            HomeView()
-                .environmentObject(appDelegate.environment)
-                // Min width fits the Geschiedenis three-pane layout without
-                // cramping: 180 (sidebar) + 320 (list) + 380 (detail) = 880.
-                .frame(minWidth: 900, minHeight: 520)
-                // AppKit remembers the size/position per autosave name.
-                .background(WindowConfigurator(autosaveName: "WhisperClipboardMain"))
+            if !AppDelegate.isUnitTestHost {
+                HomeView()
+                    .environmentObject(appDelegate.environment)
+                    // Min width fits the Geschiedenis three-pane layout without
+                    // cramping: 180 (sidebar) + 320 (list) + 380 (detail) = 880.
+                    .frame(minWidth: 900, minHeight: 520)
+                    // AppKit remembers the size/position per autosave name.
+                    .background(WindowConfigurator(autosaveName: "WhisperClipboardMain"))
+            }
         }
         .defaultSize(width: 900, height: 600)
         .windowResizability(.contentMinSize)
 
         Settings {
-            SettingsView()
-                .environmentObject(appDelegate.environment)
+            if !AppDelegate.isUnitTestHost {
+                SettingsView()
+                    .environmentObject(appDelegate.environment)
+            }
         }
     }
 }

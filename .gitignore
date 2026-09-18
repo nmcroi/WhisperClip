@@ -46,3 +46,7 @@ Releases/
 
 # Bewijsmateriaal onafhankelijke review van 1 augustus 2026, geen broncode
 /WhisperClip-final-run-20260801-SvPQWb/
+
+# Private device/app backups and local device identity (never publish)
+/device-backups/
+/v2/Configs/Vincent-iPhone.udid

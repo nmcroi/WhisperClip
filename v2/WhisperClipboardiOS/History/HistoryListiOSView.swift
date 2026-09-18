@@ -10,6 +10,12 @@ import WhisperShared
 struct HistoryListiOSView: View {
     @EnvironmentObject private var app: AppModel
     @State private var query = ""
+    @State private var visibleEntries: [TranscriptEntry] = []
+    @State private var historyTotal = 0
+
+    private var snapshotKey: String {
+        "\(app.history?.revision ?? 0)|\(query)|\(durationFilter.rawValue)|\(deviceFilter.rawValue)|\(speakerFilter.rawValue)|\(titleFilter.rawValue)|\(sortOrder.rawValue)"
+    }
     @State private var durationFilter = DurationFilter.all
     @State private var deviceFilter = DeviceFilter.all
     @State private var speakerFilter = SpeakerFilter.all
@@ -46,6 +52,7 @@ struct HistoryListiOSView: View {
                     listBody
                 }
             }
+            .task(id: snapshotKey) { await reloadHistory() }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -65,6 +72,7 @@ struct HistoryListiOSView: View {
                 Button("Verwijder", role: .destructive) { deleteSelected() }
                 Button("Annuleer", role: .cancel) {}
             } message: {
+                Text(AudioCopy.text(.deleteTogether, locale: app.interfaceLanguage.locale))
                 Text(String(
                     format: L10n.string(
                         "%lld opnames worden definitief verwijderd.",
@@ -88,6 +96,7 @@ struct HistoryListiOSView: View {
                 }
                 Button("Annuleer", role: .cancel) {}
             } message: { target in
+                Text(AudioCopy.text(.mergeWarning, locale: app.interfaceLanguage.locale))
                 Text(String(
                     format: L10n.string(
                         "%lld opnames worden één nieuwe opname, op volgorde van tijd, oudste eerst.",
@@ -182,8 +191,8 @@ struct HistoryListiOSView: View {
 
     @ViewBuilder
     private var listBody: some View {
-        let entries = fetch()
-        let total = totalCount()
+        let entries = visibleEntries
+        let total = historyTotal
         VStack(spacing: 0) {
             // De knoppenrij staat buiten de List en scrolt dus niet mee weg:
             // Niels scrolde naar beneden en was zijn knoppen kwijt (2 sep 2026).
@@ -539,17 +548,27 @@ struct HistoryListiOSView: View {
         .padding()
     }
 
-    // Re-fetch on every render; `history.revision` bumps drive the refresh via
-    // the observed store.
-    private func fetch() -> [TranscriptEntry] {
-        _ = app.history?.revision
-        // 5000 in plaats van 500: de filters draaien hier in het geheugen, maar
-        // de tellerregel eronder telt de hele database. Bij 500 klopte dat
-        // aantal dus niet zodra er meer opnames waren (2 sep 2026).
-        let entries = (try? app.history?.entries(query: query.isEmpty ? nil : query, filter: .all, limit: 5000)) ?? []
-        return entries
-            .filter(matchesFilters)
-            .sorted(by: isOrdered)
+    private func reloadHistory() async {
+        guard let history = app.history else { return }
+        do {
+            let snapshot = try await history.historySnapshot(query: query.isEmpty ? nil : query)
+            try Task.checkCancellation()
+            let filtered = snapshot.entries.filter(matchesFilters)
+            // SQLite already ordered by the persisted timestamp. Do not reparse
+            // ISO dates thousands of times while the native tab animates.
+            switch sortOrder {
+            case .newest: visibleEntries = filtered
+            case .oldest: visibleEntries = Array(filtered.reversed())
+            default: visibleEntries = filtered.sorted(by: isOrdered)
+            }
+            historyTotal = snapshot.total
+        } catch is CancellationError {
+            // A newer search/filter/revision owns the next result.
+        } catch {
+            guard !Task.isCancelled else { return }
+            // Keep the last successful snapshot rather than presenting data loss.
+            app.errorMessage = error.localizedDescription
+        }
     }
 
     private var filtersAreActive: Bool {
@@ -566,7 +585,7 @@ struct HistoryListiOSView: View {
     private func matchesFilters(_ entry: TranscriptEntry) -> Bool {
         durationFilter.matches(entry.duration)
             && deviceFilter.matches(entry.source)
-            && speakerFilter.matches(speakerCount(of: entry))
+            && (speakerFilter == .all || speakerFilter.matches(speakerCount(of: entry)))
             && titleFilter.matches(entry.name)
     }
 
@@ -592,10 +611,6 @@ struct HistoryListiOSView: View {
             : name
     }
 
-    private func totalCount() -> Int {
-        (try? app.history?.count(query: nil, filter: .all)) ?? 0
-    }
-
     private func countLabel(visible: Int, total: Int) -> String {
         let locale = app.interfaceLanguage.locale
         if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !filtersAreActive {
@@ -612,7 +627,7 @@ struct HistoryListiOSView: View {
     }
 
     private func entryByID(_ id: String) -> TranscriptEntry? {
-        (try? app.history?.entries(query: nil, filter: .all))?.first { $0.id == id }
+        (try? app.history?.record(id: id))?.entry
     }
 }
 

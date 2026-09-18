@@ -1,3 +1,4 @@
+import WhisperShared
 import AppKit
 import Core
 import KeyboardShortcuts
@@ -203,27 +204,14 @@ struct GeneralSettingsView: View {
     /// 2026-08-03). Nu allebei.
     private var recordingBackupSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Opname bewaren")
-                .font(ThemeFont.ui(15, weight: .semibold))
-                .foregroundStyle(Theme.text)
-
-            Toggle(isOn: Binding(
-                get: { environment.settings.saveRecordings },
-                set: { environment.settings.saveRecordings = $0 }
-            )) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Geluidsopname bewaren na transcriptie")
-                        .font(ThemeFont.ui(13, weight: .medium))
-                        .foregroundStyle(Theme.text)
-                    Text("Bewaart de opname bij de transcriptie, zodat je hem opnieuw kunt laten uitschrijven als er iets misgaat. Kost ongeveer 115 MB per uur spraak. Staat dit uit, dan wordt de opname na het transcriberen weggegooid en is een mislukte transcriptie definitief.")
-                        .font(ThemeFont.ui(11))
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Toggle(AudioCopy.text(.showOption), isOn: $environment.settings.showAudioRetentionOption)
+            Text(AudioCopy.text(.help)).font(ThemeFont.ui(12)).foregroundStyle(Theme.textSecondary)
+            if environment.settings.saveRecordings {
+                Toggle(AudioCopy.text(.legacy), isOn: $environment.settings.saveRecordings)
             }
-            .toggleStyle(.switch)
-            .tint(Theme.accent)
-        }
+            Text(AudioCopy.text(.localOnly)).font(ThemeFont.ui(12)).foregroundStyle(Theme.textSecondary)
+            AudioStorageStatusView(store: environment.history)
+        }.toggleStyle(.switch).tint(Theme.accent)
     }
 
     private var diarizationSection: some View {

@@ -109,6 +109,16 @@ actor DiarizationService {
 
     // MARK: - Diarization
 
+    func diarize(fileURL: URL) async throws -> [SpeakerTurn] {
+        try await ensureReady()
+        guard let manager else { throw DiarizationError.modelNotLoaded }
+        let samples = try MappedRecordingSamples(url: fileURL)
+        let result = try manager.performCompleteDiarization(samples, sampleRate: Self.sampleRate)
+        return result.segments.map {
+            SpeakerTurn(start: Double($0.startTimeSeconds), end: Double($0.endTimeSeconds), speakerId: $0.speakerId)
+        }.sorted { $0.start < $1.start }
+    }
+
     /// Runs diarization on 16 kHz mono Float32 samples and returns the speaker
     /// turns (start/end/rawSpeakerId), sorted by start time. Loads the models
     /// first if necessary.

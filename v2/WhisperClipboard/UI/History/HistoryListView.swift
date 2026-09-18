@@ -55,6 +55,8 @@ struct HistoryListView: View {
     /// die queries per pass, synchroon op de main thread. Dat is de merkbare
     /// vertraging bij elke klik.
     @State private var entries: [TranscriptEntry] = []
+    @State private var refreshTask: Task<Void, Never>?
+    @State private var selectFirstAfterRefresh = false
 
     /// Of de eerste query al gedraaid heeft. Zonder deze vlag zou de lege staat
     /// ("Nog geen transcripties") één frame flitsen voordat `onAppear` de cache
@@ -106,12 +108,12 @@ struct HistoryListView: View {
                 refreshEntries()
                 if selection.contains(entry.id) {
                     selection.remove(entry.id)
-                    if selection.isEmpty { select(entries.first?.id) }
+                    if selection.isEmpty { selectFirstAfterRefresh = true }
                 }
             }
             Button("Annuleer", role: .cancel) { deletingEntry = nil }
         } message: { _ in
-            Text("Dit kan niet ongedaan worden gemaakt.")
+            Text(AudioCopy.text(.deleteTogether))
         }
         .confirmationDialog(
             "\(selection.count) opnames samenvoegen tot één?",
@@ -123,7 +125,7 @@ struct HistoryListView: View {
             }
             Button("Annuleer", role: .cancel) {}
         } message: {
-            Text("De teksten komen op tijdsvolgorde achter elkaar, oudste eerst. Sprekerlabels gaan niet mee, want die lopen per opname vanaf Spreker 1.")
+            Text(AudioCopy.text(.mergeWarning))
         }
         .confirmationDialog(
             "\(selection.count) opnames verwijderen?",
@@ -132,7 +134,7 @@ struct HistoryListView: View {
             Button("Verwijder", role: .destructive) { deleteSelection() }
             Button("Annuleer", role: .cancel) {}
         } message: {
-            Text("Dit kan niet ongedaan worden gemaakt.")
+            Text(AudioCopy.text(.deleteTogether))
         }
         .dataChangeAlert($dataError)
         // DispatchQueue.main delivers across run-loop modes, so the debounce
@@ -149,13 +151,14 @@ struct HistoryListView: View {
         // `revision` bumpt na élke mutatie van de store — lokaal (verwijderen,
         // hernoemen, vastzetten, import) én bij binnenkomende iCloud-sync.
         .onChange(of: store.revision) { _, _ in refreshEntries() }
+        .onDisappear { refreshTask?.cancel() }
         .onAppear {
             refreshEntries()
             if let id = navigation.pendingTranscriptID {
                 select(id)
                 navigation.pendingTranscriptID = nil
             } else if selection.isEmpty {
-                select(entries.first?.id)
+                selectFirstAfterRefresh = true
             }
         }
     }
@@ -172,7 +175,10 @@ struct HistoryListView: View {
                 Text("\(entries.count)")
                     .font(ThemeFont.ui(12, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
-                SyncNowButton(historySync: environment.historySync)
+                SyncNowButton(
+                    historySync: environment.historySync,
+                    onCompletion: refreshEntries
+                )
             }
             .padding(.horizontal, 14)
             .padding(.top, 14)
@@ -278,12 +284,9 @@ struct HistoryListView: View {
             "Het samenvoegen van de transcripties",
             reporting: $dataError
         ) {
-            try store.add(samengevoegd)
             if deleteOriginals {
-                for entry in gekozen {
-                    try store.delete(id: entry.id)
-                }
-            }
+                try store.mergeAndReplace(merged: samengevoegd, deleting: gekozen.map(\.id))
+            } else { try store.add(samengevoegd) }
         }
         guard gelukt else { return }
         refreshEntries()
@@ -308,13 +311,12 @@ struct HistoryListView: View {
             "Het verwijderen van de transcripties",
             reporting: $dataError
         ) {
-            for id in ids {
-                try store.delete(id: id)
-            }
+            try store.deleteMany(ids: Array(ids))
         }
         guard gelukt else { return }
+        selection.removeAll()
+        selectFirstAfterRefresh = true
         refreshEntries()
-        select(entries.first?.id)
     }
 
     private var advancedControls: some View {
@@ -539,8 +541,9 @@ struct HistoryListView: View {
                 // Ook hier eerst verversen: de cache bevat de zojuist in het
                 // detailpaneel verwijderde rij nog (bevinding 2026-08-04).
                 onDeleted: {
+                    selection.removeAll()
+                    selectFirstAfterRefresh = true
                     refreshEntries()
-                    select(entries.first?.id)
                 }
             )
             .id(entry.id)
@@ -584,18 +587,37 @@ struct HistoryListView: View {
         )
     }
 
-    /// De enige plek die de database bevraagt. Volgorde, filters, de limiet van
-    /// 500 en het zoekgedrag zijn ongewijzigd; alleen het moment waarop dit
-    /// draait is veranderd (bevinding 2026-08-04).
+    /// Read/decode off the UI thread; cancel stale searches and retain the last
+    /// successful list on failure. SQLite already orders by absolute timestamp.
     private func refreshEntries() {
-        let fetched = (try? store.entries(query: debouncedQuery, filter: filter, limit: 500)) ?? []
-        entries = fetched
-            .filter { deviceFilter.matches($0) }
-            .filter { durationFilter.matches($0.duration) }
-            .filter { speakerFilter.matches(speakerCount(of: $0)) }
-            .filter { titleFilter.matches($0) }
-            .sorted(by: sortOrder.areInIncreasingOrder)
-        hasLoaded = true
+        refreshTask?.cancel()
+        let requested = criteria
+        refreshTask = Task { @MainActor in
+            do {
+                let snapshot = try await store.historySnapshot(query: requested.query, filter: requested.filter)
+                try Task.checkCancellation()
+                let filtered = snapshot.entries
+                    .filter { requested.device.matches($0) }
+                    .filter { requested.duration.matches($0.duration) }
+                    .filter { requested.speaker == .any || requested.speaker.matches(speakerCount(of: $0)) }
+                    .filter { requested.title.matches($0) }
+                switch requested.sort {
+                case .newest: entries = filtered
+                case .oldest: entries = Array(filtered.reversed())
+                default: entries = filtered.sorted(by: requested.sort.areInIncreasingOrder)
+                }
+                hasLoaded = true
+                if selectFirstAfterRefresh {
+                    select(entries.first?.id)
+                    selectFirstAfterRefresh = false
+                }
+            } catch is CancellationError {
+                // A newer request owns the result.
+            } catch {
+                guard !Task.isCancelled else { return }
+                dataError = error.localizedDescription
+            }
+        }
     }
 
     private func speakerCount(of entry: TranscriptEntry) -> Int {

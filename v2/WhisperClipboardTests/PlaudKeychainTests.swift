@@ -63,8 +63,10 @@ final class PlaudKeychainTests: XCTestCase {
     func testApiKeyAndPlaudItemsAreIndependent() throws {
         try XCTSkipUnless(keychainIsAvailable(), "Keychain not available on this test host")
 
-        let apiStore = KeychainStore(account: KeychainStore.account)
-        let existingApiKey = try apiStore.read() // preserve whatever is there
+        let apiStore = KeychainStore(account: "independent-api-test-\(UUID().uuidString)")
+        defer { try? apiStore.delete() }
+        try apiStore.save("synthetic-api-value")
+        let existingApiKey = try apiStore.read()
 
         try testStore.save("plaud-secret")
         // The (separate) API-key item is unaffected by the PLAUD write.

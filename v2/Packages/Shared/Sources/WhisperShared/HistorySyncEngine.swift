@@ -174,10 +174,10 @@ public final class HistorySyncEngine: NSObject {
 
     /// Manual "Synchroniseer nu": kicks a fetch then a send. No-op when dormant.
     public func syncNow() async {
-        guard let engine else {
+        if engine == nil {
             await start()
-            return
         }
+        guard let engine else { return }
         do {
             try await engine.fetchChanges()
             try await engine.sendChanges()

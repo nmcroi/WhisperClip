@@ -18,6 +18,9 @@ final class AppModel: ObservableObject {
 
     /// The one shared transcription engine (pre-warmed, kept alive across records).
     let engine = ParakeetEngine()
+    @Published var showAudioRetentionOption = UserDefaults.standard.bool(forKey: "ios.showAudioRetentionOption") {
+        didSet { UserDefaults.standard.set(showAudioRetentionOption, forKey: "ios.showAudioRetentionOption") }
+    }
 
     /// The history store, or `nil` if the DB couldn't be opened (rare, surfaced
     /// as an error banner rather than crashing).
@@ -44,8 +47,9 @@ final class AppModel: ObservableObject {
     #endif
 
     /// Whether iCloud sync is enabled. Persisted in `UserDefaults` under
-    /// `ios.icloudSyncEnabled`; available in Debug for Development-schema tests
-    /// and forced off in Release while the Production schema is not live.
+    /// `ios.icloudSyncEnabled`; available in Debug and in the explicitly signed
+    /// Personal Development-CloudKit build. Ordinary Release builds stay off
+    /// while the Production schema is not live.
     @Published var icloudSyncEnabled: Bool {
         didSet {
             guard icloudSyncEnabled != oldValue else { return }
@@ -248,8 +252,9 @@ final class AppModel: ObservableObject {
         // Debug mag expliciet tegen het Development-schema testen, maar begint
         // altijd met de eerder gekozen (standaard uitgeschakelde) stand. Release
         // blijft hard uit totdat het schema bewust naar Production is uitgerold.
-        #if DEBUG
+        #if DEBUG || WHISPERCLIP_ICLOUD_DEVELOPMENT
         UserDefaults.standard.register(defaults: [Self.icloudSyncKey: false])
+        // A Development build must also respect an explicit opt-out after restart.
         let initialSyncEnabled = UserDefaults.standard.bool(forKey: Self.icloudSyncKey)
         #else
         UserDefaults.standard.set(false, forKey: Self.icloudSyncKey)
@@ -280,7 +285,18 @@ final class AppModel: ObservableObject {
             self.historySync = engine
             // Bring sync up if enabled + an iCloud account is available; dormant
             // otherwise (e.g. an unsigned simulator build with no CloudKit).
-            Task { await engine.start() }
+            Task {
+                await engine.start()
+                #if WHISPERCLIP_ICLOUD_DEVELOPMENT
+                // The installation request is the merge authorization. Bind a
+                // previously unbound database, but never auto-approve an actual
+                // Apple-account change.
+                if case .requiresApproval(_, accountChanged: false) = engine.status {
+                    await engine.approveCurrentAccountMerge()
+                }
+                await engine.syncNow()
+                #endif
+            }
         } else {
             self.historySync = nil
         }
@@ -292,6 +308,7 @@ final class AppModel: ObservableObject {
         // nieuwe opname start (RecordingLiveActivityController.start() zou anders
         // pas bij de volgende opname opruimen).
         Task { await RecordingStopBus.endAllActivities() }
+        Task { _ = await runRecordingRecovery(announcing: true, includeUntranscribed: false) }
 
         // Geef store-wijzigingen door aan de views (zie historyObservation-doc).
         // Bewust als LAATSTE in init: de closure vangt `self` en dat mag pas
@@ -467,54 +484,40 @@ final class AppModel: ObservableObject {
     }
 
     @discardableResult
-    private func runRecordingRecovery(announcing: Bool) async -> Int {
+    private func runRecordingRecovery(announcing: Bool, includeUntranscribed: Bool = true) async -> Int {
         guard let history else { return 0 }
 
         do {
             let batch = try await engine.recoverOrphanedRecordings(
-                defaultLocale: transcriptionLanguage.locale
+                defaultLocale: transcriptionLanguage.locale,
+                includeUntranscribed: includeUntranscribed
             )
             var savedCount = 0
             var failedCount = batch.failedCount
+            var recoveredIncompleteAudio = false
+            history.retryAudioCleanup()
             for recovered in batch.recordings {
-                let processed = TextProcessor.process(
-                    recovered.result.text,
-                    replacements: replacements,
-                    clean: true,
-                    language: recovered.language == .automatic ? "" : recovered.language.rawValue
-                )
-                // De opschoning kan alles wegpoetsen terwijl de herkenning wél
-                // iets opleverde. Het bestand dan weggooien kostte de hele
-                // opname, dus valt de herstelronde in dat geval terug op de ruwe
-                // tekst. Alleen als ook die leeg is valt er niets te bewaren.
-                let cleaned = processed.trimmingCharacters(in: .whitespacesAndNewlines)
-                let raw = recovered.result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !cleaned.isEmpty || !raw.isEmpty else {
-                    await engine.discardRecoveredRecording(id: recovered.recoveryID)
-                    continue
-                }
-                let entry = TranscriptEntry(
-                    id: UUID().uuidString,
-                    text: cleaned.isEmpty ? raw : processed,
-                    createdAt: ISO8601DateFormatter().string(from: recovered.createdAt),
-                    name: "",
-                    pinned: false,
-                    language: recovered.language.rawValue,
-                    model: "parakeet-tdt-0.6b-v3",
-                    source: "mic.ios",
-                    duration: recovered.duration,
-                    segments: recovered.result.segments
-                )
                 do {
-                    try history.add(entry)
-                    await engine.discardRecoveredRecording(id: recovered.recoveryID)
-                    savedCount += 1
-                } catch {
-                    failedCount += 1
-                }
+                    guard let session = recovered.result.recording, var entry = session.entry else { continue }
+                    if session.warning != nil { recoveredIncompleteAudio = true }
+                    if session.resultIsProcessed != true {
+                        let cleaned = TextProcessor.process(entry.text, replacements: replacements, clean: true, language: session.language)
+                        if !cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { entry.text = cleaned }
+                    }
+                    if entry.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !session.keepAudio {
+                        try history.discardRecording(session)
+                    } else {
+                        let detached = try history.commitRecording(session, entry: entry)
+                        if detached { noticeMessage = AudioCopy.text(.noteMissing, locale: interfaceLanguage.locale) }
+                        savedCount += 1
+                    }
+                } catch { failedCount += 1 }
             }
 
-            guard announcing else { return savedCount }
+            guard announcing else {
+                if recoveredIncompleteAudio { errorMessage = AudioCopy.text(.partialAudio, locale: interfaceLanguage.locale) }
+                return savedCount
+            }
 
             if failedCount > 0 {
                 // RootView toont fout- en succesmeldingen met twee aparte alerts.
@@ -525,6 +528,9 @@ final class AppModel: ObservableObject {
                     "Een onderbroken opname kon niet automatisch worden hersteld. De tijdelijke audio blijft bewaard voor een volgende poging.",
                     locale: interfaceLanguage.locale
                 )
+            } else if recoveredIncompleteAudio {
+                noticeMessage = nil
+                errorMessage = AudioCopy.text(.partialAudio, locale: interfaceLanguage.locale)
             } else if savedCount == 1 {
                 noticeMessage = L10n.string(
                     "Een onderbroken opname is hersteld en in Geschiedenis bewaard.",

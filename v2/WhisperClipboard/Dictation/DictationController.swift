@@ -31,6 +31,25 @@ final class DictationController: ObservableObject {
         case finished
     }
 
+    @Published var keepAudio = false {
+        didSet {
+            hasExplicitAudioChoice = true
+            guard (phase == .recording || phase == .paused), let sessionID = activeSessionID else { return }
+            let keep = keepAudio
+            Task {
+                do { try await engine.updateRecordingRetention(keep, for: sessionID) }
+                catch { Notifications.postCritical(AudioCopy.text(.storageFailed)) }
+            }
+        }
+    }
+    @Published private(set) var showAudioChoiceForSession = false
+    private var activeSessionID: String?
+    private var retainAtStop = false
+    private var hasExplicitAudioChoice = false
+    var currentAudioChoice: Bool {
+        get { (phase == .idle || phase == .finished) && !hasExplicitAudioChoice ? settingsProvider().saveRecordings : keepAudio }
+        set { keepAudio = newValue }
+    }
     @Published private(set) var phase: Phase = .idle
     /// Live streaming preview for the HUD (finalized + volatile tail).
     @Published private(set) var livePartial = StreamingPartial(finalizedText: "", volatileText: "")
@@ -52,7 +71,7 @@ final class DictationController: ObservableObject {
     private let onStateChange: (AppState) -> Void
     /// Invoked with the finished, post-processed transcript so a completed
     /// dictation can be persisted to the history store. Nil-safe (M0/M1 wiring).
-    var onTranscriptCompleted: ((TranscriptCompletion) -> Void)?
+    var onTranscriptCompleted: ((TranscriptCompletion) -> Bool)?
     /// Returns true when a file import is running, so dictation refuses to start
     /// (mirrors the Python "one job at a time" guard). Nil-safe.
     var importBusyProvider: (() -> Bool)?
@@ -79,27 +98,13 @@ final class DictationController: ObservableObject {
         let language: String
         let model: String
         let source: String
-        /// The full 16 kHz mono Float32 recording, retained for an optional
-        /// speaker-recognition (diarization) pass done AFTER the text already
-        /// reached the clipboard. `nil` when the captured audio wasn't in the
-        /// diarizer's format (e.g. the Apple Speech engine negotiated a different
-        /// rate) — the consumer then simply skips diarization.
-        let samples: [Float]?
         /// Het bewaarde opnamebestand, als de gebruiker audio wil bewaren. De
         /// ontvanger verplaatst het naar de Recordings-map zodra het transcript
         /// werkelijk is opgeslagen, en ruimt het anders op — zodat er nooit een
         /// weesbestand blijft slingeren (bevinding 2026-08-03).
         let preservedAudioURL: URL?
+        var recording: RecordingSession? = nil
     }
-
-    /// Accumulates the recording's 16 kHz mono Float32 samples during a run, so a
-    /// completed dictation can be diarized without re-decoding. Only created when
-    /// the negotiated capture format matches the diarizer's requirement (16 kHz,
-    /// mono, Float32) — i.e. the Parakeet path. Reset at each start.
-    private var sampleCollector: SampleCollector?
-    /// Whether the current session's capture format is the 16 kHz mono Float32 the
-    /// diarizer needs. Set once the audio format is negotiated in `beginSession`.
-    private var samplesAreDiarizable = false
 
     private let latency = LatencyRecorder()
     private var debouncer = TransitionDebouncer(interval: 0.25)
@@ -252,10 +257,13 @@ final class DictationController: ObservableObject {
         capturedInsertionTarget = captureInsertionTarget?()
 
         hudDismissTask?.cancel()
+        // Alleen de expliciete zichtbaarheidinstelling bepaalt of de keuze in
+        // de opname-HUD verschijnt. De oude voorkeur om audio standaard te
+        // bewaren mag de bediening niet ongevraagd zichtbaar maken.
+        showAudioChoiceForSession = settingsProvider().showAudioRetentionOption
+        keepAudio = hasExplicitAudioChoice ? keepAudio : settingsProvider().saveRecordings
         phase = .preparing
         livePartial = StreamingPartial(finalizedText: "", volatileText: "")
-        sampleCollector = nil
-        samplesAreDiarizable = false
         elapsed = 0
         onStateChange(.loadingModel)
         latency.begin()
@@ -278,6 +286,13 @@ final class DictationController: ObservableObject {
         }
 
         do {
+            let settings = settingsProvider()
+            let recording = RecordingSession(source: "mic.mac",
+                language: settings.language.isEmpty ? "nl" : settings.language,
+                model: settings.engine == .appleSpeech ? "apple-speech" : "parakeet-tdt-0.6b-v3",
+                keepAudio: keepAudio)
+            activeSessionID = recording.id
+            try await engine.configureRecording(recording)
             try await engine.startStreaming(locale: locale)
         } catch {
             await handleFailure(error)
@@ -299,17 +314,7 @@ final class DictationController: ObservableObject {
             return
         }
 
-        // Only retain samples for the optional post-dictation diarization pass
-        // when the engine negotiated exactly the diarizer's format (16 kHz mono
-        // Float32 — the Parakeet path). For any other format we skip capture, and
-        // diarization is skipped downstream (no re-decode, no wrong-rate turns).
-        // Ook de instelling meetellen, niet alleen het audioformaat: zonder deze
-        // controle werd élke dictatie volledig in RAM meegeschreven (~230 MB per
-        // uur) terwijl sprekerherkenning uit stond en die samples nooit werden
-        // gebruikt (bevinding 2026-08-03).
-        samplesAreDiarizable = Self.isDiarizerFormat(format)
-            && settingsProvider().speakerRecognitionEnabled
-
+        // Speaker recognition reads the finalized CAF through a memory map after capture.
         let stream: AsyncStream<AudioBufferBox>
         do {
             if let format {
@@ -352,27 +357,9 @@ final class DictationController: ObservableObject {
         startElapsedTicker()
         observePartials()
 
-        // When diarization is possible for this run, tee each buffer's samples
-        // into a collector alongside feeding the engine. The collector is touched
-        // only from this single serial loop, so its appends are race-free; we read
-        // it back on the main actor after `feedTask` finishes (in `finishSession`).
-        let capture = samplesAreDiarizable ? SampleCollector() : nil
-        sampleCollector = capture
         feedTask = Task { [engine] in
-            for await box in stream {
-                capture?.append(from: box.buffer)
-                await engine.feed(box)
-            }
+            for await box in stream { await engine.feed(box) }
         }
-    }
-
-    /// True when `format` is exactly the 16 kHz mono Float32 the diarizer models
-    /// consume — matching ``ParakeetEngine/bestAudioFormat()``.
-    private static func isDiarizerFormat(_ format: AVAudioFormat?) -> Bool {
-        guard let format else { return false }
-        return format.commonFormat == .pcmFormatFloat32
-            && format.channelCount == 1
-            && Int(format.sampleRate) == 16_000
     }
 
     // MARK: - Stop
@@ -392,6 +379,7 @@ final class DictationController: ObservableObject {
         // startup window aborts instead of committing (and orphaning) a mic tap.
         sessionToken = UUID()
 
+        retainAtStop = keepAudio
         latency.markStop()
         phase = .transcribing
         LaunchHealth.setPhase(.transcribing)
@@ -404,17 +392,13 @@ final class DictationController: ObservableObject {
     }
 
     private func finishSession() async {
+        defer { keepAudio = false; hasExplicitAudioChoice = false; showAudioChoiceForSession = false }
         await feedTask?.value
         feedTask = nil
 
-        // The feed loop has finished, so the collector is no longer being written:
-        // safe to read the retained samples for the optional diarization pass.
-        let samples = samplesAreDiarizable ? sampleCollector?.samples : nil
-        sampleCollector = nil
-
         let result: TranscriptionResult
         do {
-            result = try await engine.finalize()
+            result = try await engine.finalizeRecording(keepAudio: retainAtStop)
         } catch {
             // Hier stond een "redding" van `livePartial.finalizedText`. Die
             // string is bij Parakeet altijd leeg — de partials-stream wordt in
@@ -434,10 +418,10 @@ final class DictationController: ObservableObject {
         await completeTranscription(
             text: result.text,
             segments: result.segments,
-            samples: samples,
             audioDuration: result.audioDuration,
             partialFailure: result.partialFailure,
-            preservedAudioURL: result.preservedAudioURL
+            preservedAudioURL: result.preservedAudioURL,
+            recording: result.recording
         )
     }
 
@@ -461,23 +445,23 @@ final class DictationController: ObservableObject {
     private func completeTranscription(
         text: String,
         segments: [Core.TranscriptSegment],
-        samples: [Float]?,
         audioDuration: Double = 0,
         partialFailure: String? = nil,
-        preservedAudioURL: URL? = nil
+        preservedAudioURL: URL? = nil,
+        recording: RecordingSession? = nil
     ) async {
         partialsTask?.cancel()
         partialsTask = nil
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            // Er komt geen item, dus ook geen plek om bewaarde audio aan te
-            // hangen: opruimen in plaats van laten slingeren.
-            if let preservedAudioURL {
-                try? FileManager.default.removeItem(at: preservedAudioURL)
+        if trimmed.isEmpty, recording?.keepAudio != true {
+            if let recording {
+                // The app owns disposal, including the durable completion marker.
+                _ = onTranscriptCompleted?(TranscriptCompletion(text: "", segments: [], duration: audioDuration,
+                    language: recording.language, model: recording.model, source: "mic",
+                    preservedAudioURL: preservedAudioURL, recording: recording))
             }
-            // Zero speech → no clipboard write, mirror Python "Geen spraak herkend".
-            Notifications.post("Geen spraak herkend")
+            Notifications.post(partialFailure == nil ? "Geen spraak herkend" : AudioCopy.text(.partialAudio))
             onStateChange(.ready)
             finishHUD(success: false)
             return
@@ -492,7 +476,7 @@ final class DictationController: ObservableObject {
             language: settings.language.isEmpty ? "nl" : settings.language
         )
 
-        Clipboard.copy(processed)
+        if !processed.isEmpty { Clipboard.copy(processed) }
         latency.markClipboard()
         lastMetrics = latency.metrics
 
@@ -500,7 +484,7 @@ final class DictationController: ObservableObject {
         // into the app that was frontmost when recording started. De tekst blijft
         // hoe dan ook op het klembord staan, ook als de invoeging slaagt.
         LaunchHealth.setPhase(.inserting)
-        let outcome = insertionHandler?(processed, capturedInsertionTarget)
+        let outcome = processed.isEmpty ? nil : insertionHandler?(processed, capturedInsertionTarget)
         lastInsertionOutcome = outcome
         capturedInsertionTarget = nil
         switch outcome {
@@ -528,7 +512,9 @@ final class DictationController: ObservableObject {
         // de gebruiker dat te weten (bevinding 2026-08-03). We bewaren dan ook
         // de échte duur, niet de klok.
         let wallClock = elapsed
-        let trustedDuration = audioDuration > 0 ? audioDuration : wallClock
+        let health = RecordingHealth(result: TranscriptionResult(text: text, segments: segments,
+            audioDuration: audioDuration, partialFailure: partialFailure, recording: recording), elapsed: wallClock)
+        let trustedDuration = health.duration
         if audioDuration > 0, wallClock - audioDuration > max(5, wallClock * 0.05) {
             NSLog(
                 "DictationController: audio gap, klok %.1fs, opgenomen %.1fs",
@@ -560,14 +546,17 @@ final class DictationController: ObservableObject {
             // `AppEnvironment.saveCompletedTranscript` plakt hier ".mac" achter,
             // dus dit blijft de kale bron.
             source: "mic",
-            // Only carry samples through when the segments are non-empty (a
-            // salvaged/empty-segment run has nothing to attach speakers to).
-            samples: segments.isEmpty ? nil : samples,
-            preservedAudioURL: preservedAudioURL
+            preservedAudioURL: preservedAudioURL,
+            recording: recording
         )
 
         // Eerst vastleggen, dan pas klaarmelden.
-        onTranscriptCompleted?(completion)
+        let saved = onTranscriptCompleted?(completion) ?? false
+        guard saved else {
+            onStateChange(.ready)
+            finishHUD(success: false)
+            return
+        }
 
         livePartial = StreamingPartial(finalizedText: processed, volatileText: "")
         // The insertionFailed case already posted its own notification above.
@@ -596,7 +585,7 @@ final class DictationController: ObservableObject {
         // eindigt in plaats van alleen op cancellation-propagatie te vertrouwen
         // (bevinding review 22 augustus 2026).
         audioEngine.cancel()
-        // Net als in finishSession() eerst awaiten voordat sampleCollector loslaat:
+        // Laat alle al ontvangen buffers afronden voordat de sessie wordt opgeruimd:
         // anders kan de feed-loop nog naar de buffer schrijven terwijl die net is
         // vrijgegeven (22 augustus 2026).
         feedTask?.cancel()
@@ -681,22 +670,4 @@ final class DictationController: ObservableObject {
         }
     }
     #endif
-}
-
-/// Accumulates 16 kHz mono Float32 samples from the dictation capture, for the
-/// optional post-dictation speaker-recognition pass. Written from a single serial
-/// feed loop only (never concurrently), then read once that loop has finished, so
-/// it needs no internal locking. Marked `@unchecked Sendable` to cross into the
-/// (non-actor) feed `Task`; the single-writer/read-after-completion discipline
-/// above makes that safe.
-private final class SampleCollector: @unchecked Sendable {
-    private(set) var samples: [Float] = []
-
-    /// Appends channel 0 of a 16 kHz mono Float32 buffer.
-    func append(from buffer: AVAudioPCMBuffer) {
-        guard let channelData = buffer.floatChannelData else { return }
-        let frameLength = Int(buffer.frameLength)
-        guard frameLength > 0 else { return }
-        samples.append(contentsOf: UnsafeBufferPointer(start: channelData[0], count: frameLength))
-    }
 }

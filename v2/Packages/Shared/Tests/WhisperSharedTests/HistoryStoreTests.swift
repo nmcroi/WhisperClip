@@ -2,8 +2,7 @@ import Core
 import Foundation
 import GRDB
 import XCTest
-import WhisperShared
-@testable import WhisperClipboard
+@testable import WhisperShared
 
 @MainActor
 final class HistoryStoreTests: XCTestCase {
@@ -42,6 +41,45 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(all.count, 1)
         XCTAssertEqual(all.first?.text, "Hallo wereld")
         XCTAssertEqual(try store.count(), 1)
+    }
+
+    func testAsyncSnapshotOrdersAbsoluteDatesAndRefreshesAfterMutation() async throws {
+        let store = try makeStore()
+        try store.add(entry(id: "later", text: "Zoek appel", createdAt: "2026-09-17T10:00:00Z"))
+        try store.add(entry(id: "earlier", text: "Zoek peer", createdAt: "2026-09-17T11:00:00+02:00"))
+        let note = try store.createNote(title: "Testnotitie")
+        try store.appendToNote(entry(id: "note-only", text: "Zoek appel in notitie"), noteId: note.id)
+        let first = try await store.historySnapshot()
+        XCTAssertEqual(first.entries.map(\.id), ["later", "earlier"])
+        XCTAssertEqual(first.total, 2)
+        let microphone = try await store.historySnapshot(filter: .mic)
+        XCTAssertEqual(microphone.entries.count, 2)
+        let files = try await store.historySnapshot(filter: .file)
+        XCTAssertTrue(files.entries.isEmpty)
+        let filtered = try await store.historySnapshot(query: "appel")
+        XCTAssertEqual(filtered.entries.map(\.id), ["later"])
+        XCTAssertEqual(filtered.total, 2)
+        try store.delete(id: "later")
+        let refreshed = try await store.historySnapshot()
+        XCTAssertEqual(refreshed.entries.map(\.id), ["earlier"])
+        XCTAssertEqual(refreshed.total, 1)
+    }
+
+    func testAsyncSnapshotDoesNotTruncateLargeHistory() async throws {
+        let queue = try DatabaseQueue()
+        let store = try HistoryStore(dbQueue: queue, retentionProvider: { nil })
+        let fixture = entry(text: "Synthetische opname")
+        try await queue.write { db in
+            let prototype = TranscriptRecord(entry: fixture)
+            for index in 0..<5001 {
+                var record = prototype
+                record.id = "fixture-\(index)"
+                try record.insert(db)
+            }
+        }
+        let snapshot = try await store.historySnapshot()
+        XCTAssertEqual(snapshot.entries.count, 5001)
+        XCTAssertEqual(snapshot.total, 5001)
     }
 
     func testDelete() throws {

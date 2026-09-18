@@ -51,6 +51,10 @@ struct HistoryDetailiOSView: View {
                         )
                         Divider().overlay(Theme.border)
                     }
+                    if let history = app.history {
+                        AudioAttachmentView(entryID: entry.id, store: history, locale: app.interfaceLanguage.locale, isRecording: app.isRecordingActive)
+                    }
+                    if entry.text.isEmpty { Text(AudioCopy.text(.noSpeech, locale: app.interfaceLanguage.locale)).foregroundStyle(Theme.textSecondary) }
                     bodyText
                 }
                 .padding(20)
@@ -89,7 +93,7 @@ struct HistoryDetailiOSView: View {
             Button("Verwijder", role: .destructive) { deleteTranscript() }
             Button("Annuleer", role: .cancel) {}
         } message: {
-            Text("Deze opname wordt definitief verwijderd.")
+            Text(AudioCopy.text(.deleteTogether, locale: app.interfaceLanguage.locale))
         }
         .alert("Opname hernoemen", isPresented: $showRename) {
             TextField("Titel", text: $renameText)

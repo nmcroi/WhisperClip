@@ -2,8 +2,7 @@ import Core
 import Foundation
 import GRDB
 import XCTest
-import WhisperShared
-@testable import WhisperClipboard
+@testable import WhisperShared
 
 /// Tests rond de twee transactievarianten in ``HistoryStore``: meervoudig
 /// verwijderen en samenvoegen-met-vervangen. Ze draaien op een in-memory

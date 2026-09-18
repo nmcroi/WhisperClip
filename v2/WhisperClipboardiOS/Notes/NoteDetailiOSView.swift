@@ -27,8 +27,13 @@ struct NoteDetailiOSView: View {
     }
 
     @State private var didCopy = false
+    /// Standaard zijn de losse opnames compacte geschiedenisregels. Alleen een
+    /// aangetikte regel toont de volledige tekst.
+    @State private var expandedEntryIDs: Set<String> = []
     @State private var showRename = false
     @State private var renameText = ""
+    @State private var renamingEntry: RenamingEntry?
+    @State private var renameEntryText = ""
     @State private var showDeleteConfirm = false
 
     // MARK: Samenvoegen (task 4a)
@@ -50,6 +55,7 @@ struct NoteDetailiOSView: View {
 
     /// Identifiable wrapper rond een entry-id (TranscriptEntry is niet Identifiable).
     private struct MovingEntry: Identifiable { let id: String }
+    private struct RenamingEntry: Identifiable { let id: String }
 
     // MARK: Toewijzings-sheet (task 2)
     /// Eenmalige vlag: gezet zodra de auto-start-opname (via de +-knop) is
@@ -176,6 +182,17 @@ struct NoteDetailiOSView: View {
             }
             Button("Annuleer", role: .cancel) {}
         }
+        .alert(
+            "Opname hernoemen",
+            isPresented: Binding(
+                get: { renamingEntry != nil },
+                set: { if !$0 { renamingEntry = nil } }
+            )
+        ) {
+            TextField("Titel", text: $renameEntryText)
+            Button("Bewaar") { renameEntry() }
+            Button("Annuleer", role: .cancel) {}
+        }
         .confirmationDialog(
             "Notitie verwijderen",
             isPresented: $showDeleteConfirm,
@@ -203,8 +220,8 @@ struct NoteDetailiOSView: View {
                     if entries.isEmpty {
                         emptyBody
                     } else {
-                        noteBody(entries)
                         copyButton(entries)
+                        noteBody(entries)
                     }
                 }
                 .padding(20)
@@ -217,53 +234,115 @@ struct NoteDetailiOSView: View {
 
     @ViewBuilder
     private func noteBody(_ entries: [TranscriptEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 10) {
             ForEach(entries, id: \.id) { entry in
-                VStack(alignment: .leading, spacing: 6) {
-                    // Elke sessie zijn eigen tijdstempel, ook de eerste: zonder
-                    // die eerste was onduidelijk of een datum bij de tekst
-                    // erboven of eronder hoorde (13 aug 2026). De datum staat
-                    // altijd BOVEN zijn tekst.
-                    sessionDivider(for: entry)
-                    Text(entry.text.trimmingCharacters(in: .whitespacesAndNewlines))
-                        .font(ThemeFont.ui(17))
-                        .foregroundStyle(Theme.text)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                noteEntryCard(entry)
                 .contentShape(Rectangle())
                 .contextMenu {
-                    // Losse sessie beheren (task 4b): verplaatsen of losmaken.
-                    Button {
-                        movingEntry = MovingEntry(id: entry.id)
-                    } label: {
-                        Label("Verplaats naar andere notitie…", systemImage: "arrow.right.doc.on.clipboard")
-                    }
-                    Button {
-                        // Terug naar Geschiedenis als losse opname.
-                        detachEntry(entry.id)
-                    } label: {
-                        Label("Maak losse opname", systemImage: "arrow.uturn.backward")
-                    }
+                    entryActions(entry)
                 }
             }
         }
-        .textSelection(.enabled)
     }
 
-    private func sessionDivider(for entry: TranscriptEntry) -> some View {
-        HStack(spacing: 8) {
-            Rectangle()
-                .fill(Theme.border)
-                .frame(height: Theme.Metrics.hairline)
-                .frame(maxWidth: 24)
-            Text(sessionTime(for: entry))
-                .font(ThemeFont.ui(11))
-                .foregroundStyle(Theme.textTertiary)
-            Rectangle()
-                .fill(Theme.border)
-                .frame(height: Theme.Metrics.hairline)
+    private func noteEntryCard(_ entry: TranscriptEntry) -> some View {
+        let isExpanded = expandedEntryIDs.contains(entry.id)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        if isExpanded {
+                            expandedEntryIDs.remove(entry.id)
+                        } else {
+                            expandedEntryIDs.insert(entry.id)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        TranscriptRowiOS(entry: entry)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.accentText)
+                    }
+                    .padding(.leading, 14)
+                    .padding(.vertical, 2)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Menu {
+                    entryActions(entry)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.accentText)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Acties voor opname")
+            }
+
+            if isExpanded {
+                Divider().overlay(Theme.border)
+                VStack(alignment: .leading, spacing: 10) {
+                    if let history = app.history {
+                        AudioAttachmentView(
+                            entryID: entry.id,
+                            store: history,
+                            locale: app.interfaceLanguage.locale,
+                            isRecording: app.isRecordingActive
+                        )
+                    }
+                    if entry.text.isEmpty {
+                        Text(AudioCopy.text(.noSpeech, locale: app.interfaceLanguage.locale))
+                            .foregroundStyle(Theme.textSecondary)
+                    } else {
+                        Text(entry.text.trimmingCharacters(in: .whitespacesAndNewlines))
+                            .font(ThemeFont.ui(17))
+                            .foregroundStyle(Theme.text)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(14)
+            }
         }
-        .padding(.vertical, 2)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Theme.border, lineWidth: Theme.Metrics.hairline)
+        }
+    }
+
+    @ViewBuilder
+    private func entryActions(_ entry: TranscriptEntry) -> some View {
+        Button {
+            let currentName = entry.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            renameEntryText = currentName.isEmpty
+                ? entry.displayTitle(locale: app.interfaceLanguage.locale)
+                : currentName
+            renamingEntry = RenamingEntry(id: entry.id)
+        } label: {
+            Label("Hernoem opname", systemImage: "pencil")
+        }
+
+        ShareLink(item: entry.text) {
+            Label("Deel opname", systemImage: "square.and.arrow.up")
+        }
+
+        Button {
+            movingEntry = MovingEntry(id: entry.id)
+        } label: {
+            Label("Verplaats naar andere notitie…", systemImage: "arrow.right.doc.on.clipboard")
+        }
+
+        Button {
+            // Terug naar Geschiedenis als losse opname.
+            detachEntry(entry.id)
+        } label: {
+            Label("Maak losse opname", systemImage: "arrow.uturn.backward")
+        }
     }
 
     private var emptyBody: some View {
@@ -290,7 +369,7 @@ struct NoteDetailiOSView: View {
             UIPasteboard.general.string = concatenatedText(entries)
             didCopy = true
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Record bar (onderaan)
@@ -332,6 +411,12 @@ struct NoteDetailiOSView: View {
                         }
                     }
                 }
+            }
+        }
+        .safeAreaInset(edge: .top) {
+            if app.showAudioRetentionOption || controller.showAudioChoiceForSession {
+                AudioRetentionToggle(keep: $controller.keepAudio, locale: app.interfaceLanguage.locale,
+                    disabled: controller.isTranscribing).padding(.horizontal, 20)
             }
         }
         .frame(maxWidth: .infinity)
@@ -386,22 +471,11 @@ struct NoteDetailiOSView: View {
         }
     }
 
-    /// De acties zichtbaar naast elkaar in de icoon-stijl, net als op het
-    /// Geschiedenis-detail. Het rondje met drie puntjes is vervallen
-    /// (13 aug 2026): Niels wil de knoppen gewoon zien.
+    /// De acties voor de hele notitie. Hernoemen gebeurt uitsluitend via de
+    /// tikbare titel erboven; een tweede identieke knop maakte niet duidelijk
+    /// of die de notitie of een losse opname hernoemde.
     private var noteActionBar: some View {
         HStack(spacing: 4) {
-            Button {
-                renameText = note.title
-                showRename = true
-            } label: {
-                IconActionLabel(
-                    title: L10n.string( "Hernoem", locale: app.interfaceLanguage.locale),
-                    systemImage: "pencil"
-                )
-            }
-            .buttonStyle(.plain)
-
             // Delen ontbrak hier terwijl Geschiedenis het op drie plekken heeft.
             // Niels liep erop vast op 17 augustus 2026: hij wilde een notitie
             // doorsturen en kon alleen kopiëren.
@@ -503,6 +577,16 @@ struct NoteDetailiOSView: View {
         }
     }
 
+    private func renameEntry() {
+        guard let history = app.history, let target = renamingEntry else { return }
+        do {
+            try history.rename(id: target.id, name: renameEntryText)
+            renamingEntry = nil
+        } catch {
+            app.presentDataChangeError(error)
+        }
+    }
+
     private func deleteNote(deleteEntries: Bool) {
         guard let history = app.history else { return }
         do {
@@ -542,14 +626,6 @@ struct NoteDetailiOSView: View {
         return trimmed.isEmpty
             ? L10n.string( "Naamloze notitie", locale: app.interfaceLanguage.locale)
             : trimmed
-    }
-
-    private func sessionTime(for entry: TranscriptEntry) -> String {
-        guard let date = entry.timestamp else { return "" }
-        let formatter = DateFormatter()
-        formatter.locale = app.interfaceLanguage.locale
-        formatter.setLocalizedDateFormatFromTemplate("dMMMHHmm")
-        return formatter.string(from: date)
     }
 
     private static func formatElapsed(_ seconds: Double) -> String {

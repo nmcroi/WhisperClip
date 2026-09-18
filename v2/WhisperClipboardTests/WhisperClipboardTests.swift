@@ -2,6 +2,11 @@ import XCTest
 @testable import WhisperClipboard
 
 final class WhisperClipboardTests: XCTestCase {
+    @MainActor
+    func testHostedTestsDoNotBootstrapUserServices() {
+        XCTAssertTrue(AppDelegate.isUnitTestHost)
+    }
+
     /// Smoke test: the app state exposes Dutch status text and sensible defaults.
     func testAppStateStatusText() {
         XCTAssertEqual(AppState.ready.statusText, "Klaar voor opname")

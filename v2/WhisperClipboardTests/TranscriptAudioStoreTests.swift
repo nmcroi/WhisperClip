@@ -1,4 +1,5 @@
 import XCTest
+import WhisperShared
 @testable import WhisperClipboard
 
 /// Finding #7: `trimAudio` replaced the original recording with a delete-then-move
@@ -22,6 +23,18 @@ final class TranscriptAudioStoreTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? FileManager.default.removeItem(at: dir)
+    }
+
+    func testAudioLookupCannotEscapeRecordingDirectory() throws {
+        let repository = RecordingRepository(root: dir)
+        try repository.prepareDirectory(repository.recordingsDirectory)
+        let outside = dir.appendingPathComponent("outside.wav")
+        try Data("private outside file".utf8).write(to: outside)
+        XCTAssertNil(TranscriptAudioStore.audioURL(forTranscriptId: "../outside", repository: repository))
+        let inside = repository.recordingsDirectory.appendingPathComponent("owned.wav")
+        try Data("synthetic recording".utf8).write(to: inside)
+        XCTAssertEqual(TranscriptAudioStore.audioURL(forTranscriptId: "owned", repository: repository), inside)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: outside.path))
     }
 
     /// `replaceItemAt` swaps the destination for a freshly-written temp file — the

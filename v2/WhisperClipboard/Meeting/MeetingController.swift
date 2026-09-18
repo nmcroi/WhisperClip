@@ -113,6 +113,8 @@ final class MeetingController: ObservableObject {
         let locale = Locale(identifier: settings.language.isEmpty ? "nl-NL" : settings.language)
 
         do {
+            try await engine.configureRecording(RecordingSession(source: "meeting.mac",
+                language: settings.language.isEmpty ? "nl" : settings.language, keepAudio: false))
             try await engine.startStreaming(locale: locale)
         } catch {
             await engine.cancel()
@@ -210,8 +212,12 @@ final class MeetingController: ObservableObject {
         )
 
         guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            if let session = result.recording {
+                do { try history.discardRecording(session) }
+                catch { fail(error); return }
+            }
             transcript = nil
-            errorMessage = "Geen spraak herkend, er is niets om te versturen."
+            errorMessage = result.partialFailure == nil ? "Geen spraak herkend, er is niets om te versturen." : AudioCopy.text(.partialAudio)
             phase = .finished
             return
         }
@@ -221,7 +227,7 @@ final class MeetingController: ObservableObject {
         let recordedDuration = result.audioDuration > 0 ? result.audioDuration : elapsed
 
         let entry = TranscriptEntry(
-            id: UUID().uuidString,
+            id: result.recording?.id ?? UUID().uuidString,
             text: processed,
             createdAt: ISO8601DateFormatter().string(from: Date()),
             name: "",
@@ -238,7 +244,8 @@ final class MeetingController: ObservableObject {
         // meldde de sheet daarna alsnog succes — een vergadering van een uur kon
         // zo spoorloos verdwijnen (bevinding 2026-08-03).
         do {
-            try history.add(entry)
+            if let session = result.recording { try history.commitRecording(session, entry: entry) }
+            else { try history.add(entry) }
         } catch {
             transcript = processed
             errorMessage = """

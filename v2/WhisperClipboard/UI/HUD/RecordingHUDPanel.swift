@@ -171,6 +171,7 @@ final class RecordingHUDController {
             setDirectInsertion: setDirectInsertion
         )
         let hosting = NSHostingController(rootView: root)
+        hosting.sizingOptions = [.preferredContentSize]
         hosting.view.frame.size = hosting.view.fittingSize
 
         let panel = NonKeyPanel(

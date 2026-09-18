@@ -1,6 +1,6 @@
 # Privacy en gegevensstromen — WhisperClip
 
-*Laatst technisch bijgewerkt: 1 augustus 2026 · werkdocument voor Personal en de af te leiden Public-build*
+*Laatst technisch bijgewerkt: 13 september 2026 · werkdocument voor Personal en de af te leiden Public-build*
 
 WhisperClip zet audio lokaal om in tekst. Er is geen backend van de maker en de
 app bevat geen Firebase, analytics, advertenties, tracking of telemetry. Na de
@@ -35,13 +35,29 @@ voorbereide e-mailverslag.
 
 - Transcripties, titels, bron, duur, taalmetadata en notitiekoppelingen staan in
   de lokale database in de appcontainer.
-- Tijdens een gewone opname of Notulist-sessie schrijft WhisperClip de audio
-  naar één beschermd tijdelijk bestand in de eigen appcontainer. Dit voorkomt
-  dat het werkgeheugen met de opnameduur blijft groeien. Het bestand wordt na
-  transcriptie of annuleren verwijderd. Bij een crash probeert WhisperClip het
-  bestand bij de volgende start te transcriberen en in Geschiedenis te bewaren;
-  pas na een geslaagde database-write wordt het op basis van WhisperClips eigen
-  bestandsprefix verwijderd.
+- Tijdens opnemen schrijft WhisperClip één beschermd CAF-bestand naar een lokale
+  herstelmap in Application Support. Een vast opname-ID en herstelmetadata zorgen
+  dat opnieuw proberen geen dubbele transcripties oplevert. Audio wordt pas
+  verwijderd nadat de transcriptie duurzaam is opgeslagen. Bij fouten of een
+  crash blijft het herstelbestand beschikbaar. Herstelmappen zijn uitgesloten
+  van automatische apparaatback-ups.
+- Gewone opnames kunnen op iPhone en Mac per opname bewust worden bewaard. De
+  instelling om deze keuze te tonen staat standaard uit. Een bestaande Mac-voorkeur
+  om gewone opnames altijd te bewaren blijft behouden. Notulist bewaart nooit
+  permanente audio, ook niet wanneer die Mac-voorkeur aanstaat.
+- Bewaarde audio blijft in de lokale Recordings-map, uitgesloten van automatische
+  back-ups en CloudKit. Een transcript verwijderen verwijdert ook de lokale audio;
+  dat geldt eveneens voor retentie en gesynchroniseerde verwijderingen. Een
+  mislukte bestandsverwijdering blijft in een duurzame wachtrij staan en is zichtbaar.
+- Afspelen blijft lokaal. Alleen een expliciete deel-/exportactie maakt een
+  M4A-kopie voor een door de gebruiker gekozen bestemming. Deze zelf geëxporteerde
+  bestanden vallen buiten het beheer van WhisperClip en kunnen daar wel worden
+  gesynchroniseerd of geback-upt. Tijdelijke exportkopieën worden na delen,
+  annuleren of bij de volgende appstart opgeruimd. Audio gaat nooit automatisch
+  mee naar AI-aanbieders of in een Notulist-e-mail.
+- Oude audiobestanden zonder transcript worden aangeboden als gevonden opnames;
+  ze worden niet stilzwijgend gewist. De gebruiker kan ze beluisteren, exporteren
+  of expliciet verwijderen. Oude bestanden worden niet opnieuw gecodeerd.
 - AI-resultaten en een lokaal gebruiks-/kostenlog staan in lokale appbestanden.
   Kosten zijn schattingen; de providerfactuur blijft leidend.
 - Instellingen, woordenlijst, vaste deelnemers en synchronisatiecheckpoints staan
@@ -187,7 +203,8 @@ worden geverifieerd.
 ## 7. Technische garanties voor deze final run
 
 - Geen Firebase, analytics, advertenties, tracking-SDK of eigen backend.
-- Geen audio naar AI, iCloud of e-mail.
+- Geen automatische audio-upload naar AI, iCloud of e-mail. De gebruiker kan
+  bewaarde audio zelf als M4A exporteren en via het systeemdeelvenster delen.
 - Geen API-key buiten Keychain of naar een andere bestemming dan de gekozen
   aanbieder.
 - Lokale kern werkt zonder iCloud, zonder AI-key en offline nadat het model is

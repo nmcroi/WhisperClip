@@ -51,6 +51,19 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         }
     }
 
+    @Published var keepAudio = false {
+        didSet {
+            guard isRecording, let app, let sessionID = activeSessionID else { return }
+            let keep = keepAudio && transcriptSource != "meeting"
+            Task {
+                do { try await app.engine.updateRecordingRetention(keep, for: sessionID) }
+                catch { app.errorMessage = AudioCopy.text(.storageFailed, locale: app.interfaceLanguage.locale) }
+            }
+        }
+    }
+    @Published private(set) var showAudioChoiceForSession = false
+    private var activeSessionID: String?
+    private var finalRecording: RecordingSession?
     private var app: AppModel?
     /// True zolang een start-cyclus in gang is maar `isRecording` nog niet gezet.
     /// Dicht het async-venster tussen een tik en `isRecording = true`, zodat een
@@ -118,7 +131,7 @@ final class RecordController: ObservableObject, RecordingStopHandling {
             // Negeer een tweede tik terwijl een start al onderweg is: anders zou
             // het async start-venster (tot `isRecording = true`) een tweede sessie
             // op dezelfde engine kunnen openen.
-            guard !starting else { return }
+            guard !starting, !isTranscribing else { return }
             if pendingSave != nil, retryPendingSave() == nil { return }
             if let language {
                 transcriptionLanguage = language
@@ -145,9 +158,11 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         // Wat er ook gebeurt (succes, vroege return of fout): het start-venster is
         // voorbij als deze functie terugkeert, dus laat de guard weer los.
         defer { starting = false }
-        guard let app else { return }
+        guard let app, app.history != nil, !app.isRecordingActive else { return }
+        elapsed = 0
         didCopy = false
         lastResult = nil
+        finalRecording = nil
         lastResultAt = nil
         // Nog niet `.recording`: tussen deze tik en het werkelijk lopen van de
         // audio zit op een koude start de modellading. De statusregel mag dan
@@ -155,6 +170,13 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         status = .preparing
 
         let engine = app.engine
+        showAudioChoiceForSession = app.showAudioRetentionOption && transcriptSource != "meeting"
+        if transcriptSource == "meeting" { keepAudio = false }
+        let session = RecordingSession(source: transcriptSource + ".ios", language: transcriptionLanguage.rawValue,
+            noteID: targetNoteId, keepAudio: keepAudio)
+        activeSessionID = session.id
+        do { try await engine.configureRecording(session) }
+        catch { fail(ErrorLocalization.message(for: error, language: app.interfaceLanguage)); return }
         guard let format = await engine.bestAudioFormat() else {
             fail(L10n.string( "Audioformaat niet beschikbaar.", locale: app.interfaceLanguage.locale))
             return
@@ -325,7 +347,9 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         // Meteen mee omzetten: de knop werd al geel terwijl de regel eronder nog
         // "Bezig met opnemen" zei tijdens het leegdraaien (bevinding 2026-08-02).
         status = .transcribing
-        markRecording(false)
+        // Keep the app tree stable until transcript/audio persistence completes.
+        defer { markRecording(false); keepAudio = false; showAudioChoiceForSession = false }
+        let retainThisRecording = keepAudio && transcriptSource != "meeting"
         isPaused = false
         pausedByInterruption = false
         RecordingStopBus.shared.deregister(self)
@@ -337,38 +361,23 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
         // `stop()` beëindigt de AsyncStream-continuation, dus de feed-loop draait
         // de laatste gebufferde buffers nog leeg en eindigt dan vanzelf. We WACHTEN
-        // daarop (niet cancellen, dat zou juist de laatste woorden droppen). Een
-        // korte timeout-guard voorkomt vastlopen mocht de stream onverhoopt niet
-        // eindigen; daarna cancellen we alsnog als vangnet.
+        // daarop (niet cancellen, dat zou juist de laatste woorden droppen).
+        // Het eerdere task-group-vangnet wachtte alsnog op dezelfde feedTask:
+        // annuleren van een waiter beëindigt de onderliggende taak niet.
         audio?.stop()
-        if let feedTask {
-            let drained = await withTaskGroup(of: Bool.self) { group -> Bool in
-                group.addTask { await feedTask.value; return true }
-                group.addTask {
-                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 s vangnet
-                    return false
-                }
-                let first = await group.next() ?? false
-                group.cancelAll()
-                return first
-            }
-            if !drained { feedTask.cancel() }
-        }
+        await feedTask?.value
         feedTask = nil
         audio = nil
-
-        guard capturedDuration >= 0.35 else {
-            await app.engine.cancel()
-            isTranscribing = false
-            lastResult = nil
-            status = .noAudio
-            return
-        }
 
         status = .transcribing
 
         do {
-            let result = try await app.engine.finalize()
+            let result = try await app.engine.finalizeRecording(keepAudio: retainThisRecording)
+            finalRecording = result.recording
+            let health = RecordingHealth(result: result, elapsed: capturedDuration)
+            if health.incomplete {
+                app.errorMessage = AudioCopy.text(.partialAudio, locale: app.interfaceLanguage.locale)
+            }
             isTranscribing = false
             let processed = TextProcessor.process(
                 result.text,
@@ -376,15 +385,16 @@ final class RecordController: ObservableObject, RecordingStopHandling {
                 clean: true,
                 language: transcriptionLanguage == .automatic ? "" : transcriptionLanguage.rawValue
             )
-            guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || retainThisRecording else {
+                if let session = result.recording { try app.history?.discardRecording(session) }
                 lastResult = nil
-                status = .noSpeech
+                status = health.incomplete ? .failed : .noSpeech
                 return
             }
             lastResult = processed
             lastResultAt = Date()
             status = .ready
-            let savedEntry = save(processed, segments: result.segments, duration: capturedDuration)
+            let savedEntry = save(processed, segments: result.segments, duration: health.duration)
             onTranscriptReady?(processed, savedEntry)
         } catch {
             isTranscribing = false
@@ -424,9 +434,9 @@ final class RecordController: ObservableObject, RecordingStopHandling {
 
     private func save(_ text: String, segments: [TranscriptSegment], duration: Double) -> TranscriptEntry? {
         let entry = TranscriptEntry(
-            id: UUID().uuidString,
+            id: finalRecording?.id ?? UUID().uuidString,
             text: text,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
+            createdAt: ISO8601DateFormatter().string(from: finalRecording?.createdAt ?? Date()),
             name: "",
             pinned: false,
             language: transcriptionLanguage.rawValue,
@@ -465,16 +475,11 @@ final class RecordController: ObservableObject, RecordingStopHandling {
         guard let history = app?.history else {
             throw RecordPersistenceError.historyUnavailable
         }
-        // Twee routes vanuit dezelfde pijplijn:
-        //  • targetNoteId == nil → standaard one-off: los in de Geschiedenis
-        //    (ongewijzigd gedrag van het Opnemen-tabblad).
-        //  • targetNoteId gezet → voeg de opname áán die notitie toe (met note_id);
-        //    hij verschijnt dan niet los in de Geschiedenis.
-        if let noteID {
-            try history.appendToNote(entry, noteId: noteID)
-        } else {
-            try history.add(entry)
-        }
+        if let session = finalRecording {
+            let detached = try history.commitRecording(session, entry: entry)
+            if detached, let app { app.noticeMessage = AudioCopy.text(.noteMissing, locale: app.interfaceLanguage.locale) }
+        } else if let noteID { try history.appendToNote(entry, noteId: noteID) }
+        else { try history.add(entry) }
     }
 
     private func showSaveFailure() {

@@ -54,19 +54,22 @@ public struct TranscriptionResult: Sendable, Equatable {
     /// verplaatsen als het bewaren lukt, anders zelf opruimen. `nil` wanneer de
     /// opname is weggegooid, wat de standaard blijft.
     public var preservedAudioURL: URL?
+    public var recording: RecordingSession?
 
     public init(
         text: String,
         segments: [Core.TranscriptSegment],
         audioDuration: Double = 0,
         partialFailure: String? = nil,
-        preservedAudioURL: URL? = nil
+        preservedAudioURL: URL? = nil,
+        recording: RecordingSession? = nil
     ) {
         self.text = text
         self.segments = segments
         self.audioDuration = audioDuration
         self.partialFailure = partialFailure
         self.preservedAudioURL = preservedAudioURL
+        self.recording = recording
     }
 
     public static let empty = TranscriptionResult(text: "", segments: [])
@@ -103,12 +106,16 @@ public protocol TranscriptionEngine: AnyObject, Sendable {
     func bestAudioFormat() async -> AVAudioFormat?
 
     /// Begins a streaming session for `locale`.
+    func configureRecording(_ session: RecordingSession) async throws
+    func updateRecordingRetention(_ keep: Bool, for sessionID: String) async throws
+    func setRecordingRetention(_ keep: Bool) async throws
     func startStreaming(locale: Locale) async throws
 
     /// Feeds one captured buffer into the running session.
     func feed(_ buffer: AudioBufferBox) async
 
     /// Ends the session, returning the accumulated final transcript.
+    func finalizeRecording(keepAudio: Bool) async throws -> TranscriptionResult
     func finalize() async throws -> TranscriptionResult
 
     /// Cancels an in-flight session without producing a result.
@@ -119,4 +126,16 @@ public protocol TranscriptionEngine: AnyObject, Sendable {
 
     /// Transcribes a media file (M3). Stubbed for M1.
     func transcribeFile(at url: URL, locale: Locale) async throws -> TranscriptionResult
+}
+
+public extension TranscriptionEngine {
+    func updateRecordingRetention(_ keep: Bool, for sessionID: String) async throws {
+        try await setRecordingRetention(keep)
+    }
+    func finalizeRecording(keepAudio: Bool) async throws -> TranscriptionResult {
+        try await setRecordingRetention(keepAudio)
+        return try await finalize()
+    }
+    func configureRecording(_ session: RecordingSession) async throws {}
+    func setRecordingRetention(_ keep: Bool) async throws {}
 }

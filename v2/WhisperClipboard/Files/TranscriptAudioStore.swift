@@ -1,3 +1,4 @@
+import WhisperShared
 import AVFoundation
 import Core
 import Foundation
@@ -19,28 +20,15 @@ enum TranscriptAudioStore {
 
     /// The recordings directory (created lazily by whoever writes recordings).
     static func recordingsDirectory() throws -> URL {
-        let base = try FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
-        return base
-            .appendingPathComponent("Whisper Clipboard v2", isDirectory: true)
-            .appendingPathComponent("Recordings", isDirectory: true)
+        RecordingRepository.live.recordingsDirectory
     }
 
     /// The on-disk audio file for a transcript id, or `nil` when none exists.
     /// Checks each candidate extension; returns the first that exists.
-    static func audioURL(forTranscriptId id: String) -> URL? {
-        guard let dir = try? recordingsDirectory() else { return nil }
-        for ext in candidateExtensions {
-            let url = dir.appendingPathComponent("\(id).\(ext)")
-            if FileManager.default.fileExists(atPath: url.path) {
-                return url
-            }
-        }
-        return nil
+    static func audioURL(forTranscriptId id: String, repository: RecordingRepository = .live) -> URL? {
+        // Transcript IDs can arrive through sync/import; use the same validated
+        // lookup as the recording coordinator instead of composing a path here.
+        repository.savedAudio(id)
     }
 
     /// Convenience over an entry.

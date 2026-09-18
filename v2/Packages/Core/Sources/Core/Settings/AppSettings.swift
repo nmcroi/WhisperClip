@@ -38,6 +38,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     /// (clipboard-only for that run). Case-insensitive matching at use site.
     public var insertionDeniedBundleIds: [String]
     public var saveRecordings: Bool
+    public var showAudioRetentionOption: Bool
     /// Save the full transcript of a live-captions session to history on stop.
     public var saveCaptions: Bool
     /// Translate live-caption FINAL lines to Dutch via Apple's Translation
@@ -117,6 +118,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         directInsertion: Bool = false,
         insertionDeniedBundleIds: [String] = [],
         saveRecordings: Bool = false,
+        showAudioRetentionOption: Bool = false,
         saveCaptions: Bool = false,
         translateCaptionsToDutch: Bool = false,
         speakerRecognitionEnabled: Bool = true,
@@ -144,6 +146,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.directInsertion = directInsertion
         self.insertionDeniedBundleIds = insertionDeniedBundleIds
         self.saveRecordings = saveRecordings
+        self.showAudioRetentionOption = showAudioRetentionOption
         self.saveCaptions = saveCaptions
         self.translateCaptionsToDutch = translateCaptionsToDutch
         self.speakerRecognitionEnabled = speakerRecognitionEnabled
@@ -168,6 +171,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     // fields (e.g. `insertionDeniedBundleIds`) be added without breaking existing files.
     private enum CodingKeys: String, CodingKey {
         case hotkeyMode, language, engine, appearance, cleanOutput, replacements
+        case showAudioRetentionOption
         case directInsertion, insertionDeniedBundleIds, saveRecordings, saveCaptions
         case translateCaptionsToDutch
         case speakerRecognitionEnabled
@@ -189,6 +193,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         self.replacements = try c.decodeIfPresent([Replacement].self, forKey: .replacements) ?? d.replacements
         self.directInsertion = try c.decodeIfPresent(Bool.self, forKey: .directInsertion) ?? d.directInsertion
         self.insertionDeniedBundleIds = try c.decodeIfPresent([String].self, forKey: .insertionDeniedBundleIds) ?? d.insertionDeniedBundleIds
+        self.showAudioRetentionOption = try c.decodeIfPresent(Bool.self, forKey: .showAudioRetentionOption) ?? false
         self.saveRecordings = try c.decodeIfPresent(Bool.self, forKey: .saveRecordings) ?? d.saveRecordings
         self.saveCaptions = try c.decodeIfPresent(Bool.self, forKey: .saveCaptions) ?? d.saveCaptions
         self.translateCaptionsToDutch = try c.decodeIfPresent(Bool.self, forKey: .translateCaptionsToDutch) ?? d.translateCaptionsToDutch

@@ -368,7 +368,7 @@ final class AppEnvironment: ObservableObject {
 
         // Persist every completed dictation.
         dictation.onTranscriptCompleted = { [weak self] completion in
-            self?.saveCompletedTranscript(completion)
+            self?.saveCompletedTranscript(completion) ?? false
         }
         // Auto-export each completed file import once it is stored (M7).
         fileImport.onTranscriptStored = { [weak self] entry in
@@ -475,15 +475,15 @@ final class AppEnvironment: ObservableObject {
     /// away here, and speaker recognition — when enabled and applicable — runs
     /// afterwards on a detached task, updating the stored entry's segments in
     /// place. Nothing on the dictate-to-clipboard hot path waits for diarization.
-    private func saveCompletedTranscript(_ completion: DictationController.TranscriptCompletion) {
+    private func saveCompletedTranscript(_ completion: DictationController.TranscriptCompletion) -> Bool {
         let entry = TranscriptEntry(
-            id: UUID().uuidString,
+            id: completion.recording?.id ?? UUID().uuidString,
             text: completion.text,
-            createdAt: historyTimestampString(from: Date()),
+            createdAt: historyTimestampString(from: completion.recording?.createdAt ?? Date()),
             name: "",
             pinned: false,
-            language: completion.language,
-            model: completion.model,
+            language: completion.recording?.language ?? completion.language,
+            model: completion.recording?.model ?? completion.model,
             source: completion.source + ".mac",
             duration: completion.duration,
             segments: completion.segments
@@ -500,11 +500,14 @@ final class AppEnvironment: ObservableObject {
             }
         }
 
+        let needsSpeakers = settings.speakerRecognitionEnabled
+            && completion.recording?.model == "parakeet-tdt-0.6b-v3"
+            && completion.duration >= Self.minDictationDiarizeDuration && !completion.segments.isEmpty
         do {
-            try history.add(entry)
-            // Het transcript staat er nu echt: pas hier mag de bewaarde audio
-            // zijn definitieve plek krijgen (bevinding 2026-08-03).
-            preserveAudio(completion.preservedAudioURL, forEntryId: entry.id)
+            if let session = completion.recording {
+                if entry.text.isEmpty && !session.keepAudio { try history.discardRecording(session) }
+                else { try history.commitRecording(session, entry: entry, deferAudioCleanup: needsSpeakers) }
+            } else { try history.add(entry) }
             // Auto-export the completed dictation (M7). Best-effort en mogelijk
             // traag (netwerkschijf, security-scoped bookmark), dus buiten het
             // hete pad: de HUD hoort niet op een export te wachten
@@ -521,39 +524,28 @@ final class AppEnvironment: ObservableObject {
             // gebruiker te weten zolang hij er nog iets mee kan
             // (bevinding 2026-08-03).
             Notifications.postCritical(
-                "Opslaan in Geschiedenis is mislukt. De tekst staat nog op je klembord, plak hem ergens voordat je iets anders kopieert."
+                AudioCopy.text(.storageFailed)
             )
+            return false
         }
 
-        // Optional speaker recognition (diarization) for the just-finished
-        // dictation. Runs off the hot path (the text is already copied + stored),
-        // and only when: the master toggle is on, we retained the recording's
-        // samples (Parakeet 16 kHz path), the clip is long enough, and it has
-        // segments to label. On any failure the entry simply keeps its plain
-        // segments — dictation is never blocked or crashed by diarization.
-        guard settings.speakerRecognitionEnabled,
-              let samples = completion.samples,
-              !samples.isEmpty,
-              completion.duration >= Self.minDictationDiarizeDuration,
-              !completion.segments.isEmpty
-        else { return }
-
+        guard needsSpeakers, let session = completion.recording,
+              let fileURL = completion.preservedAudioURL else { return true }
         let entryId = entry.id
         let segments = completion.segments
         Task { [weak self] in
             guard let self else { return }
             do {
-                let turns = try await self.diarizationService.diarize(samples: samples)
-                guard !turns.isEmpty else { return }
-                let labelled = SpeakerMerge.assign(segments: segments, turns: turns)
-                // Only write back if diarization actually assigned any speaker.
-                guard labelled != segments else { return }
-                try self.history.updateSegmentsPreservingText(id: entryId, segments: labelled)
-            } catch {
-                // Best-effort: keep the plain-segment transcript already saved.
-                NSLog("AppEnvironment: dictation diarization skipped: %@", String(describing: error))
-            }
+                let turns = try await self.diarizationService.diarize(fileURL: fileURL)
+                if !turns.isEmpty {
+                    let labelled = SpeakerMerge.assign(segments: segments, turns: turns)
+                    if labelled != segments { try self.history.updateSegmentsPreservingText(id: entryId, segments: labelled) }
+                }
+            } catch { NSLog("Speaker recognition skipped: %@", error.localizedDescription) }
+            do { try self.history.completeRecordingAudio(session) }
+            catch { Notifications.postCritical(AudioCopy.text(.storageFailed)) }
         }
+        return true
     }
 
     /// Kicks off engine-selection resolution, model status refresh + pre-warm at launch.
@@ -595,12 +587,6 @@ final class AppEnvironment: ObservableObject {
         audioEngine.warmUp()
         meeting.audioEngine.warmUp()
 
-        // Audiovangnet: bewaar de opname wanneer de gebruiker dat wil, zodat een
-        // mislukte transcriptie of een crash niet meteen het gesprek kost.
-        Task { [parakeetEngine, saveRecordings = settings.saveRecordings] in
-            await parakeetEngine.setPreserveFinishedRecording(saveRecordings)
-        }
-
         // Na een crash of geforceerd afsluiten kan er tijdelijke opname-audio zijn
         // achtergebleven. Die alsnog omzetten in gewone geschiedenis-items. Dit
         // pad bestond al en werd getest, maar had tot nu toe alleen op de iPhone
@@ -640,28 +626,6 @@ final class AppEnvironment: ObservableObject {
         }
     }
 
-    /// Verplaatst het bewaarde opnamebestand naar `Recordings/<id>.caf`, de plek
-    /// waar ``TranscriptAudioStore`` hem verwacht. Alleen aanroepen nadat het
-    /// transcript werkelijk is opgeslagen.
-    private func preserveAudio(_ url: URL?, forEntryId id: String) {
-        guard let url else { return }
-        do {
-            let directory = try TranscriptAudioStore.recordingsDirectory()
-            try FileManager.default.createDirectory(
-                at: directory,
-                withIntermediateDirectories: true
-            )
-            let destination = directory
-                .appendingPathComponent(id)
-                .appendingPathExtension(url.pathExtension.isEmpty ? "caf" : url.pathExtension)
-            try FileManager.default.moveItem(at: url, to: destination)
-        } catch {
-            NSLog("AppEnvironment: kon opname niet bewaren: %@", String(describing: error))
-            // Het bestand blijft in de tijdelijke map staan; de herstelronde bij
-            // de volgende start ruimt het op of biedt het opnieuw aan.
-        }
-    }
-
     /// Zet achtergebleven tijdelijke opname-audio alsnog om in geschiedenis-items.
     /// Het audiobestand wordt pas gewist nadat de database-write is geslaagd; bij
     /// een mislukking blijft het staan voor een volgende poging.
@@ -681,37 +645,24 @@ final class AppEnvironment: ObservableObject {
 
         var savedCount = 0
         var failedCount = batch.failedCount
+        history.retryAudioCleanup()
         for recovered in batch.recordings {
-            let processed = TextProcessor.process(
-                recovered.result.text,
-                replacements: settings.replacements,
-                clean: settings.cleanOutput,
-                removeFillers: settings.removeFillers,
-                language: recovered.language == .automatic ? "nl" : recovered.language.rawValue
-            )
-            guard !processed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                await parakeetEngine.discardRecoveredRecording(id: recovered.recoveryID)
-                continue
-            }
-            let entry = TranscriptEntry(
-                id: UUID().uuidString,
-                text: processed,
-                createdAt: historyTimestampString(from: recovered.createdAt),
-                name: "",
-                pinned: false,
-                language: recovered.language.rawValue,
-                model: "parakeet-tdt-0.6b-v3",
-                source: "mic.mac",
-                duration: recovered.duration,
-                segments: recovered.result.segments
-            )
             do {
-                try history.add(entry)
-                await parakeetEngine.discardRecoveredRecording(id: recovered.recoveryID)
-                savedCount += 1
-            } catch {
-                failedCount += 1
-            }
+                guard let session = recovered.result.recording, var entry = session.entry else { continue }
+                if session.warning != nil { Notifications.postCritical(AudioCopy.text(.partialAudio)) }
+                if session.resultIsProcessed != true {
+                    let cleaned = TextProcessor.process(entry.text, replacements: settings.replacements,
+                        clean: settings.cleanOutput, removeFillers: settings.removeFillers, language: session.language)
+                    if !cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { entry.text = cleaned }
+                }
+                if entry.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !session.keepAudio {
+                    try history.discardRecording(session)
+                } else {
+                    let detached = try history.commitRecording(session, entry: entry)
+                    if detached { Notifications.post(AudioCopy.text(.noteMissing)) }
+                    savedCount += 1
+                }
+            } catch { failedCount += 1 }
         }
 
         if failedCount > 0 {

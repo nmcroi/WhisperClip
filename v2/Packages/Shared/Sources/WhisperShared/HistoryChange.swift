@@ -6,7 +6,9 @@ import Foundation
 /// Debug launch consume Release pending changes (or vice versa).
 public enum HistorySyncStorage {
     public static var variantSuffix: String {
-        #if DEBUG
+        #if WHISPERCLIP_ICLOUD_DEVELOPMENT
+        "-icloud-development"
+        #elseif DEBUG
         "-dev"
         #else
         "-release"

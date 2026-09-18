@@ -295,4 +295,17 @@ import Foundation
         let decoded = try JSONDecoder().decode(AppSettings.self, from: data)
         #expect(decoded.plaudSyncWindowDays == 0)
     }
+    @Test func audioChoiceDefaultsOffAndSurvivesCoding() throws {
+        var settings = AppSettings()
+        #expect(!settings.showAudioRetentionOption)
+        #expect(!settings.saveRecordings)
+        settings.showAudioRetentionOption = true
+        #expect(try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings)).showAudioRetentionOption)
+    }
+    @Test func legacyAlwaysSavePreferenceIsPreserved() throws {
+        let data = Data(#"{"saveRecordings":true}"#.utf8)
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+        #expect(settings.saveRecordings)
+        #expect(!settings.showAudioRetentionOption)
+    }
 }

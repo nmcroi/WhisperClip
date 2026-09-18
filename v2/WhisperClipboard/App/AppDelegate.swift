@@ -8,7 +8,15 @@ import SwiftUI
 /// Dock icon only appears while a window is open.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    let environment = AppEnvironment()
+    // Hosted unit tests must not bootstrap the user's stores, sync or shortcuts.
+    static var isUnitTestHost: Bool {
+        #if DEBUG
+        NSClassFromString("XCTestCase") != nil
+        #else
+        false
+        #endif
+    }
+    lazy var environment = AppEnvironment()
 
     private var statusItem: NSStatusItem?
     private var statusMenuItem: NSMenuItem?
@@ -58,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !Self.isUnitTestHost else { return }
         // Zo vroeg mogelijk: kijkt of de vorige run onverwacht eindigde en
         // installeert de crash-handlers, vóór de rest van de opbouw
         // (22 augustus 2026).
@@ -527,6 +536,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Nette afsluiting: marker weg, zodat de volgende start geen "onverwacht
     /// gestopt" ziet (22 augustus 2026).
     func applicationWillTerminate(_ notification: Notification) {
+        guard !Self.isUnitTestHost else { return }
         LaunchHealth.applicationWillTerminate()
     }
 }

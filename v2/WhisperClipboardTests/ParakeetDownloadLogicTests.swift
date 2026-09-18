@@ -200,22 +200,20 @@ final class ParakeetDownloadLogicTests: XCTestCase {
         )
     }
 
-    func testDiscardRecoveredRecordingOnlyDeletesOwnedPrefix() async throws {
+    func testDiscardRecoveredRecordingOnlyDeletesOwnedSession() async throws {
         let fm = FileManager.default
-        let owned = ParakeetEngine.makeRecordingFileURL(language: .english)
-        let unrelated = fm.temporaryDirectory
-            .appendingPathComponent("unrelated-\(UUID().uuidString).caf")
+        let root = fm.temporaryDirectory.appendingPathComponent("recovery-test-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let repository = RecordingRepository(root: root)
+        let session = RecordingSession(source: "mic.mac", language: "en")
+        try repository.save(session)
+        let owned = try repository.audioURL(session.id)
+        let unrelated = root.appendingPathComponent("unrelated.caf")
         try Data("owned".utf8).write(to: owned)
         try Data("unrelated".utf8).write(to: unrelated)
-        defer {
-            try? fm.removeItem(at: owned)
-            try? fm.removeItem(at: unrelated)
-        }
-
-        let engine = ParakeetEngine()
-        await engine.discardRecoveredRecording(id: owned.lastPathComponent)
-        await engine.discardRecoveredRecording(id: unrelated.lastPathComponent)
-
+        let engine = ParakeetEngine(recordingRepository: repository)
+        await engine.discardRecoveredRecording(id: session.id)
+        await engine.discardRecoveredRecording(id: "../unrelated.caf")
         XCTAssertFalse(fm.fileExists(atPath: owned.path))
         XCTAssertTrue(fm.fileExists(atPath: unrelated.path))
     }

@@ -251,6 +251,14 @@ struct SettingsSheet: View {
     private var transcriptionSettings: some View {
         Form {
             Section {
+                Toggle(AudioCopy.text(.showOption, locale: app.interfaceLanguage.locale), isOn: $app.showAudioRetentionOption)
+                    .accessibilityIdentifier("audio.showOption")
+                Text(AudioCopy.text(.help, locale: app.interfaceLanguage.locale)).font(.footnote)
+                Text(AudioCopy.text(.localOnly, locale: app.interfaceLanguage.locale)).font(.footnote)
+                if let history = app.history { AudioStorageStatusView(store: history, locale: app.interfaceLanguage.locale) }
+            }.listRowBackground(Theme.surface)
+
+            Section {
                 settingsNavigationRow("Woordenlijst", symbol: "character.book.closed") {
                     DictionaryiOSView()
                 }
@@ -377,8 +385,8 @@ struct SettingsSheet: View {
             .listRowBackground(Theme.surface)
             Section("Privacy") {
                 Label("Transcriptie gebeurt lokaal", systemImage: "iphone")
-                Label("Tijdelijke audio wordt na transcriptie verwijderd", systemImage: "waveform.slash")
-                Label("Er verlaat geen audio je toestel", systemImage: "lock.shield")
+                Label(AudioCopy.text(.privacyDeletion, locale: app.interfaceLanguage.locale), systemImage: "waveform.slash")
+                Label(AudioCopy.text(.privacySharing, locale: app.interfaceLanguage.locale), systemImage: "lock.shield")
             }
             .listRowBackground(Theme.surface)
         }
@@ -388,7 +396,7 @@ struct SettingsSheet: View {
     }
 
     private static var iCloudControlsEnabled: Bool {
-        #if DEBUG
+        #if DEBUG || WHISPERCLIP_ICLOUD_DEVELOPMENT
         true
         #else
         false

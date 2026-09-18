@@ -23,6 +23,14 @@ struct RecordView: View {
                 Theme.window.ignoresSafeArea()
                 content
             }
+            .safeAreaInset(edge: .bottom) {
+                if (app.showAudioRetentionOption || controller.showAudioChoiceForSession),
+                   !controller.isTranscribing {
+                    AudioRetentionToggle(keep: $controller.keepAudio, locale: app.interfaceLanguage.locale)
+                        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 40)
+                        .background(Theme.window)
+                }
+            }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -30,6 +38,9 @@ struct RecordView: View {
                     Wordmark(size: 20)
                 }
             }
+        }
+        .safeAreaInset(edge: .top) {
+            if let history = app.history { AudioStorageStatusView(store: history, locale: app.interfaceLanguage.locale) }
         }
         .task {
             controller.attach(app: app)
@@ -49,7 +60,12 @@ struct RecordView: View {
     @ViewBuilder
     private var content: some View {
         if !app.modelStatus.isReady {
-            ModelDownloadCard()
+            GeometryReader { proxy in
+                ScrollView {
+                    ModelDownloadCard().padding(.vertical, 16)
+                        .frame(minHeight: proxy.size.height)
+                }
+            }
         } else {
             GeometryReader { proxy in
                 let buttonY = Self.mainButtonY(in: proxy.size.height)
@@ -306,7 +322,8 @@ private struct ResultCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
-            .frame(maxHeight: maxTextHeight)
+            .frame(minHeight: 0, maxHeight: maxTextHeight)
+            .layoutPriority(-1)
 
             if needsSaveRetry() {
                 ActionButton(

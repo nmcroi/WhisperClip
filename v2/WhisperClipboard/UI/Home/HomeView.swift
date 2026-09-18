@@ -157,6 +157,21 @@ private struct HomeContent: View {
                     modelDownloadCard
                 }
                 actionGrid
+                if environment.settings.showAudioRetentionOption || dictation.showAudioChoiceForSession {
+                    HStack {
+                        AudioRetentionToggle(
+                            keep: Binding(
+                                get: { dictation.currentAudioChoice },
+                                set: { dictation.currentAudioChoice = $0 }
+                            ),
+                            disabled: dictation.phase == .preparing || dictation.phase == .transcribing
+                        )
+                        .fixedSize(horizontal: true, vertical: false)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                AudioStorageStatusView(store: history)
                 ImportQueueView(service: environment.fileImport)
                 recentSection
             }

@@ -360,7 +360,30 @@ targets:
         CODE_SIGNING_ALLOWED: "NO"
         DEVELOPMENT_TEAM: ""
 
+  WhisperClipboardiOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - WhisperClipboardiOSUITests
+    dependencies:
+      - target: WhisperClipboardiOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: nl.nielscroiset.whisperclipboard.ios.audiotests
+        TEST_TARGET_NAME: WhisperClipboardiOS
+        CODE_SIGNING_ALLOWED: "NO"
+
 schemes:
+  WhisperClipAudioReview:
+    build:
+      targets:
+        WhisperClipboardiOS: all
+    test:
+      config: Debug
+      targets:
+        - WhisperClipboardiOSUITests
   WhisperClipboard:
     build:
       targets:

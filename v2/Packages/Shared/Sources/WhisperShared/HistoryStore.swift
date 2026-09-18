@@ -29,6 +29,9 @@ public final class HistoryStore: ObservableObject {
     /// cross-module. Mutation still only happens internally via `bump()`.
     @Published public var revision = 0
 
+    public let recordingRepository: RecordingRepository?
+    @Published public var audioStorageError: String?
+    @Published public var audioCleanupError: String?
     private let dbQueue: DatabaseQueue
     private let retentionProvider: () -> Int?
 
@@ -68,6 +71,7 @@ public final class HistoryStore: ObservableObject {
     /// - Parameter retentionProvider: yields the current `AppSettings.historyRetention`
     ///   (`nil` = unlimited). Read lazily so live settings changes are honored.
     public init(retentionProvider: @escaping () -> Int?) throws {
+        self.recordingRepository = .live
         let url = try Self.databaseURL()
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(),
@@ -77,6 +81,9 @@ public final class HistoryStore: ObservableObject {
         self.retentionProvider = retentionProvider
         self.isPersistent = true
         try HistorySchema.migrator().migrate(dbQueue)
+        do { try recordingRepository?.prepareForLaunch() }
+        catch { audioStorageError = error.localizedDescription }
+        retryAudioCleanup()
     }
 
     /// Test / in-memory initializer against a caller-provided queue.
@@ -86,7 +93,8 @@ public final class HistoryStore: ObservableObject {
     ///   `AppEnvironment` passes `false` for the throwaway in-memory fallback so a
     ///   migration into RAM never persists the "done" flag (finding: v3 history
     ///   lost after a transient disk failure).
-    public init(dbQueue: DatabaseQueue, retentionProvider: @escaping () -> Int?, isPersistent: Bool = true) throws {
+    public init(dbQueue: DatabaseQueue, retentionProvider: @escaping () -> Int?, isPersistent: Bool = true, recordingRepository: RecordingRepository? = nil) throws {
+        self.recordingRepository = recordingRepository
         self.dbQueue = dbQueue
         self.retentionProvider = retentionProvider
         self.isPersistent = isPersistent
@@ -864,6 +872,14 @@ public final class HistoryStore: ObservableObject {
         }
     }
 
+    /// A consistent snapshot read and decoded on GRDB's queue, never in a view body.
+    public func historySnapshot(query: String? = nil, filter: HistoryFilter = .all) async throws -> (entries: [TranscriptEntry], total: Int) {
+        try await dbQueue.read { db in
+            let records = try Self.fetchRecords(db, query: query, filter: filter, limit: nil, offset: 0)
+            return (records.map(\.entry), try Self.fetchCount(db, query: nil, filter: .all))
+        }
+    }
+
     /// Total number of entries matching the query/filter (ignores paging).
     /// Note-linked entries (`note_id` set) are excluded, matching `entries(…)`.
     public func count(query: String? = nil, filter: HistoryFilter = .all) throws -> Int {
@@ -946,7 +962,126 @@ public final class HistoryStore: ObservableObject {
 
     // MARK: - Internals
 
-    private func bump() { revision &+= 1 }
+    private func bump() {
+        retryAudioCleanup()
+        revision &+= 1
+    }
+
+    /// Uses the session ID as an idempotency key, including after retention/deletion.
+    /// Filesystem failures leave the journal intact; a retry does not reinsert text.
+    @discardableResult
+    public func commitRecording(_ session: RecordingSession, entry: TranscriptEntry, deferAudioCleanup: Bool = false) throws -> Bool {
+        guard let repository = recordingRepository else { throw RecordingStorageError.missingAudio }
+        guard session.id == entry.id else { throw RecordingStorageError.invalidID }
+        var staged = session
+        staged.entry = entry
+        staged.resultIsProcessed = true
+        staged.keepAudio = session.keepAudio && !session.source.hasPrefix("meeting")
+        try repository.save(staged)
+        var inserted = false
+        var missingNote = false
+        var pruned: [String] = []
+        try dbQueue.write { db in
+            let committed = try Bool.fetchOne(db, sql: "SELECT EXISTS(SELECT 1 FROM recording_commits WHERE id = ?)", arguments: [session.id]) ?? false
+            guard !committed else { return }
+            if try TranscriptRecord.fetchOne(db, key: session.id) == nil {
+                var noteID = session.noteID
+                if let id = noteID, try NoteRecord.fetchOne(db, key: id) == nil { noteID = nil; missingNote = true }
+                try TranscriptRecord(entry: entry, noteId: noteID).insert(db)
+                if let noteID, var note = try NoteRecord.fetchOne(db, key: noteID) {
+                    note.modifiedAt = ISO8601DateFormatter().string(from: Date())
+                    note.sortKey = Date().timeIntervalSince1970
+                    try note.update(db)
+                }
+                inserted = true
+                if noteID == nil { pruned = try Self.prune(db, retention: self.retentionProvider()) }
+            }
+            try db.execute(sql: "INSERT OR IGNORE INTO recording_commits(id) VALUES (?)", arguments: [session.id])
+        }
+        if inserted { emit(.upsert(id: session.id)); if let id = session.noteID { emit(.noteUpsert(id: id)) } }
+        for id in pruned { emit(.delete(id: id)) }
+        if !deferAudioCleanup { try completeRecordingAudio(staged) }
+        bump()
+        return missingNote
+    }
+
+    public func completeRecordingAudio(_ session: RecordingSession) throws {
+        guard let repository = recordingRepository else { throw RecordingStorageError.missingAudio }
+        // A deletion may have consumed the journal while optional post-processing was running.
+        let exists = try containsTranscript(session.id)
+        let discarded = try dbQueue.read {
+            try Bool.fetchOne($0, sql: "SELECT EXISTS(SELECT 1 FROM audio_discarded WHERE id = ?)", arguments: [session.id]) ?? false
+        }
+        do {
+            try repository.finish(session, keep: exists && !discarded && session.keepAudio && !session.source.hasPrefix("meeting"))
+            audioStorageError = nil
+            revision &+= 1
+        } catch {
+            audioStorageError = error.localizedDescription
+            revision &+= 1
+            throw error
+        }
+    }
+
+    public func retryPreparedAudio() {
+        guard let repository = recordingRepository else { return }
+        var failures: [String] = []
+        do {
+            for id in try repository.pendingIDs() {
+                do {
+                    let session = try repository.load(id)
+                    // Raw recognition results still need the app's text processor.
+                    if session.resultIsProcessed == true, let entry = session.entry {
+                        try commitRecording(session, entry: entry)
+                    }
+                } catch { failures.append(error.localizedDescription) }
+            }
+        } catch { failures.append(error.localizedDescription) }
+        audioStorageError = failures.first
+    }
+
+    public func discardRecording(_ session: RecordingSession) throws {
+        guard let repository = recordingRepository else { throw RecordingStorageError.missingAudio }
+        try dbQueue.write { db in
+            try db.execute(sql: "INSERT OR IGNORE INTO recording_commits(id) VALUES (?)", arguments: [session.id])
+        }
+        try repository.finish(session, keep: false)
+    }
+
+    public func containsTranscript(_ id: String) throws -> Bool {
+        try dbQueue.read { try TranscriptRecord.fetchOne($0, key: id) != nil }
+    }
+
+    public func removeRecordingAudio(id: String) throws {
+        try dbQueue.write { db in
+            try db.execute(sql: "INSERT OR IGNORE INTO audio_deletions(id) VALUES (?)", arguments: [id])
+            try db.execute(sql: "INSERT OR IGNORE INTO audio_discarded(id) VALUES (?)", arguments: [id])
+        }
+        bump()
+        if let audioCleanupError { throw NSError(domain: "RecordingCleanup", code: 1,
+            userInfo: [NSLocalizedDescriptionKey: audioCleanupError]) }
+    }
+
+    public func retryAudioCleanup() {
+        guard let repository = recordingRepository else { return }
+        do {
+            let ids = try dbQueue.read { try String.fetchAll($0, sql: "SELECT id FROM audio_deletions") }
+            var failures: [String] = []
+            for id in ids {
+                do {
+                    try repository.removeAudio(id)
+                    try dbQueue.write { try $0.execute(sql: "DELETE FROM audio_deletions WHERE id = ?", arguments: [id]) }
+                } catch { failures.append(error.localizedDescription) }
+            }
+            audioCleanupError = failures.first
+        } catch { audioCleanupError = error.localizedDescription }
+    }
+
+    public func foundRecordings() throws -> [URL] {
+        guard let repository = recordingRepository else { return [] }
+        return try repository.savedFiles().filter { try !containsTranscript($0.deletingPathExtension().lastPathComponent) }
+    }
+
 
     /// Ports Python `_trim`: walking newest-first, keep every pinned entry and
     /// up to `limit` unpinned entries; delete the rest. `nil` = unlimited.
@@ -988,7 +1123,7 @@ public final class HistoryStore: ObservableObject {
         return toDelete
     }
 
-    private static func fetchRecords(
+    private nonisolated static func fetchRecords(
         _ db: Database,
         query: String?,
         filter: HistoryFilter,
@@ -1029,7 +1164,7 @@ public final class HistoryStore: ObservableObject {
         return try TranscriptRecord.fetchAll(db, sql: sql, arguments: arguments)
     }
 
-    private static func fetchCount(
+    private nonisolated static func fetchCount(
         _ db: Database,
         query: String?,
         filter: HistoryFilter
@@ -1049,7 +1184,7 @@ public final class HistoryStore: ObservableObject {
     }
 
     /// Builds the shared WHERE clause + arguments for both fetch and count.
-    private static func buildWhere(
+    private nonisolated static func buildWhere(
         query: String?,
         filter: HistoryFilter
     ) -> (String, StatementArguments) {
@@ -1088,7 +1223,7 @@ public final class HistoryStore: ObservableObject {
     /// token is double-quoted (escaping embedded quotes) and suffixed with `*`
     /// for prefix matching, joined by implicit AND. Returns `nil` for
     /// empty/blank input (meaning: no FTS filter).
-    public static func ftsPattern(from raw: String) -> String? {
+    public nonisolated static func ftsPattern(from raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         let tokens = trimmed

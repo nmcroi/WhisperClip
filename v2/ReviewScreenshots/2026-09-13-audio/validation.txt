@@ -1,0 +1,34 @@
+WhisperClip audio verification — 2026-09-13
+Isolated test data; no production app deployment.
+
+Core tests
+/tmp/whisperclip-core-tests.log
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+✔ Test run with 199 tests in 17 suites passed after 0.040 seconds.
+
+Shared tests
+/tmp/whisperclip-shared-tests.log
+	 Executed 43 tests, with 0 failures (0 unexpected) in 0.251 (0.255) seconds
+	 Executed 5 tests, with 0 failures (0 unexpected) in 0.029 (0.029) seconds
+	 Executed 31 tests, with 0 failures (0 unexpected) in 0.415 (0.418) seconds
+	 Executed 79 tests, with 0 failures (0 unexpected) in 0.695 (0.702) seconds
+	 Executed 79 tests, with 0 failures (0 unexpected) in 0.695 (0.703) seconds
+
+iPhone UI tests
+/tmp/whisperclip-ui-final.log
+	 Executed 4 tests, with 0 failures (0 unexpected) in 85.390 (85.395) seconds
+	 Executed 4 tests, with 0 failures (0 unexpected) in 85.390 (85.396) seconds
+	 Executed 4 tests, with 0 failures (0 unexpected) in 85.390 (85.397) seconds
+** TEST SUCCEEDED **
+
+Mac Debug build
+/tmp/whisperclip-mac-final.log
+** BUILD SUCCEEDED **
+
+iPhone device Debug build
+/tmp/whisperclip-ios-device-final.log
+** BUILD SUCCEEDED **
+
+Mac test compilation
+/tmp/whisperclip-mac-test-build-final.log
+** TEST BUILD SUCCEEDED **

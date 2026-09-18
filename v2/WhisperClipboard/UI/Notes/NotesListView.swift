@@ -196,6 +196,8 @@ struct NotesListView: View {
                             .foregroundStyle(Theme.textSecondary)
                     } else {
                         ForEach(entries, id: \.id) { entry in
+                            AudioAttachmentView(entryID: entry.id, store: store)
+                            if entry.text.isEmpty { Text(AudioCopy.text(.noSpeech)).foregroundStyle(Theme.textSecondary) }
                             Text(entry.text.trimmingCharacters(in: .whitespacesAndNewlines))
                                 .font(ThemeFont.ui(16))
                                 .foregroundStyle(Theme.text)

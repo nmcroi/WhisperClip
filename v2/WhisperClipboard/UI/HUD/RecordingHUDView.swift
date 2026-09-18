@@ -32,6 +32,9 @@ struct RecordingHUDView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
+            if controller.showAudioChoiceForSession, controller.phase == .recording || controller.phase == .paused {
+                AudioRetentionToggle(keep: $controller.keepAudio)
+            }
             transcript
             // Detailed three-part breakdown stays behind the debug flag, and
             // only once a run has completed (so it doesn't clutter recording).

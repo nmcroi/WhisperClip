@@ -60,6 +60,8 @@ struct TranscriptDetailView: View {
                 titleField
                 metadataLine
                 actionBar
+                AudioAttachmentView(entryID: entry.id, store: store)
+                if entry.text.isEmpty { Text(AudioCopy.text(.noSpeech)).foregroundStyle(Theme.textSecondary) }
                 Divider().overlay(Theme.border)
                 aiDisclosure
                 Divider().overlay(Theme.border)
@@ -98,7 +100,7 @@ struct TranscriptDetailView: View {
             }
             Button("Annuleer", role: .cancel) {}
         } message: {
-            Text("Dit kan niet ongedaan worden gemaakt.")
+            Text(AudioCopy.text(.deleteTogether))
         }
         .confirmationDialog(
             trimDialogTitle,
