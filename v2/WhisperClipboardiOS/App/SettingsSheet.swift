@@ -128,7 +128,9 @@ struct SettingsSheet: View {
         @ViewBuilder destination: () -> Destination
     ) -> some View {
         ZStack {
-            NavigationLink(destination: destination()) { EmptyView() }
+            // Ook de diepere pagina's (Woordenlijst, Vaste deelnemers) krijgen
+            // de terugknop rechtsboven, zodat de hele stapel op één plek terugtikt.
+            NavigationLink(destination: SettingsSubpage { destination() }) { EmptyView() }
                 .opacity(0)
             settingsLink(title, symbol: symbol)
         }
@@ -681,14 +683,34 @@ struct SettingsSheet: View {
 
 private extension View {
     func settingsPageStyle() -> some View {
-        self
-            .scrollContentBackground(.hidden)
-            .background(Theme.window)
-            .foregroundStyle(Theme.text)
-            // Elke instellingenpagina met een invoerveld (PLAUD, deelnemers,
-            // API-keys) sluit het toetsenbord door naar beneden te vegen
-            // (2 sep 2026).
-            .scrollDismissesKeyboard(.interactively)
+        SettingsSubpage {
+            self
+                .scrollContentBackground(.hidden)
+                .background(Theme.window)
+                .foregroundStyle(Theme.text)
+                // Elke instellingenpagina met een invoerveld (PLAUD, deelnemers,
+                // API-keys) sluit het toetsenbord door naar beneden te vegen
+                // (2 sep 2026).
+                .scrollDismissesKeyboard(.interactively)
+        }
+    }
+}
+
+/// Wikkel om elke instellingen-subpagina: de terugknop staat rechtsboven, op
+/// dezelfde plek als het sluitkruisje van de hoofdpagina. Eigen view, want
+/// `dismiss` moet hier de pagina van de stapel halen en niet de hele sheet
+/// sluiten; dat doet de `dismiss` van `SettingsSheet` zelf.
+private struct SettingsSubpage<Content: View>: View {
+    @EnvironmentObject private var app: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        content.topTrailingBackButton(
+            label: L10n.string("Terug", locale: app.interfaceLanguage.locale)
+        ) {
+            dismiss()
+        }
     }
 }
 

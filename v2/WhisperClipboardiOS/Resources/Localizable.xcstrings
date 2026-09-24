@@ -1255,6 +1255,28 @@
         }
       }
     },
+    "Acties voor opname": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktionen für Aufnahme"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actions for recording"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acties voor opname"
+          }
+        }
+      }
+    },
     "Algemeen": {
       "localizations": {
         "de": {
@@ -2373,6 +2395,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deel"
+          }
+        }
+      }
+    },
+    "Deel opname": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme teilen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share recording"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deel opname"
           }
         }
       }
@@ -3715,6 +3759,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hernoem"
+          }
+        }
+      }
+    },
+    "Hernoem opname": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme umbenennen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename recording"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hernoem opname"
           }
         }
       }
@@ -5897,72 +5963,6 @@
         }
       }
     },
-    "Acties voor opname": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktionen für Aufnahme"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Actions for recording"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Acties voor opname"
-          }
-        }
-      }
-    },
-    "Deel opname": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme teilen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Share recording"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deel opname"
-          }
-        }
-      }
-    },
-    "Hernoem opname": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme umbenennen"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rename recording"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hernoem opname"
-          }
-        }
-      }
-    },
     "Opname hernoemen": {
       "localizations": {
         "de": {
@@ -7499,6 +7499,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Taal van de app"
+          }
+        }
+      }
+    },
+    "Terug": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terug"
           }
         }
       }

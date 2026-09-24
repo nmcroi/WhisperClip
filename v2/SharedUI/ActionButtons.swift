@@ -158,16 +158,21 @@ struct IconActionLabel: View {
 /// die alleen weg te vegen was (2 sep 2026).
 struct SheetCloseToolbar: ViewModifier {
     let label: String
+    var systemImage = "xmark"
     let onClose: () -> Void
 
     func body(content: Content) -> some View {
         content.toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: onClose) {
-                    Image(systemName: "xmark")
+                    // Geen eigen kader met een trailing-uitlijning: het systeem
+                    // tekent onder iOS 26 zelf een rondje om de knop, en het
+                    // kruisje hing daarin rechts uit het midden (Niels, 24 sep
+                    // 2026). Het icoon staat nu gewoon gecentreerd.
+                    Image(systemName: systemImage)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Theme.accentText)
-                        .frame(width: 44, height: 44, alignment: .trailing)
+                        .frame(width: 32, height: 32)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -182,6 +187,16 @@ extension View {
     /// voorleestekst, in de taal van de app.
     func sheetCloseButton(label: String, onClose: @escaping () -> Void) -> some View {
         modifier(SheetCloseToolbar(label: label, onClose: onClose))
+    }
+
+    /// Dezelfde plek rechtsboven, maar dan als terugknop naar de vorige pagina
+    /// (pijl naar links). Zo tikt de gebruiker op een subpagina twee keer op
+    /// dezelfde plek en is hij terug bij de app, in plaats van eerst linksboven
+    /// en dan rechtsboven (wens Niels, 24 sep 2026).
+    func topTrailingBackButton(label: String, onBack: @escaping () -> Void) -> some View {
+        self
+            .navigationBarBackButtonHidden(true)
+            .modifier(SheetCloseToolbar(label: label, systemImage: "chevron.left", onClose: onBack))
     }
 }
 #endif
