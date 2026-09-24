@@ -1,7 +1,43 @@
 # WhisperClip macOS 27 crashonderzoek — overdracht aan Claude
 
-Bijgewerkt: 23 september 2026  
-Status: **probleem nog niet opgelost**. Versie 2.0.5 is wel gebouwd en gedistribueerd, maar mag niet als crashvrij worden beschouwd.
+Bijgewerkt: 24 september 2026 (Claude)  
+Status: **oorzaak gevonden en gedicht in 2.0.6 (12)**; het bewijs op de werk-Mac (dagenlang zonder crash, mét microfoonwissels) moet nog volgen. Zie het blok hieronder; de rest van dit document is de geschiedenis van 21 tot 23 september.
+
+## De oorzaak (24 september 2026)
+
+De crashfamilie ontstaat niet in de vier plekken waar de rapporten eindigen (panel-focus, Dock-heropenen, hover, timer), maar seconden eerder in de audiolaag.
+
+Bewijs: een vierde crash, op de ontwikkel-Mac, 23 september 17:36:53, met dezelfde stack (`swift_task_isCurrentExecutorWithFlagsImpl -> isMainExecutor -> swift_getObjectType -> EXC_BAD_ACCESS`), ditmaal vanuit een SwiftUI-timerclosure in `AudioAttachmentView`. Het systeemlog van het gecrashte proces (pid 8462) laat zien wat eraan voorafging:
+
+```
+17:32:31  coreaudiod: Bluetooth-audioapparaat toegevoegd (AirPods)
+17:36:47  WhisperClip AVAEUtility.mm:176 Format mismatch: input hw <1 ch, 24000 Hz>, client format <1 ch, 48000 Hz>
+17:36:47  NSException uit -[AVAudioNode installTapOnBus:...] in AudioEngine.startCapture,
+          aangeroepen vanuit DictationController.start (een Swift async-taak, frames tot completeTaskWithClosure)
+17:36:47  HIExceptions FAULT: com.apple.coreaudio.avfaudio   (AppKit vangt de exceptie op en gaat door)
+17:36:53  crash
+```
+
+Mechanisme: een Objective-C-exceptie die door Swift-concurrency-frames heen wordt afgewikkeld, ruimt de executor-tracking van de runtime niet op (die code is zonder exception-cleanup gecompileerd). De thread-lokale "huidige executor" wijst daarna naar een dood stackframe. Elke volgende isolatiecheck op de main thread leest daar garbage (`0xaaaaaaaaaaaaaad0` op de werk-Mac, `0x1e` hier) en crasht. Welke check dat is, is toeval: canBecomeKey, applicationShouldHandleReopen, een hover, een timer. Daarom hielp het dichtzetten van die ingangen in 2.0.3 tot 2.0.5 niet, en daarom komt de crash pas uren na de start: hij wacht op een microfoonwissel gevolgd door een dictaat. Op de werk-Mac (dock, AirPods, extern scherm met microfoon) is dat dagelijkse kost.
+
+De `Onafgevangen NSException`-regel waar dit document op wilde wachten komt nooit in `app.log`: AppKit vangt de exceptie af vóór de uncaught-exception-handler.
+
+## De reparatie in 2.0.6 (12)
+
+1. `AudioEngine.tapFormatAfterHardwareCheck()`: vóór elke start en elke hervatting het hardwareformaat (`inputNode.inputFormat(forBus:)`) vergelijken met het clientformaat (`outputFormat(forBus:)`); bij verschil `engine.reset()` en opnieuw lezen. Daarmee ontstaat de mismatch niet meer.
+2. `Packages/Core/Sources/ObjCExceptionCatcher` (Objective-C) plus `catchingObjCException` in Core: vangnet om `installTap`, `prepare` en `start`, op Mac én iPhone. Een NSException wordt een gewone `AudioEngineError.engineStartFailed` met de melding "De microfoon is gewisseld of niet beschikbaar. Probeer het opnieuw." en de engine wordt gereset.
+3. Beide gebeurtenissen worden in `~/Library/Logs/Whisper Clipboard/app.log` geschreven (`LaunchHealth.note`).
+
+Tests: `ObjCExceptionTests` (Core, een NSRangeException door het vangnet) en `AudioTapExceptionTests` (Mac, de echte installTap-formaatfout op een echte AVAudioEngine door het vangnet). Volledige Mac-suite groen, iOS-build groen.
+
+## Wat nog bewezen moet worden
+
+- De werk-Mac draait 2.0.6 (12) dagenlang zonder crash, met de gebruikelijke microfoonwissels. Controleer na een wissel plus dictaat of `app.log` een regel "AudioEngine: invoerformaat gewisseld" of "ObjC-exceptie opgevangen" bevat: dat is het bewijs dat de reparatie het pad heeft geraakt.
+- De hover- en Dock-wijzigingen van 2.0.3 tot 2.0.5 blijven staan; ze waren niet de oorzaak, maar ook niet schadelijk.
+
+---
+
+
 
 ## Doel van deze overdracht
 

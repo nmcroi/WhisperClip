@@ -2,7 +2,14 @@
 
 Bijgewerkt: 22 september 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
 
-## Actueel — structurele hoverreparatie macOS 2.0.5 (11), 23 september
+## Actueel: oorzaak gevonden en gedicht, macOS 2.0.6 (12), 24 september
+
+- De crashfamilie had één oorzaak: een NSException uit `installTap` na een microfoonwissel (formaatverschil), die door een Swift-async-taak heen vloog en de concurrency-runtime kapot achterliet. Bewijs: eigen crash van 23 september plus systeemlog. Volledig beschreven in `CLAUDE_MACOS_CRASH_HANDOFF.md`.
+- Reparatie: formaatcontrole met engine-reset vóór elke start, ObjC-vangnet om installTap/start (Core/ObjCExceptionCatcher, Mac en iPhone), logging in app.log. Tests groen, waaronder een test die de echte fout nabootst.
+- Klaar: `Releases/WhisperClip-2.0.6.dmg`, genotariseerd. Zie `Packaging/RELEASE_2.0.6.md`. Nog niet op de werk-Mac geïnstalleerd. Het bewijs is: dagenlang draaien met microfoonwissels, en regels "AudioEngine: invoerformaat gewisseld" in app.log.
+- Alles gecommit (`2e6c610` ChatGPT-werk 2.0.2 tot 2.0.5, `645e799` de reparatie).
+
+## Historisch: structurele hoverreparatie macOS 2.0.5 (11), 23 september (was niet de oorzaak)
 
 - De werk-Mac is opnieuw gecrasht op 2.0.3 (9): dezelfde Swift-executorcontrole, nu via AppDelegate.applicationShouldHandleReopen bij een Dock/AppleEvent-heropenverzoek. De vorige reparatie was onvoldoende.
 - Heropenen gaat nu via een nonisolated callback naar een expliciete hoofdactortaak; constante sluitbeslissing is nonisolated. Overbodige heractivatie-observer bij windowDidBecomeKey verwijderd. Andere UI-isolatie behouden.
