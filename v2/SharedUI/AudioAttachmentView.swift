@@ -157,7 +157,6 @@ struct AudioStorageStatusView: View {
     var locale: Locale = .current
     @State private var found: [URL] = []
     @State private var showingFound = false
-    @AppStorage("audio.foundRecordingsOffered") private var offered = false
     private func t(_ key: AudioCopy.Key) -> String { AudioCopy.text(key, locale: locale) }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -171,12 +170,29 @@ struct AudioStorageStatusView: View {
                 ActionButton(title: t(.found), systemImage: "waveform", size: .compact) { showingFound = true }
             }
         }
-        .task { store.retryAudioCleanup(); refresh(); if !found.isEmpty && !offered { showingFound = true; offered = true } }
+        // Nooit uit zichzelf openen: het venster stond bij de start over het
+        // hele Home-scherm heen en Niels kon de app niet meer gebruiken
+        // (24 sep 2026). De knop hierboven is genoeg; wie wil, opent hem zelf.
+        .task { store.retryAudioCleanup(); refresh() }
         .onChange(of: store.revision) { _, _ in refresh() }
         .sheet(isPresented: $showingFound) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(t(.found)).font(ThemeFont.ui(20, weight: .semibold))
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(t(.found)).font(ThemeFont.ui(20, weight: .semibold))
+                        Spacer()
+                        // Sluiten hoort rechtsboven, niet alleen onderaan een
+                        // lijst die uit beeld scrolt.
+                        Button { showingFound = false } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Theme.accentText)
+                                .frame(width: 32, height: 32)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(t(.close))
+                    }
                     Text(t(.foundHelp)).foregroundStyle(Theme.textSecondary)
                     ForEach(found, id: \.path) { url in
                         Text(url.lastPathComponent).font(ThemeFont.ui(12)).lineLimit(2)
