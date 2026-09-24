@@ -34,6 +34,7 @@
 		3549905D032985FEE33E6263 /* MeetingSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A109FD234A51ACD12A48D019 /* MeetingSheet.swift */; };
 		3652CA95FB7BC8C2740AD346 /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 0B4FC27467C536B5C06BE6C0 /* FluidAudio */; };
 		36801D5E0257A7E96189CF6E /* WhisperShared in Frameworks */ = {isa = PBXBuildFile; productRef = FE2CDD6210E54CC3A304689C /* WhisperShared */; };
+		36AFDA5CABF33CBFCB1596B9 /* AudioTapExceptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74CA8514FB418F624A2849D /* AudioTapExceptionTests.swift */; };
 		37650A25F7ABE4D6CD64511C /* DiarizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A976DF3BF95B362ECE3D18 /* DiarizationService.swift */; };
 		37AC8EBC86F80F24F85960F3 /* InsertionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC4B7A680996810C9521A5B /* InsertionService.swift */; };
 		37B01F19B010DC0724552C84 /* RecordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B87AA655BA2D7D261D164A26 /* RecordView.swift */; };
@@ -322,6 +323,7 @@
 		E26E8FA797302D8A82313DD6 /* E2EImportSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2EImportSmokeTests.swift; sourceTree = "<group>"; };
 		E2FE82257C662505E70520AE /* NotesListiOSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesListiOSView.swift; sourceTree = "<group>"; };
 		E46A46581981C43742CDC217 /* ParakeetDownloadLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParakeetDownloadLogicTests.swift; sourceTree = "<group>"; };
+		E74CA8514FB418F624A2849D /* AudioTapExceptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioTapExceptionTests.swift; sourceTree = "<group>"; };
 		EA70202789283B8455817753 /* AIRunnerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRunnerView.swift; sourceTree = "<group>"; };
 		EB53A07C2C48F5D23D96E4BC /* NoteDetailiOSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDetailiOSView.swift; sourceTree = "<group>"; };
 		EC4180626B3180CBB5C8BDB6 /* LaunchHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchHealth.swift; sourceTree = "<group>"; };
@@ -504,6 +506,7 @@
 			isa = PBXGroup;
 			children = (
 				A52C1230074C269F52459333 /* AIResultStoreTests.swift */,
+				E74CA8514FB418F624A2849D /* AudioTapExceptionTests.swift */,
 				1B15A1A7AFE523CD57EDBB55 /* AutomationTests.swift */,
 				A7AFDEA768659079E126A5A8 /* CaptionWindowingTests.swift */,
 				ECC243434513F757853F766B /* ClaudeClientTests.swift */,
@@ -1241,6 +1244,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA27253176B701A030C30F8B /* AIResultStoreTests.swift in Sources */,
+				36AFDA5CABF33CBFCB1596B9 /* AudioTapExceptionTests.swift in Sources */,
 				5AD8E2840DD1816B6977CB08 /* AutomationTests.swift in Sources */,
 				9E4742F7A992E55BAFFDD7B6 /* CaptionWindowingTests.swift in Sources */,
 				75DF6FCA2C008E5294CCE6BA /* ClaudeClientTests.swift in Sources */,
@@ -1367,7 +1371,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -1382,7 +1386,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				OTHER_CODE_SIGN_FLAGS = "--timestamp";
@@ -1473,7 +1477,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboard/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1481,7 +1485,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard;
 				PRODUCT_MODULE_NAME = WhisperClipboard;
 				PRODUCT_NAME = WhisperClip;
@@ -1522,7 +1526,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboard/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1530,7 +1534,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard;
 				PRODUCT_MODULE_NAME = WhisperClipboard;
 				PRODUCT_NAME = WhisperClip;
@@ -1594,7 +1598,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = NO;
@@ -1615,7 +1619,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.0.5;
+				MARKETING_VERSION = 2.0.6;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

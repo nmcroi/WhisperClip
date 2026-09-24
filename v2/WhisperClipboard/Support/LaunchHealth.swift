@@ -139,6 +139,13 @@ enum LaunchHealth {
 
     // MARK: - Applog
 
+    /// Eén regel in app.log vanuit de rest van de app, voor gebeurtenissen die
+    /// de stabiliteit raken maar geen crash zijn (zoals een opgevangen
+    /// ObjC-exceptie uit de audiolaag, 24 sep 2026).
+    static func note(_ regel: String) {
+        appendLog(regel)
+    }
+
     private static func appendLog(_ regel: String) {
         let fm = FileManager.default
         try? fm.createDirectory(at: logsDirectory, withIntermediateDirectories: true)

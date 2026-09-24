@@ -189,9 +189,67 @@ final class AudioEngine {
         return try startCapture(convertingTo: nil)
     }
 
+
+    // MARK: - Formaat en vangnet (crashoorzaak gevonden 24 sep 2026)
+
+    /// Het formaat waarop een tap geïnstalleerd mag worden.
+    ///
+    /// Na een microfoonwissel (AirPods verbinden, dock in- of uitpluggen) kan
+    /// `outputFormat(forBus:)` van de invoernode nog het oude clientformaat
+    /// melden terwijl de hardware al iets anders levert; `installTap` gooit dan
+    /// een NSException ("Format mismatch: input hw 24000 Hz, client 48000 Hz").
+    /// Die exceptie vloog op 23 september 2026 door een Swift-async-taak heen en
+    /// liet de concurrency-runtime kapot achter: zes seconden later crashte de
+    /// app in `swift_task_isCurrentExecutor`, en dat is de crashfamilie van
+    /// 2.0.2 tot 2.0.5. Wijkt het hardwareformaat af, dan resetten we de engine
+    /// zodat de node zich opnieuw op de hardware instelt.
+    private func tapFormatAfterHardwareCheck() -> AVAudioFormat {
+        let node = engine.inputNode
+        let hardware = node.inputFormat(forBus: 0)
+        var client = node.outputFormat(forBus: 0)
+        let differs = hardware.sampleRate > 0
+            && (hardware.sampleRate != client.sampleRate || hardware.channelCount != client.channelCount)
+        if differs {
+            LaunchHealth.note(
+                "AudioEngine: invoerformaat gewisseld (hardware \(Int(hardware.sampleRate)) Hz/\(hardware.channelCount) ch, "
+                + "client \(Int(client.sampleRate)) Hz/\(client.channelCount) ch), engine gereset."
+            )
+            engine.reset()
+            client = engine.inputNode.outputFormat(forBus: 0)
+        }
+        return client
+    }
+
+    /// Installeert de tap en start de engine achter het ObjC-vangnet. Een
+    /// NSException wordt hier een gewone Swift-fout; de engine wordt gereset
+    /// zodat een volgende poging schoon begint.
+    private func installTapAndStart(
+        on inputNode: AVAudioInputNode,
+        format: AVAudioFormat,
+        handler: @escaping @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void
+    ) throws {
+        do {
+            try catchingObjCException {
+                inputNode.installTap(onBus: 0, bufferSize: 4096, format: format, block: handler)
+                engine.prepare()
+                try engine.start()
+            }
+        } catch let objc as ObjCExceptionError {
+            LaunchHealth.note("AudioEngine: ObjC-exceptie opgevangen bij starten: \(objc.name): \(objc.reason)")
+            inputNode.removeTap(onBus: 0)
+            engine.reset()
+            throw AudioEngineError.engineStartFailed(
+                "De microfoon is gewisseld of niet beschikbaar. Probeer het opnieuw. (\(objc.reason))"
+            )
+        } catch {
+            inputNode.removeTap(onBus: 0)
+            throw AudioEngineError.engineStartFailed(error.localizedDescription)
+        }
+    }
+
     private func startCapture(convertingTo format: AVAudioFormat?) throws -> AsyncStream<AudioBufferBox> {
         let inputNode = engine.inputNode
-        let nativeFormat = inputNode.outputFormat(forBus: 0)
+        let nativeFormat = tapFormatAfterHardwareCheck()
 
         outputFormat = format
         if let format, format != nativeFormat {
@@ -223,15 +281,11 @@ final class AudioEngine {
                 self?.handle(buffer: boxed.buffer)
             }
         }
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: nativeFormat, block: tapHandler)
-
-        engine.prepare()
         do {
-            try engine.start()
+            try installTapAndStart(on: inputNode, format: nativeFormat, handler: tapHandler)
         } catch {
-            inputNode.removeTap(onBus: 0)
             self.continuation = nil
-            throw AudioEngineError.engineStartFailed(error.localizedDescription)
+            throw error
         }
 
         isRunning = true
@@ -282,7 +336,7 @@ final class AudioEngine {
         guard isRunning, isPaused, let tapHandler, let previousFormat = nativeFormat else { return false }
 
         let inputNode = engine.inputNode
-        let currentFormat = inputNode.outputFormat(forBus: 0)
+        let currentFormat = tapFormatAfterHardwareCheck()
         // Een verdwenen invoerapparaat levert een leeg formaat op; daar kan geen
         // tap op en installTap zou er alsnog op exploderen.
         guard currentFormat.channelCount > 0, currentFormat.sampleRate > 0 else { return false }
@@ -303,12 +357,9 @@ final class AudioEngine {
             }
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: currentFormat, block: tapHandler)
-        engine.prepare()
         do {
-            try engine.start()
+            try installTapAndStart(on: inputNode, format: currentFormat, handler: tapHandler)
         } catch {
-            inputNode.removeTap(onBus: 0)
             return false
         }
         nativeFormat = currentFormat

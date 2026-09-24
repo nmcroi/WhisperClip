@@ -310,16 +310,42 @@ final class IOSAudioEngine {
             }
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: currentFormat, block: tapHandler)
-        engine.prepare()
         do {
-            try engine.start()
+            try installTapAndStart(on: inputNode, format: currentFormat, handler: tapHandler)
         } catch {
-            inputNode.removeTap(onBus: 0)
             return false
         }
         nativeFormat = currentFormat
         return true
+    }
+
+    /// Installeert de tap en start de engine achter het ObjC-vangnet uit Core.
+    /// `installTap` gooit bij een formaatverschil een NSException die Swift niet
+    /// kan vangen; op de Mac liet zo'n exceptie op 23 september 2026 de
+    /// concurrency-runtime kapot achter (crash seconden later). Hier wordt hij
+    /// een gewone fout en begint de engine na een reset schoon.
+    private func installTapAndStart(
+        on inputNode: AVAudioInputNode,
+        format: AVAudioFormat,
+        handler: @escaping @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void
+    ) throws {
+        do {
+            try catchingObjCException {
+                inputNode.installTap(onBus: 0, bufferSize: 4096, format: format, block: handler)
+                engine.prepare()
+                try engine.start()
+            }
+        } catch let objc as ObjCExceptionError {
+            NSLog("IOSAudioEngine: ObjC-exceptie opgevangen bij starten: %@: %@", objc.name, objc.reason)
+            inputNode.removeTap(onBus: 0)
+            engine.reset()
+            throw IOSAudioEngineError.engineStartFailed(
+                "De microfoon is gewisseld of niet beschikbaar. Probeer het opnieuw. (\(objc.reason))"
+            )
+        } catch {
+            inputNode.removeTap(onBus: 0)
+            throw IOSAudioEngineError.engineStartFailed(error.localizedDescription)
+        }
     }
 
     private func startCapture(convertingTo format: AVAudioFormat) throws -> AsyncStream<AudioBufferBox> {
@@ -354,15 +380,11 @@ final class IOSAudioEngine {
         // Bewaar tap + formaat zodat we na een onderbreking kunnen hervatten.
         self.tapHandler = tapHandler
         self.nativeFormat = nativeFormat
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: nativeFormat, block: tapHandler)
-
-        engine.prepare()
         do {
-            try engine.start()
+            try installTapAndStart(on: inputNode, format: nativeFormat, handler: tapHandler)
         } catch {
-            inputNode.removeTap(onBus: 0)
             self.continuation = nil
-            throw IOSAudioEngineError.engineStartFailed(error.localizedDescription)
+            throw error
         }
 
         isRunning = true

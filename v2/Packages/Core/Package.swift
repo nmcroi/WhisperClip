@@ -15,7 +15,12 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Core"
+            name: "ObjCExceptionCatcher",
+            path: "Sources/ObjCExceptionCatcher"
+        ),
+        .target(
+            name: "Core",
+            dependencies: ["ObjCExceptionCatcher"]
         ),
         .testTarget(
             name: "CoreTests",
