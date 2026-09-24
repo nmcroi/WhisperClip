@@ -1,5 +1,37 @@
 # Whisper Clipboard — releasen
 
+## Actuele route voor werk-Mac (18 september 2026)
+
+`package_work_mac.py` verpakt een vooraf gebouwde Release-app met Developer ID,
+een geldig distributieprofiel voor alle apparaten en Production-CloudKit-rechten.
+De oudere `build_release.sh` hieronder neemt dat profiel niet automatisch mee.
+Gebruik voor deze levering de nieuwe route; verander geen databasevariant op een
+bestaand apparaat zonder controle en backup.
+
+- Verhoog versie/build in `project.yml` én het gegenereerde project; controleer
+  daarna de Info.plist van de daadwerkelijke Release-app.
+- Bouw `WhisperClipboard`, configuratie Release. De lokale Xcode-signingoverride
+  geldt alleen voor Debug.
+- Geef `NOTARY_KEY_PATH`, `NOTARY_KEY_ID`, `NOTARY_ISSUER` via de omgeving door.
+  Credentials niet opnemen in scripts, rapporten of DMG.
+- Aanroep: `python3 Packaging/package_work_mac.py --app /pad/WhisperClip.app
+  --output Packaging/dist/unieke-release-map --profile /pad/distributie.provisionprofile
+  --identity 'Developer ID Application: …' --team TEAMID` (op één regel).
+- De tool tekent binnen naar buiten, notariseert de ZIP, stapelt de ticket op de
+  app, bouwt pas daarna de DMG en notariseert/stapelt ook die. Apple-notarisatie
+  is vereist voor deze route; er is geen stille ad-hoc fallback.
+- Controleer de read-only aangekoppelde DMG: appversie, handtekening, ticket,
+  Gatekeeper, gelijkheid van app en back-uphulp met de bronbestanden.
+- Back-uphulp testen vanaf de git-root: `python3 v2/Packaging/test_work_mac_backup.py`.
+  Dit gebruikt tijdelijke databases/apps; alleen process/signing-detectie is
+  gesimuleerd. Bestaande gebruikersgegevens worden niet gebruikt.
+
+De DMG bevat alleen app, Applications-link, LEESMIJ en back-upcontrole. Geen
+gebruikersdata, API-sleutels of lokale signingconfiguratie. Publiceer geen
+GitHub-release/Sparkle-update zonder opdracht.
+
+## Historische distributieroute
+
 Stap-voor-stap voor een nieuwe release (Developer-ID, directe distributie via
 GitHub Releases + Sparkle-auto-updates). Reken op ~10 minuten zodra je Apple
 Developer-account actief is.

@@ -37,6 +37,12 @@ final class RecordingHUDController {
     init(controller: DictationController) {
         self.controller = controller
         observePhase()
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .merge(with: NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)
+                .filter { [weak self] in ($0.object as? NSPanel) === self?.panel })
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.keepPanelVisible() }
+            .store(in: &cancellables)
     }
 
     /// Re-applies the current appearance to a live panel (called when the user
@@ -195,15 +201,42 @@ final class RecordingHUDController {
         return panel
     }
 
-    /// The panel's opening position: the user's remembered spot when it's still
-    /// (mostly) on a visible screen, otherwise the default bottom-center.
+    /// Restore the whole HUD inside a usable screen, including after monitor changes.
     private func restingOrigin(for panel: NSPanel) -> NSPoint {
-        let size = panel.frame.size
-        if let saved = Self.savedOrigin(), Self.isReasonablyVisible(origin: saved, size: size) {
-            return saved
+        Self.fittedOrigin(Self.savedOrigin(), size: panel.frame.size,
+                          screens: NSScreen.screens.map(\.visibleFrame),
+                          fallback: Self.activeScreen().visibleFrame)
+    }
+
+    private func keepPanelVisible() {
+        guard let panel, panel.isVisible, !isFadingOut else { return }
+        let origin = Self.fittedOrigin(panel.frame.origin, size: panel.frame.size,
+                                     screens: NSScreen.screens.map(\.visibleFrame),
+                                     fallback: Self.activeScreen().visibleFrame)
+        if origin != panel.frame.origin { panel.setFrameOrigin(origin) }
+    }
+
+    /// Pure geometry so negative monitor coordinates and old offscreen positions
+    /// can be regression-tested without touching the user's screen or defaults.
+    static func fittedOrigin(_ saved: NSPoint?, size: NSSize, screens: [NSRect], fallback: NSRect) -> NSPoint {
+        let valid = saved.flatMap { $0.x.isFinite && $0.y.isFinite ? $0 : nil }
+        let rect = NSRect(origin: valid ?? .zero, size: size)
+        let screen = valid.flatMap { _ in
+            screens.filter { $0.intersects(rect) }.max {
+                let a = $0.intersection(rect), b = $1.intersection(rect)
+                return a.width * a.height < b.width * b.height
+            }
+        } ?? fallback
+        let safe = screen.insetBy(dx: 12, dy: 12)
+        let proposed: NSPoint
+        if let valid, screens.contains(where: { $0.intersects(rect) }) {
+            proposed = valid
+        } else {
+            proposed = NSPoint(x: safe.midX - size.width / 2, y: safe.minY + 68)
         }
-        let visible = Self.activeScreen().visibleFrame
-        return NSPoint(x: visible.midX - size.width / 2, y: visible.minY + 80)
+        // If the HUD is larger than the display, keep its top (controls) reachable.
+        return NSPoint(x: min(max(proposed.x, safe.minX), max(safe.minX, safe.maxX - size.width)),
+                       y: min(max(proposed.y, safe.minY), safe.maxY - size.height))
     }
 
     /// Screen containing the mouse, falling back to the main screen.
@@ -231,20 +264,14 @@ final class RecordingHUDController {
         return NSPoint(x: defaults.double(forKey: originXKey), y: defaults.double(forKey: originYKey))
     }
 
-    /// A saved origin is only reused when a meaningful chunk of the panel would
-    /// still land on some screen, so a disconnected monitor can't strand the HUD
-    /// off screen (it then falls back to the default position).
-    private static func isReasonablyVisible(origin: NSPoint, size: NSSize) -> Bool {
-        let rect = NSRect(origin: origin, size: size)
-        return NSScreen.screens.contains { screen in
-            let overlap = screen.visibleFrame.intersection(rect)
-            return overlap.width >= 60 && overlap.height >= 20
-        }
-    }
+
 }
 
 /// An `NSPanel` that never becomes key or main so it stays a passive overlay.
-private final class NonKeyPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
+final class NonKeyPanel: NSPanel {
+    // AppKit calls these Objective-C getters while selecting a key window.
+    // They read no UI state. Avoid an unnecessary Swift executor check here
+    // (2.0.2 crash in @objc canBecomeKey -> SerialExecutor._isSameExecutor).
+    nonisolated override var canBecomeKey: Bool { false }
+    nonisolated override var canBecomeMain: Bool { false }
 }

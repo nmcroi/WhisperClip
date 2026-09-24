@@ -8,3 +8,7 @@
 
 ## Actuele overdracht
 - Lees eerst `v2/CURRENT_STATUS.md` en de daarin genoemde reviews. Oudere startprompts en backlogs beschrijven historische plannen; gebruik ze niet als actuele opleverstatus. De actieve bron staat in `v2/`.
+
+## Versies bij oplevering
+- Iedere gewijzigde geleverde appbuild krijgt een nieuw buildnummer; herkenbare gebruikersupdates ook een hoger zichtbaar versienummer. Nooit verschillende binaries onder hetzelfde versie/build-paar leveren.
+- Wijzig `v2/project.yml` inclusief relevante target-override, genereer het project en verifieer de gebouwde app. Zie `AGENTS.md` voor de volledige afspraak; noteer versie, test-OS en distributiestatus in `v2/CURRENT_STATUS.md`.

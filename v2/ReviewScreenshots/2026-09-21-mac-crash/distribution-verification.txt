@@ -1,0 +1,33 @@
+Controlegetal berekenen van 'Protective Master Boot Record (MBR: 0)'…
+Protective Master Boot Record (MBR: : Geverifieerd: CRC32 $D7D9F64B
+Controlegetal berekenen van 'GPT Header (Primary GPT Header: 1)'…
+  GPT Header (Primary GPT Header: 1): Geverifieerd: CRC32 $EAC5D599
+Controlegetal berekenen van 'GPT Partition Data (Primary GPT Table: 2)'…
+GPT Partition Data (Primary GPT Tabl: Geverifieerd: CRC32 $A6BA06A6
+Controlegetal berekenen van ' (Apple_Free: 3)'…
+                     (Apple_Free: 3): Geverifieerd: CRC32 $00000000
+Controlegetal berekenen van 'disk image (Apple_HFS: 4)'…
+           disk image (Apple_HFS: 4): Geverifieerd: CRC32 $C7815A80
+Controlegetal berekenen van ' (Apple_Free: 5)'…
+                     (Apple_Free: 5): Geverifieerd: CRC32 $00000000
+Controlegetal berekenen van 'GPT Partition Data (Backup GPT Table: 6)'…
+GPT Partition Data (Backup GPT Table: Geverifieerd: CRC32 $A6BA06A6
+Controlegetal berekenen van 'GPT Header (Backup GPT Header: 7)'…
+   GPT Header (Backup GPT Header: 7): Geverifieerd: CRC32 $52A7C1BC
+Geverifieerd: CRC32 $5EE9A1EA
+hdiutil: verify: checksum of "v2/Packaging/dist/WhisperClip-2.0.3-9-distribution/WhisperClip-2.0.3.dmg" is VALID
+
+Processing: /Users/nielscroiset/Werkmappen/Development/WhisperClip/v2/Packaging/dist/WhisperClip-2.0.3-9-distribution/WhisperClip-2.0.3.dmg
+The validate action worked!
+
+v2/Packaging/dist/WhisperClip-2.0.3-9-distribution/WhisperClip-2.0.3.dmg: accepted
+source=Notarized Developer ID
+
+
+Processing: /tmp/whisper203-final-dmg/WhisperClip.app
+The validate action worked!
+
+/tmp/whisper203-final-dmg/WhisperClip.app: accepted
+source=Notarized Developer ID
+
+PASS: mounted app 2.0.3 (9); instructions and backup helper match; release SHA-256 1ef5a9313283a3f1f5b90eb12ce6ec897c3772aaf807b3ee41fcbfd56b410629

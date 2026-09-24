@@ -2,9 +2,8 @@ import SwiftUI
 
 /// Reusable dark action card: an SF Symbol icon over a title and subtitle.
 ///
-/// Dark surface, 1px border, radius 12. When `enabled` and given an `action`,
-/// the whole card is a button that lifts its border to yellow on hover. When
-/// disabled it dims and (optionally) shows a small "komt eraan" badge.
+/// Dark surface, 1px border, radius 12. When disabled it dims and
+/// (optionally) shows a small "komt eraan" badge.
 struct ActionCard: View {
     let symbol: String
     let title: String
@@ -18,8 +17,6 @@ struct ActionCard: View {
     var active: Bool = false
     var action: (() -> Void)? = nil
 
-    @State private var isHovering = false
-
     var body: some View {
         Button {
             action?()
@@ -28,15 +25,6 @@ struct ActionCard: View {
         }
         .buttonStyle(.plain)
         .disabled(!enabled || action == nil)
-        // AppKit roept `.onHover` altijd op de main thread aan, dus dit mag
-        // rechtstreeks naar `@State` schrijven. Een `Task { @MainActor }`-hop
-        // kostte hier één runlus vertraging op de randanimatie bij hover-in
-        // en -uit (review 22 augustus 2026). Dit verklaart de eerdere crash op
-        // dit frame (EXC_BREAKPOINT, 3 augustus 2026) nog niet: een mislukte
-        // isolatiecontrole geeft een trap op de plek waar iets vanaf een
-        // andere thread deze body evalueert, en dat spoor staat nog open.
-        .onHover { hovering in isHovering = hovering && enabled }
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
         .help(enabled ? "" : "Komt in een latere versie")
     }
 
@@ -78,7 +66,7 @@ struct ActionCard: View {
         .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .themeCard(border: isHovering ? Theme.accent.opacity(0.6) : Theme.border)
+            .themeCard(border: Theme.border)
         .opacity(enabled ? 1 : 0.55)
         .contentShape(Rectangle())
     }

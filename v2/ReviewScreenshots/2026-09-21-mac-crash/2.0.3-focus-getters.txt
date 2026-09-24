@@ -1,0 +1,12 @@
+_$s16WhisperClipboard18NonKeyCaptionPanelC09canBecomeD0SbvgTo:
+10005ae20:	00 00 80 52	mov	w0, #0x0
+10005ae24:	c0 03 5f d6	ret
+_$s16WhisperClipboard18NonKeyCaptionPanelC13canBecomeMainSbvgTo:
+10005ae28:	00 00 80 52	mov	w0, #0x0
+10005ae2c:	c0 03 5f d6	ret
+_$s16WhisperClipboard11NonKeyPanelC09canBecomeD0SbvgTo:
+100115438:	00 00 80 52	mov	w0, #0x0
+10011543c:	c0 03 5f d6	ret
+_$s16WhisperClipboard11NonKeyPanelC13canBecomeMainSbvgTo:
+100115440:	00 00 80 52	mov	w0, #0x0
+100115444:	c0 03 5f d6	ret

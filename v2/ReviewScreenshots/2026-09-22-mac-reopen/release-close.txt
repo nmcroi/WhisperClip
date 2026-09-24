@@ -1,0 +1,5 @@
+/Users/nielscroiset/Library/Developer/Xcode/DerivedData/WhisperClipboard-fqufdangpwxdnuhiuwosfpjfzgnp/Build/Products/Release/WhisperClip.app/Contents/MacOS/WhisperClip:
+(__TEXT,__text) section
+_$s16WhisperClipboard11AppDelegateC47applicationShouldTerminateAfterLastWindowClosedySbSo13NSApplicationCFTo:
+1000208d0:	00 00 80 52	mov	w0, #0x0
+1000208d4:	c0 03 5f d6	ret

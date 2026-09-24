@@ -1,0 +1,38 @@
+WhisperClip 2.0.5 — installeren op je werk-Mac
+
+Voor Macs met Apple silicon en macOS 26 of nieuwer (ook macOS 27).
+
+1. Stop de oude WhisperClip met Cmd-Q (alleen het rode kruisje is niet genoeg).
+2. Open “Controleer en maak backup.command” in deze DMG. Dit controleert de
+   bestaande variant en databases en maakt een lokale kopie van app en gegevens.
+   Volg bij een stopmelding de instructie; installeer dan nog niet.
+3. Vervang de bestaande WhisperClip.app op DEZELFDE locatie door de app uit
+   deze DMG. Normaal is dit de map Apps/Applications. Staat de oude app in je
+   persoonlijke Applications-map, vervang hem daar. Maak geen tweede exemplaar.
+4. Open WhisperClip en controleer dat versie 2.0.4, je geschiedenis en notities
+   zichtbaar zijn. Test Control-spatie, omhoog slepen via het streepje bovenaan
+   de HUD, en dicteren nadat je het hoofdvenster met het rode kruisje sluit.
+5. Geef microfoontoegang/toegankelijkheid als macOS dat opnieuw vraagt.
+
+Verwijder NOOIT de appgegevens, databases of instellingen om een update werkend
+te krijgen. De app hoeft niet eerst verwijderd te worden. Bij lege geschiedenis:
+stop de app en bewaar de backup; maak geen nieuwe installatie/reset.
+
+Dit is de distributieversie: lokale geschiedenis in history.db, CloudKit in
+Production. Een Xcode/Development-versie kan history-dev.db en een andere
+CloudKit-omgeving gebruiken. Die wissel vereist eerst een gecontroleerde
+gegevensovergang. De controle stopt bij een herkenbare Development-installatie.
+Als je niet zeker weet welke versie je gebruikte, stuur de controlemelding door.
+
+De app is met Developer ID ondertekend en door Apple genotariseerd. Omzeil geen
+bedrijfsbeleid of beveiligingsmelding; neem bij een blokkade contact op met IT.
+
+Wat is gecontroleerd: 337 Mac-tests en een gerichte Release-controle van de
+Dock-heropenfunctie. Versie 2.0.5 verwijdert alle macOS-hovercallbacks uit de
+HUD, actiekaarten en transcriptdetails. Muisbewegingen wijzigen daar geen
+toestand meer; klikken en toetsenbordbediening blijven beschikbaar.
+De twee ontvangen crashes hebben dezelfde interne Swift-controle, maar een
+andere app-ingang. De onderliggende oorzaak is nog niet bewezen; langdurig
+gebruik op de werk-Mac moet de verbetering nog bevestigen.
+De werk-Mac, echte opnames en diens iCloud-uitwisseling zijn niet lokaal getest.
+Audio blijft lokaal; Apple-notarisatie is geen bewijs van werkende iCloud-sync.

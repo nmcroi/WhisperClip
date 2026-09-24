@@ -2,12 +2,16 @@ import SwiftUI
 
 @main
 struct WhisperClipboardApp: App {
+    @Environment(\.openWindow) private var openWindow
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         Window("", id: "main") {
             if !AppDelegate.isUnitTestHost {
                 HomeView()
+                    .onAppear {
+                        appDelegate.openMainWindow = { openWindow(id: "main") }
+                    }
                     .environmentObject(appDelegate.environment)
                     // Min width fits the Geschiedenis three-pane layout without
                     // cramping: 180 (sidebar) + 320 (list) + 380 (detail) = 880.

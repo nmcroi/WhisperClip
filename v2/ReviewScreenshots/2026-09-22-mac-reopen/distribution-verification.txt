@@ -1,0 +1,36 @@
+Controlegetal berekenen van 'Protective Master Boot Record (MBR: 0)'…
+Protective Master Boot Record (MBR: : Geverifieerd: CRC32 $D7D9F64B
+Controlegetal berekenen van 'GPT Header (Primary GPT Header: 1)'…
+  GPT Header (Primary GPT Header: 1): Geverifieerd: CRC32 $F9B8C0FA
+Controlegetal berekenen van 'GPT Partition Data (Primary GPT Table: 2)'…
+GPT Partition Data (Primary GPT Tabl: Geverifieerd: CRC32 $0074FDFA
+Controlegetal berekenen van ' (Apple_Free: 3)'…
+                     (Apple_Free: 3): Geverifieerd: CRC32 $00000000
+Controlegetal berekenen van 'disk image (Apple_HFS: 4)'…
+           disk image (Apple_HFS: 4): Geverifieerd: CRC32 $14832CE7
+Controlegetal berekenen van ' (Apple_Free: 5)'…
+                     (Apple_Free: 5): Geverifieerd: CRC32 $00000000
+Controlegetal berekenen van 'GPT Partition Data (Backup GPT Table: 6)'…
+GPT Partition Data (Backup GPT Table: Geverifieerd: CRC32 $0074FDFA
+Controlegetal berekenen van 'GPT Header (Backup GPT Header: 7)'…
+   GPT Header (Backup GPT Header: 7): Geverifieerd: CRC32 $41DAD4DF
+Geverifieerd: CRC32 $2457BF27
+hdiutil: verify: checksum of "v2/Packaging/dist/WhisperClip-2.0.4-10-distribution/WhisperClip-2.0.4.dmg" is VALID
+
+Processing: /Users/nielscroiset/Werkmappen/Development/WhisperClip/v2/Packaging/dist/WhisperClip-2.0.4-10-distribution/WhisperClip-2.0.4.dmg
+The validate action worked!
+
+v2/Packaging/dist/WhisperClip-2.0.4-10-distribution/WhisperClip-2.0.4.dmg: accepted
+source=Notarized Developer ID
+
+
+Processing: /tmp/whisper204-final-dmg/WhisperClip.app
+The validate action worked!
+
+/tmp/whisper204-final-dmg/WhisperClip.app: accepted
+source=Notarized Developer ID
+
+UUID: 916E160B-B161-3E47-9766-9443D3A07F57 (x86_64) /tmp/whisper204-final-dmg/WhisperClip.app/Contents/MacOS/WhisperClip
+UUID: F784F32B-A411-33F8-A31C-31B71FCC123B (arm64) /tmp/whisper204-final-dmg/WhisperClip.app/Contents/MacOS/WhisperClip
+
+PASS: mounted app 2.0.4 (10), backup helper and instructions match, SHA-256 0bd152f3c7f0bf0967ebcf2e250f1b66cbf22189b0e7482a3872fdffe411eb50

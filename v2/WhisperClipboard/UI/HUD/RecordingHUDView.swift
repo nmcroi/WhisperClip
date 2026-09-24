@@ -45,7 +45,8 @@ struct RecordingHUDView: View {
             }
         }
         .padding(.horizontal, 18)
-        .padding(.vertical, 14)
+        .padding(.top, 22)
+        .padding(.bottom, 14)
         .frame(width: 360, alignment: .leading)
         .background(background)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -57,6 +58,9 @@ struct RecordingHUDView: View {
                 // "Aan het transcriberen…" na afloop nog even staan.
                 .animation(.easeOut(duration: 0.12), value: controller.phase)
         )
+        .overlay(alignment: .top) {
+            HUDDragHandle().frame(width: 64, height: 16)
+        }
         .shadow(color: .black.opacity(0.5), radius: 24, x: 0, y: 12)
     }
 
@@ -196,47 +200,6 @@ struct RecordingHUDView: View {
     }
 }
 
-// MARK: - Cursor
-
-/// Toont het handje boven een HUD-knop en houdt de cursorstack in balans.
-///
-/// `NSCursor.push()` moet exact één `pop()` krijgen. De HUD verdwijnt echter
-/// vaak onder de muis vandaan (fase wisselt, paneel gaat weg) zonder dat er nog
-/// een hover-exit komt; dan bleef het handje hangen over het hele scherm. Deze
-/// modifier onthoudt of hij zelf gepusht heeft en popt óók bij `onDisappear`,
-/// nooit vaker dan één keer.
-private struct PointingHandCursor: ViewModifier {
-    @Binding var hovering: Bool
-    @State private var pushed = false
-
-    func body(content: Content) -> some View {
-        content
-            .onHover { isHovering in
-                hovering = isHovering
-                setPushed(isHovering)
-            }
-            // Vangnet voor de hover-exit die nooit komt.
-            .onDisappear { setPushed(false) }
-    }
-
-    @MainActor
-    private func setPushed(_ shouldPush: Bool) {
-        guard shouldPush != pushed else { return }
-        pushed = shouldPush
-        if shouldPush {
-            NSCursor.pointingHand.push()
-        } else {
-            NSCursor.pop()
-        }
-    }
-}
-
-private extension View {
-    func pointingHandCursor(hovering: Binding<Bool>) -> some View {
-        modifier(PointingHandCursor(hovering: hovering))
-    }
-}
-
 /// A red recording dot that pulses while recording.
 private struct PulsingDot: View {
     @State private var pulsing = false
@@ -258,14 +221,12 @@ private struct PauseResumeButton: View {
     let isPaused: Bool
     let action: () -> Void
 
-    @State private var hovering = false
-
     var body: some View {
         Button(action: action) {
             ZStack {
                 Circle()
                     .strokeBorder(Theme.accent, lineWidth: 1.6)
-                    .background(Circle().fill(hovering ? Theme.accent.opacity(0.12) : .clear))
+                    .background(Circle().fill(Theme.accent.opacity(0.12)))
                 Image(systemName: isPaused ? "play.fill" : "pause.fill")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(Theme.accent)
@@ -273,9 +234,6 @@ private struct PauseResumeButton: View {
             .frame(width: 22, height: 22)
         }
         .buttonStyle(.plain)
-        .scaleEffect(hovering ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: hovering)
-        .pointingHandCursor(hovering: $hovering)
         .help(isPaused ? "Hervat opname" : "Pauzeer opname")
     }
 }
@@ -290,8 +248,6 @@ private struct InsertionToggleButton: View {
     let isOn: Bool
     let action: () -> Void
 
-    @State private var hovering = false
-
     var body: some View {
         Button(action: action) {
             ZStack {
@@ -300,8 +256,8 @@ private struct InsertionToggleButton: View {
                     .background(
                         Circle().fill(
                             isOn
-                                ? Theme.accent.opacity(hovering ? 0.28 : 0.18)
-                                : (hovering ? Theme.textTertiary.opacity(0.12) : .clear)
+                                ? Theme.accent.opacity(0.18)
+                                : .clear
                         )
                     )
                 Image(systemName: "text.cursor")
@@ -311,9 +267,6 @@ private struct InsertionToggleButton: View {
             .frame(width: 22, height: 22)
         }
         .buttonStyle(.plain)
-        .scaleEffect(hovering ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: hovering)
-        .pointingHandCursor(hovering: $hovering)
         .help(isOn
               ? "Direct invoegen staat aan. Klik om alleen het klembord te gebruiken."
               : "Direct invoegen staat uit. Klik om de tekst meteen in te voegen.")
@@ -325,14 +278,12 @@ private struct InsertionToggleButton: View {
 private struct StopButton: View {
     let action: () -> Void
 
-    @State private var hovering = false
-
     var body: some View {
         Button(action: action) {
             ZStack {
                 Circle()
                     .strokeBorder(Theme.accent, lineWidth: 1.6)
-                    .background(Circle().fill(hovering ? Theme.accent.opacity(0.12) : .clear))
+                    .background(Circle().fill(Theme.accent.opacity(0.12)))
                 RoundedRectangle(cornerRadius: 2.5, style: .continuous)
                     .fill(Theme.accent)
                     .frame(width: 8, height: 8)
@@ -340,9 +291,6 @@ private struct StopButton: View {
             .frame(width: 22, height: 22)
         }
         .buttonStyle(.plain)
-        .scaleEffect(hovering ? 1.08 : 1.0)
-        .animation(.easeOut(duration: 0.12), value: hovering)
-        .pointingHandCursor(hovering: $hovering)
         .help("Stop dicteren")
     }
 }
@@ -374,5 +322,22 @@ private struct LevelBars: View {
         let profile = 1.0 - distance / Double(barCount)
         let magnitude = max(0.15, level) * profile
         return CGFloat(4 + magnitude * 16)
+    }
+}
+
+/// Explicit AppKit drag area: does not depend on SwiftUI background hit-testing.
+private struct HUDDragHandle: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { Handle() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+
+    private final class Handle: NSView {
+        override var mouseDownCanMoveWindow: Bool { true }
+        override func draw(_ dirtyRect: NSRect) {
+            NSColor.secondaryLabelColor.withAlphaComponent(0.5).setFill()
+            NSBezierPath(roundedRect: NSRect(x: bounds.midX - 16, y: bounds.midY - 2,
+                                           width: 32, height: 4), xRadius: 2, yRadius: 2).fill()
+        }
+        override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
     }
 }

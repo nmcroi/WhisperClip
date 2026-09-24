@@ -1,0 +1,3 @@
+PASS: 500 panel lifecycles; 100000 Objective-C getter calls; no focus acquired
+Environment: macOS 27.0 (26A428), Xcode 27.0 (27A266a), swiftc -swift-version 6 -O -parse-as-library
+Standalone harness, not a prolonged full-app run.

@@ -1,0 +1,53 @@
+v2/Packaging/dist/WhisperClip-2.0.3-9-distribution/WhisperClip.app/Contents/MacOS/WhisperClip:
+(__TEXT,__text) section
+_$s16WhisperClipboard11AppDelegateC29applicationShouldHandleReopen_17hasVisibleWindowsSbSo13NSApplicationC_SbtFTo:
+100020a8c:	f8 5f bc a9	stp	x24, x23, [sp, #-0x40]!
+100020a90:	f6 57 01 a9	stp	x22, x21, [sp, #0x10]
+100020a94:	f4 4f 02 a9	stp	x20, x19, [sp, #0x20]
+100020a98:	fd 7b 03 a9	stp	x29, x30, [sp, #0x30]
+100020a9c:	fd c3 00 91	add	x29, sp, #0x30
+100020aa0:	f6 03 02 aa	mov	x22, x2
+100020aa4:	f3 03 00 aa	mov	x19, x0
+100020aa8:	00 00 80 d2	mov	x0, #0x0
+100020aac:	00 23 19 94	bl	0x1006696ac ; symbol stub for: _$sScMMa
+100020ab0:	f7 03 00 aa	mov	x23, x0
+100020ab4:	f4 03 00 aa	mov	x20, x0
+100020ab8:	fa 22 19 94	bl	0x1006696a0 ; symbol stub for: _$sScM6sharedScMvgZ
+100020abc:	f5 03 00 aa	mov	x21, x0
+100020ac0:	e1 3d 00 b0	adrp	x1, 1981 ; 0x1007dd000
+100020ac4:	21 cc 40 f9	ldr	x1, [x1, #0x198] ; literal pool symbol address: _$sScMScAsWP
+100020ac8:	f4 03 00 aa	mov	x20, x0
+100020acc:	e0 03 17 aa	mov	x0, x23
+100020ad0:	d9 22 19 94	bl	0x100669634 ; symbol stub for: _$sScA15unownedExecutorScevgTj
+100020ad4:	f4 03 00 aa	mov	x20, x0
+100020ad8:	f7 03 01 aa	mov	x23, x1
+100020adc:	23 2d 19 94	bl	0x10066bf68 ; symbol stub for: _swift_task_isCurrentExecutor
+100020ae0:	20 01 00 37	tbnz	w0, #0x0, 0x100020b04
+100020ae4:	c0 37 00 f0	adrp	x0, 1787 ; 0x10071b000
+100020ae8:	00 00 1a 91	add	x0, x0, #0x680 ; literal pool for: "WhisperClipboard/AppDelegate.swift"
+100020aec:	41 04 80 52	mov	w1, #0x22
+100020af0:	22 00 80 52	mov	w2, #0x1
+100020af4:	c3 31 80 52	mov	w3, #0x18e
+100020af8:	e4 03 14 aa	mov	x4, x20
+100020afc:	e5 03 17 aa	mov	x5, x23
+100020b00:	29 2d 19 94	bl	0x10066bfa4 ; symbol stub for: _swift_task_reportUnexpectedExecutor
+100020b04:	e0 03 16 aa	mov	x0, x22
+100020b08:	81 2a 19 94	bl	0x10066b50c ; symbol stub for: _objc_retain
+100020b0c:	f6 03 00 aa	mov	x22, x0
+100020b10:	e0 03 13 aa	mov	x0, x19
+100020b14:	7e 2a 19 94	bl	0x10066b50c ; symbol stub for: _objc_retain
+100020b18:	f4 03 00 aa	mov	x20, x0
+100020b1c:	5f 0a 00 94	bl	_$s16WhisperClipboard11AppDelegateC29applicationShouldHandleReopen_17hasVisibleWindowsSbSo13NSApplicationC_SbtFTf4ddn_n
+100020b20:	f3 03 00 aa	mov	x19, x0
+100020b24:	e0 03 15 aa	mov	x0, x21
+100020b28:	d7 2c 19 94	bl	0x10066be84 ; symbol stub for: _swift_release
+100020b2c:	e0 03 16 aa	mov	x0, x22
+100020b30:	74 2a 19 94	bl	0x10066b500 ; symbol stub for: _objc_release
+100020b34:	e0 03 14 aa	mov	x0, x20
+100020b38:	72 2a 19 94	bl	0x10066b500 ; symbol stub for: _objc_release
+100020b3c:	60 02 00 12	and	w0, w19, #0x1
+100020b40:	fd 7b 43 a9	ldp	x29, x30, [sp, #0x30]
+100020b44:	f4 4f 42 a9	ldp	x20, x19, [sp, #0x20]
+100020b48:	f6 57 41 a9	ldp	x22, x21, [sp, #0x10]
+100020b4c:	f8 5f c4 a8	ldp	x24, x23, [sp], #0x40
+100020b50:	c0 03 5f d6	ret

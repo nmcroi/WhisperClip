@@ -715,16 +715,13 @@ private enum TrimTarget: Equatable {
 
 // MARK: - Turn row
 
-/// One speaker turn: a colored name chip once, then the paragraph. A delete
-/// button reveals on hover (transcript trimming).
+/// One speaker turn: a colored name chip once, then the paragraph.
 private struct TranscriptTurnRow: View {
     let displayName: String
     let color: Color
     let text: String
     let timecode: String?
     let onDelete: (() -> Void)?
-
-    @State private var hovering = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -742,7 +739,7 @@ private struct TranscriptTurnRow: View {
                         .foregroundStyle(Theme.textTertiary)
                 }
                 Spacer(minLength: 0)
-                if hovering, let onDelete {
+                if let onDelete {
                     Button(action: onDelete) {
                         Image(systemName: "trash")
                             .font(.system(size: 11))
@@ -760,23 +757,19 @@ private struct TranscriptTurnRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(10)
-        .background(hovering ? Theme.surface : Color.clear)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
         .contentShape(Rectangle())
-        .onHover { hovering = $0 }
     }
 }
 
 // MARK: - Sentence row
 
-/// One sentence paragraph (no-speaker transcripts). Optional leading timecode;
-/// hover reveals a delete button for trimming.
+/// One sentence paragraph (no-speaker transcripts). Optional leading timecode.
 private struct TranscriptSentenceRow: View {
     let text: String
     let timecode: String?
     let onDelete: (() -> Void)?
-
-    @State private var hovering = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -793,7 +786,7 @@ private struct TranscriptSentenceRow: View {
                 .textSelection(.enabled)
                 .lineSpacing(5)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if hovering, let onDelete {
+            if let onDelete {
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .font(.system(size: 11))
@@ -805,10 +798,9 @@ private struct TranscriptSentenceRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(hovering ? Theme.surface : Color.clear)
+        .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
         .contentShape(Rectangle())
-        .onHover { hovering = $0 }
     }
 }
 

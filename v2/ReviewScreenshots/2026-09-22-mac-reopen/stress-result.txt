@@ -1,0 +1,2 @@
+PASS: 50 real LaunchServices reopen events; each opened and closed a window; callbacks delivered on main thread; process stayed alive.
+Standalone optimized harness uses production lifecycle methods; not a full app or reproduction of corrupted executor.

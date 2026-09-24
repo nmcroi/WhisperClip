@@ -1,0 +1,88 @@
+/Users/nielscroiset/Library/Developer/Xcode/DerivedData/WhisperClipboard-fqufdangpwxdnuhiuwosfpjfzgnp/Build/Products/Release/WhisperClip.app/Contents/MacOS/WhisperClip:
+(__TEXT,__text) section
+_$s16WhisperClipboard11AppDelegateC29applicationShouldHandleReopen_17hasVisibleWindowsSbSo13NSApplicationC_SbtFTo:
+100020a2c:	f8 5f bc a9	stp	x24, x23, [sp, #-0x40]!
+100020a30:	f6 57 01 a9	stp	x22, x21, [sp, #0x10]
+100020a34:	f4 4f 02 a9	stp	x20, x19, [sp, #0x20]
+100020a38:	fd 7b 03 a9	stp	x29, x30, [sp, #0x30]
+100020a3c:	fd c3 00 91	add	x29, sp, #0x30
+100020a40:	f5 03 02 aa	mov	x21, x2
+100020a44:	f4 03 00 aa	mov	x20, x0
+100020a48:	80 3e 00 f0	adrp	x0, 2003 ; 0x1007f3000
+100020a4c:	00 c0 38 91	add	x0, x0, #0xe30
+100020a50:	81 32 00 b0	adrp	x1, 1617 ; 0x100671000
+100020a54:	21 80 0b 91	add	x1, x1, #0x2e0
+100020a58:	ff c6 ff 97	bl	___swift_instantiateConcreteTypeFromMangledNameV2
+100020a5c:	08 80 5f f8	ldur	x8, [x0, #-0x8]
+100020a60:	09 21 40 f9	ldr	x9, [x8, #0x40]
+100020a64:	28 3d 00 91	add	x8, x9, #0xf
+100020a68:	08 ed 7c 92	and	x8, x8, #0xfffffffffffffff0
+100020a6c:	d0 3d 00 90	adrp	x16, 1976 ; 0x1007d8000
+100020a70:	10 36 47 f9	ldr	x16, [x16, #0xe68] ; literal pool symbol address: ___chkstk_darwin
+100020a74:	00 02 3f d6	blr	x16
+100020a78:	e9 03 00 91	mov	x9, sp
+100020a7c:	33 01 08 cb	sub	x19, x9, x8
+100020a80:	7f 02 00 91	mov	sp, x19
+100020a84:	00 00 80 d2	mov	x0, #0x0
+100020a88:	e8 22 19 94	bl	0x100669628 ; symbol stub for: _$sScPMa
+100020a8c:	e3 03 00 aa	mov	x3, x0
+100020a90:	08 80 5f f8	ldur	x8, [x0, #-0x8]
+100020a94:	08 1d 40 f9	ldr	x8, [x8, #0x38]
+100020a98:	e0 03 13 aa	mov	x0, x19
+100020a9c:	21 00 80 52	mov	w1, #0x1
+100020aa0:	22 00 80 52	mov	w2, #0x1
+100020aa4:	00 01 3f d6	blr	x8
+100020aa8:	20 3c 00 b0	adrp	x0, 1925 ; 0x1007a5000
+100020aac:	00 e0 0b 91	add	x0, x0, #0x2f8
+100020ab0:	01 03 80 52	mov	w1, #0x18
+100020ab4:	e2 00 80 52	mov	w2, #0x7
+100020ab8:	dc 2b 19 94	bl	0x10066ba28 ; symbol stub for: _swift_allocObject
+100020abc:	f6 03 00 aa	mov	x22, x0
+100020ac0:	00 40 00 91	add	x0, x0, #0x10
+100020ac4:	e1 03 14 aa	mov	x1, x20
+100020ac8:	28 2d 19 94	bl	0x10066bf68 ; symbol stub for: _swift_unknownObjectWeakInit
+100020acc:	00 00 80 d2	mov	x0, #0x0
+100020ad0:	cd 22 19 94	bl	0x100669604 ; symbol stub for: _$sScMMa
+100020ad4:	f7 03 00 aa	mov	x23, x0
+100020ad8:	e0 03 15 aa	mov	x0, x21
+100020adc:	62 2a 19 94	bl	0x10066b464 ; symbol stub for: _objc_retain
+100020ae0:	f5 03 00 aa	mov	x21, x0
+100020ae4:	e0 03 14 aa	mov	x0, x20
+100020ae8:	5f 2a 19 94	bl	0x10066b464 ; symbol stub for: _objc_retain
+100020aec:	f8 03 00 aa	mov	x24, x0
+100020af0:	e0 03 16 aa	mov	x0, x22
+100020af4:	c0 2c 19 94	bl	0x10066bdf4 ; symbol stub for: _swift_retain
+100020af8:	f4 03 17 aa	mov	x20, x23
+100020afc:	bf 22 19 94	bl	0x1006695f8 ; symbol stub for: _$sScM6sharedScMvgZ
+100020b00:	f4 03 00 aa	mov	x20, x0
+100020b04:	20 3c 00 b0	adrp	x0, 1925 ; 0x1007a5000
+100020b08:	00 40 10 91	add	x0, x0, #0x410
+100020b0c:	01 05 80 52	mov	w1, #0x28
+100020b10:	e2 00 80 52	mov	w2, #0x7
+100020b14:	c5 2b 19 94	bl	0x10066ba28 ; symbol stub for: _swift_allocObject
+100020b18:	f7 03 00 aa	mov	x23, x0
+100020b1c:	e8 3d 00 b0	adrp	x8, 1981 ; 0x1007dd000
+100020b20:	08 dd 40 f9	ldr	x8, [x8, #0x1b8] ; literal pool symbol address: _$sScMScAsWP
+100020b24:	14 20 01 a9	stp	x20, x8, [x0, #0x10]
+100020b28:	16 10 00 f9	str	x22, [x0, #0x20]
+100020b2c:	e0 03 16 aa	mov	x0, x22
+100020b30:	ab 2c 19 94	bl	0x10066bddc ; symbol stub for: _swift_release
+100020b34:	83 32 00 b0	adrp	x3, 1617 ; 0x100671000
+100020b38:	63 40 3d 91	add	x3, x3, #0xf50
+100020b3c:	00 00 80 d2	mov	x0, #0x0
+100020b40:	01 00 80 d2	mov	x1, #0x0
+100020b44:	e2 03 13 aa	mov	x2, x19
+100020b48:	e4 03 17 aa	mov	x4, x23
+100020b4c:	42 0d 00 94	bl	_$sScTss5NeverORs_rlE4name8priority9operationScTyxABGSSSg_ScPSgxyYaYAcntcfCytSg_Tt2g5
+100020b50:	a3 2c 19 94	bl	0x10066bddc ; symbol stub for: _swift_release
+100020b54:	e0 03 15 aa	mov	x0, x21
+100020b58:	40 2a 19 94	bl	0x10066b458 ; symbol stub for: _objc_release
+100020b5c:	e0 03 18 aa	mov	x0, x24
+100020b60:	3e 2a 19 94	bl	0x10066b458 ; symbol stub for: _objc_release
+100020b64:	00 00 80 52	mov	w0, #0x0
+100020b68:	bf c3 00 d1	sub	sp, x29, #0x30
+100020b6c:	fd 7b 43 a9	ldp	x29, x30, [sp, #0x30]
+100020b70:	f4 4f 42 a9	ldp	x20, x19, [sp, #0x20]
+100020b74:	f6 57 41 a9	ldp	x22, x21, [sp, #0x10]
+100020b78:	f8 5f c4 a8	ldp	x24, x23, [sp], #0x40
+100020b7c:	c0 03 5f d6	ret

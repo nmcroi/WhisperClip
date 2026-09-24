@@ -4,8 +4,7 @@ import Core
 import Sparkle
 import SwiftUI
 
-/// Owns the menu bar status item and drives the app's activation policy so the
-/// Dock icon only appears while a window is open.
+/// Owns menu bar services independently of the main window.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // Hosted unit tests must not bootstrap the user's stores, sync or shortcuts.
@@ -34,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// The menu index at which recent items are inserted.
     private var recentsInsertionIndex = 0
     private weak var menu: NSMenu?
-    private var openWindowCount = 0
+    var openMainWindow: (() -> Void)?
     private var cancellables = Set<AnyCancellable>()
 
     /// Whether a real Sparkle update feed is configured. `SUFeedURL` is nu leeg
@@ -72,13 +71,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // (22 augustus 2026).
         LaunchHealth.recordLaunch()
 
-        // Menu bar utility: no Dock icon until a window opens.
-        NSApp.setActivationPolicy(.accessory)
+        // Keep the Dock available to reopen the main window.
+        NSApp.setActivationPolicy(.regular)
 
         setUpStatusItem()
         observeState()
         observeDictation()
-        observeWindows()
 
         // Re-skin the status-item menu when the user switches the theme (the menu
         // is pure AppKit, outside SwiftUI's colour-scheme environment).
@@ -369,53 +367,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .store(in: &cancellables)
     }
 
-    private func observeWindows() {
-        let center = NotificationCenter.default
-        center.addObserver(
-            self,
-            selector: #selector(windowWillClose(_:)),
-            name: NSWindow.willCloseNotification,
-            object: nil
-        )
-        center.addObserver(
-            self,
-            selector: #selector(windowDidBecomeKey(_:)),
-            name: NSWindow.didBecomeKeyNotification,
-            object: nil
-        )
+    // MARK: - Window lifecycle
+
+    // Constant answer: AppKit must not enter Swift's executor check just to
+    // decide whether closing the last window should quit the app.
+    nonisolated func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 
-    // MARK: - Activation policy
-
-    private var trackedWindows = Set<ObjectIdentifier>()
-
-    @objc private func windowDidBecomeKey(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, isAppWindow(window) else { return }
-        let id = ObjectIdentifier(window)
-        guard !trackedWindows.contains(id) else { return }
-        trackedWindows.insert(id)
-        openWindowCount += 1
-        NSApp.setActivationPolicy(.regular)
-        // Becoming .regular alone shows the window on top but leaves the
-        // previously-active app owning the menu bar. Activate so Whisper
-        // Clipboard actually becomes frontmost and its menu bar appears.
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    @objc private func windowWillClose(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow, isAppWindow(window) else { return }
-        let id = ObjectIdentifier(window)
-        guard trackedWindows.contains(id) else { return }
-        trackedWindows.remove(id)
-        openWindowCount = max(0, openWindowCount - 1)
-        if openWindowCount == 0 {
-            NSApp.setActivationPolicy(.accessory)
+    nonisolated func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // macOS 27 crash reports show an invalid executor reference at this
+        // Objective-C entry point. Return to AppKit before touching UI state;
+        // an explicitly main-actor task establishes the UI execution context.
+        // Do not use assumeIsolated here: that re-enters the crashing check.
+        Task { @MainActor [weak self] in
+            self?.showMainWindow()
         }
-    }
-
-    /// Ignore panels and the status-bar window; only track real content windows.
-    private func isAppWindow(_ window: NSWindow) -> Bool {
-        window.canBecomeMain && !(window is NSPanel)
+        return false
     }
 
     // MARK: - Actions
@@ -501,23 +469,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Activates the app and brings the main window forward, opening it if needed.
     private func showMainWindow() {
-        NSApp.activate(ignoringOtherApps: true)
-        for window in NSApp.windows where isAppWindow(window) {
-            window.makeKeyAndOrderFront(nil)
-            return
+        if !NSApp.isActive {
+            NSApp.activate(ignoringOtherApps: true)
         }
-        // No window yet: ask SwiftUI to open the "main" scene.
-        openMainWindowViaMenu()
-    }
-
-    private func openMainWindowViaMenu() {
-        // In a menu-bar-only launch there may be no window; the SwiftUI Window
-        // scene provides a default "New Window" menu action we can invoke.
-        if let action = NSSelectorFromString("newWindowForTab:") as Selector?,
-           NSApp.sendAction(action, to: nil, from: nil) {
-            return
-        }
-        NSApp.sendAction(#selector(NSResponder.newWindowForTab(_:)), to: nil, from: nil)
+        // Target the main scene, never an arbitrary settings window.
+        openMainWindow?()
     }
 
     @objc private func openSettings() {

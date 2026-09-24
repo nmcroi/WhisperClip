@@ -131,7 +131,10 @@ final class CaptionOverlayController {
 }
 
 /// An `NSPanel` that never becomes key or main (passive overlay).
-private final class NonKeyCaptionPanel: NSPanel {
-    override var canBecomeKey: Bool { false }
-    override var canBecomeMain: Bool { false }
+final class NonKeyCaptionPanel: NSPanel {
+    // AppKit calls these Objective-C getters while selecting a key window.
+    // They read no UI state. Avoid an unnecessary Swift executor check here
+    // (2.0.2 crash in @objc canBecomeKey -> SerialExecutor._isSameExecutor).
+    nonisolated override var canBecomeKey: Bool { false }
+    nonisolated override var canBecomeMain: Bool { false }
 }
