@@ -3,7 +3,7 @@ import Foundation
 public enum AudioCopy {
     public enum Key: String, Sendable {
         case privacyDeletion, privacySharing
-        case showOption, choice, keeping, help, legacy, noAudio, noSpeech, play, pause, export, remove, confirmRemove, deleteTogether, mergeWarning, cancel, close, position, storageFailed, partialAudio, noteMissing, cleanupFailed, retry, found, foundHelp, localOnly, exportFailed, audio
+        case showOption, choice, keeping, help, legacy, noAudio, noSpeech, play, pause, export, remove, confirmRemove, deleteTogether, mergeWarning, cancel, close, position, storageFailed, partialAudio, noteMissing, cleanupFailed, retry, found, foundHelp, localOnly, exportFailed, audio, storageSize, storageWarning
     }
     public static func text(_ key: Key, locale: Locale = .current) -> String {
         let language = locale.language.languageCode?.identifier ?? "nl"
@@ -38,6 +38,8 @@ public enum AudioCopy {
         case .localOnly: return ["Audio blijft alleen op dit apparaat en valt buiten synchronisatie en automatische back-ups. Verwijderen van het transcript verwijdert ook de audio.", "Audio stays on this device, outside sync and automatic backups. Deleting the transcript also deletes its audio.", "Audio bleibt auf diesem Gerät, ohne Synchronisierung oder automatische Backups. Beim Löschen des Transkripts wird auch das Audio gelöscht."][index]
         case .exportFailed: return ["Exporteren is mislukt. De oorspronkelijke audio blijft behouden.", "Export failed. The original audio is preserved.", "Der Export ist fehlgeschlagen. Das Originalaudio bleibt erhalten."][index]
         case .audio: return ["Audio", "Audio", "Audio"][index]
+        case .storageSize: return ["Bewaarde audio op dit apparaat: %@", "Saved audio on this device: %@", "Gespeichertes Audio auf diesem Gerät: %@"][index]
+        case .storageWarning: return ["De bewaarde audio neemt inmiddels %@ in. Alles blijft staan; dit is alleen een seintje. Opruimen kan via Geschiedenis (Alleen audio verwijderen).", "Saved audio now takes %@. Nothing is deleted; this is just a heads-up. Clean up via History (Delete audio only).", "Das gespeicherte Audio belegt inzwischen %@. Nichts wird gelöscht; nur ein Hinweis. Aufräumen über Verlauf (Nur Audio löschen)."][index]
         }
     }
 }

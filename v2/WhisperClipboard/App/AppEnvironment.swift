@@ -592,7 +592,13 @@ final class AppEnvironment: ObservableObject {
         // pad bestond al en werd getest, maar had tot nu toe alleen op de iPhone
         // een aanroeper — op de Mac ging elke onderbroken opname verloren
         // (bevinding 2026-08-03).
-        Task { await recoverInterruptedRecordings() }
+        Task {
+            await recoverInterruptedRecordings()
+            // Seintje bij elke 5 GB bewaarde audio; niets wordt verwijderd.
+            if let warning = AudioStorageAlarm.check(bytes: history.audioStorageBytes()) {
+                Notifications.post(warning)
+            }
+        }
 
         // Start watching configured folders for new media (M7). Safe to start
         // unconditionally: with no folders configured each scan is a no-op, and

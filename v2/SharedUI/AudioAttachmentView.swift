@@ -157,6 +157,7 @@ struct AudioStorageStatusView: View {
     var locale: Locale = .current
     @State private var found: [URL] = []
     @State private var showingFound = false
+    @State private var storageBytes: Int64 = 0
     private func t(_ key: AudioCopy.Key) -> String { AudioCopy.text(key, locale: locale) }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -168,6 +169,11 @@ struct AudioStorageStatusView: View {
             }
             if !found.isEmpty {
                 ActionButton(title: t(.found), systemImage: "waveform", size: .compact) { showingFound = true }
+            }
+            if storageBytes > 0 {
+                Text(String(format: t(.storageSize), AudioStorageAlarm.formatted(storageBytes, locale: locale)))
+                    .font(ThemeFont.ui(12))
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
         // Nooit uit zichzelf openen: het venster stond bij de start over het
@@ -204,5 +210,8 @@ struct AudioStorageStatusView: View {
             }.frame(minWidth: 280, minHeight: 300).background(Theme.window)
         }
     }
-    private func refresh() { found = (try? store.foundRecordings()) ?? [] }
+    private func refresh() {
+        found = (try? store.foundRecordings()) ?? []
+        storageBytes = store.audioStorageBytes()
+    }
 }

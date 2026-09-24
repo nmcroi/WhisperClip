@@ -23,6 +23,7 @@
 		1E9D7EAB9BD26180F92322F3 /* AudioAttachmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20B7297082AF56D7A56A6D8 /* AudioAttachmentView.swift */; };
 		1F008F01037DFD52388AB203 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00BFC79EAD046B59506688C1 /* HomeView.swift */; };
 		2329CE1AC97FD57F6112D23A /* MeetingPrivacyInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AD7EC8A3F40261FA774D42 /* MeetingPrivacyInfoSheet.swift */; };
+		24377F77B175721830BCE96F /* AudioStorageAlarmTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FB72F5E8129AF8419FCF731 /* AudioStorageAlarmTests.swift */; };
 		27B565300FDB25C3952D6151 /* DictationLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9663E781B96BFEF73FA36A8D /* DictationLogicTests.swift */; };
 		2A21960A8199F67F798E28B6 /* Clipboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 029416F2756C062AE6D4E7B6 /* Clipboard.swift */; };
 		2B499ED1D007731BA854B105 /* InsertionLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29387B38D94A0836DCEBC319 /* InsertionLogicTests.swift */; };
@@ -260,6 +261,7 @@
 		71BD0555FE8A47DCABAC137E /* DictationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationController.swift; sourceTree = "<group>"; };
 		78B41E524A625F7A4EB753F1 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		7BEDBA15BDAF29CFDEEAA4DE /* InsertionLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionLogic.swift; sourceTree = "<group>"; };
+		7FB72F5E8129AF8419FCF731 /* AudioStorageAlarmTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioStorageAlarmTests.swift; sourceTree = "<group>"; };
 		80C96440072B03CD4274ABD7 /* UndoToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UndoToast.swift; sourceTree = "<group>"; };
 		826BBAD27D8C8176815452C8 /* ModesServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModesServiceTests.swift; sourceTree = "<group>"; };
 		843351EA43F13695B87EF899 /* PlaudSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaudSettingsView.swift; sourceTree = "<group>"; };
@@ -506,6 +508,7 @@
 			isa = PBXGroup;
 			children = (
 				A52C1230074C269F52459333 /* AIResultStoreTests.swift */,
+				7FB72F5E8129AF8419FCF731 /* AudioStorageAlarmTests.swift */,
 				E74CA8514FB418F624A2849D /* AudioTapExceptionTests.swift */,
 				1B15A1A7AFE523CD57EDBB55 /* AutomationTests.swift */,
 				A7AFDEA768659079E126A5A8 /* CaptionWindowingTests.swift */,
@@ -1244,6 +1247,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EA27253176B701A030C30F8B /* AIResultStoreTests.swift in Sources */,
+				24377F77B175721830BCE96F /* AudioStorageAlarmTests.swift in Sources */,
 				36AFDA5CABF33CBFCB1596B9 /* AudioTapExceptionTests.swift in Sources */,
 				5AD8E2840DD1816B6977CB08 /* AutomationTests.swift in Sources */,
 				9E4742F7A992E55BAFFDD7B6 /* CaptionWindowingTests.swift in Sources */,

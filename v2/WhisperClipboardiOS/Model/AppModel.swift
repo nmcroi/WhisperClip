@@ -472,6 +472,12 @@ final class AppModel: ObservableObject {
     private func recoverInterruptedRecordingsIfNeeded() async {
         guard !didAttemptRecordingRecovery else { return }
         didAttemptRecordingRecovery = true
+        // Seintje bij elke 5 GB bewaarde audio; niets wordt verwijderd (24 sep 2026).
+        if let history, let warning = AudioStorageAlarm.check(
+            bytes: history.audioStorageBytes(), locale: interfaceLanguage.locale
+        ) {
+            errorMessage = warning
+        }
         await runRecordingRecovery(announcing: true)
     }
 

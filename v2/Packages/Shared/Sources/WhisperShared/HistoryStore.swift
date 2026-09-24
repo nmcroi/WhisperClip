@@ -1077,6 +1077,11 @@ public final class HistoryStore: ObservableObject {
         } catch { audioCleanupError = error.localizedDescription }
     }
 
+    /// Omvang van de bewaarde audio op dit apparaat, in bytes (0 zonder repository).
+    public func audioStorageBytes() -> Int64 {
+        recordingRepository?.totalBytes() ?? 0
+    }
+
     public func foundRecordings() throws -> [URL] {
         guard let repository = recordingRepository else { return [] }
         return try repository.savedFiles().filter { try !containsTranscript($0.deletingPathExtension().lastPathComponent) }

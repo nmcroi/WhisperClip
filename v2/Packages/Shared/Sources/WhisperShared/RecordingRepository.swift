@@ -157,6 +157,16 @@ public struct RecordingRepository: Sendable {
             for file in try savedFiles() { try protect(file) }
         }
     }
+    /// Totale omvang van alle bewaarde audiobestanden, in bytes. Voor de
+    /// 5 GB-waarschuwing (wens Niels, 24 sep 2026).
+    public func totalBytes() -> Int64 {
+        guard let files = try? savedFiles() else { return 0 }
+        return files.reduce(Int64(0)) { sum, url in
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+            return sum + Int64(size)
+        }
+    }
+
     public func savedFiles() throws -> [URL] {
         guard FileManager.default.fileExists(atPath: recordingsDirectory.path) else { return [] }
         return try FileManager.default.contentsOfDirectory(at: recordingsDirectory,
