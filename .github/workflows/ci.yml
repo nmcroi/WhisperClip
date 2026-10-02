@@ -1,12 +1,8 @@
 # CI voor Whisper Clipboard v2.
 #
-# Twee lagen:
-# - core-linux: alle CoreTests op een goedkope Linux-runner (1× minuten).
-#   Nieuwe logica hoort zoveel mogelijk in Packages/Core zodat hij hier
-#   getest wordt.
-# - apps-macos: XcodeGen + xcodebuild voor de Mac-app (build + tests) en de
-#   iOS-app (Simulator-build, geen signing). macOS-runners tellen 10× —
-#   daarom concurrency-cancel en een SPM-cache.
+# Core bevat een Objective-C-vangnet en Apple Security-API's. Test Core daarom
+# op dezelfde ondersteunde Apple-runner als de apps; de Linux-job kon hierdoor
+# nooit compileren. Concurrency-cancel en de SPM-cache beperken runnergebruik.
 #
 # De E2E-smoketests (WC_E2E=1) en alles wat een echte mic/iCloud/mailaccount
 # nodig heeft draaien hier bewust niet.
@@ -22,17 +18,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  core-linux:
-    name: Core-tests (Linux)
-    runs-on: ubuntu-latest
-    container: swift:6.1
-    steps:
-      - uses: actions/checkout@v4
-      - name: Swift-versie
-        run: swift --version
-      - name: CoreTests
-        run: swift test --package-path v2/Packages/Core
-
   apps-macos:
     name: Mac + iOS (Xcode)
     runs-on: macos-26
@@ -61,6 +46,10 @@ jobs:
           path: v2/SourcePackages
           key: spm-${{ runner.os }}-${{ hashFiles('v2/project.yml', 'v2/Packages/**/Package.swift') }}
           restore-keys: spm-${{ runner.os }}-
+
+      - name: Core-tests (macOS)
+        working-directory: v2
+        run: swift test --package-path Packages/Core
 
       # -quiet in plaats van "| tail": zo kan een compileerfout nooit buiten
       # het zichtbare log vallen, terwijl de succes-output kort blijft.
