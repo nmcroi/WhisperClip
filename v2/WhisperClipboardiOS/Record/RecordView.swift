@@ -39,9 +39,6 @@ struct RecordView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .top) {
-            if let history = app.history { AudioStorageStatusView(store: history, locale: app.interfaceLanguage.locale) }
-        }
         .task {
             controller.attach(app: app)
             // Dekt de koude start en terugkeer naar dit tabblad: een resultaat

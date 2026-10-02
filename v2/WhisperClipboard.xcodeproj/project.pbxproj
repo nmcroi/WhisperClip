@@ -1336,7 +1336,7 @@
 				CODE_SIGN_ENTITLEMENTS = "WhisperClipboardiOS/WhisperClipboardiOS-Production.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboardiOS/Resources/Info.plist;
@@ -1345,7 +1345,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.3;
+				MARKETING_VERSION = 2.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard.ios;
 				PRODUCT_NAME = WhisperClipboardiOS;
 				SDKROOT = iphoneos;
@@ -1428,7 +1428,7 @@
 				CODE_SIGN_ENTITLEMENTS = WhisperClipboardiOS/WhisperClipboardiOS.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboardiOS/Resources/Info.plist;
@@ -1437,7 +1437,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.0.3;
+				MARKETING_VERSION = 2.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard.ios;
 				PRODUCT_NAME = WhisperClipboardiOS;
 				SDKROOT = iphoneos;
@@ -1454,7 +1454,7 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboardiOSWidgets/Info.plist;
@@ -1464,7 +1464,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.3;
+				MARKETING_VERSION = 2.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard.ios.widgets;
 				PRODUCT_NAME = WhisperClipboardiOSWidgets;
 				SDKROOT = iphoneos;
@@ -1521,7 +1521,7 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = WhisperClipboardiOSWidgets/Info.plist;
@@ -1531,7 +1531,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.0.3;
+				MARKETING_VERSION = 2.0.4;
 				PRODUCT_BUNDLE_IDENTIFIER = nl.nielscroiset.whisperclipboard.ios.widgets;
 				PRODUCT_NAME = WhisperClipboardiOSWidgets;
 				SDKROOT = iphoneos;
