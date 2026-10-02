@@ -287,6 +287,27 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(try store.entries(filter: .all).count, 2)
     }
 
+    func testHUDDictationsAreSeparateWithoutHidingLegacyOrPhoneRecordings() async throws {
+        let store = try makeStore()
+        try store.add(entry(id: "hud", text: "AI-chat dictaat", source: "mic.mac"))
+        try store.add(entry(id: "phone", text: "iPhone-opname", source: "mic.ios"))
+        try store.add(entry(id: "legacy", text: "oude microfoonopname", source: "mic"))
+        try store.add(entry(id: "plaud", text: "gesprek", source: "plaud.ios"))
+        try store.add(entry(id: "file", text: "bestand", source: "file.mac"))
+
+        let conversations = try await store.historySnapshot(filter: .conversations)
+        let dictations = try await store.historySnapshot(filter: .dictations)
+        XCTAssertEqual(Set(conversations.entries.map(\.id)), ["phone", "legacy", "plaud", "file"])
+        XCTAssertEqual(dictations.entries.map(\.id), ["hud"])
+        XCTAssertEqual(try store.count(filter: .all), 5)
+        XCTAssertEqual(try store.count(filter: .conversations), 4)
+        XCTAssertEqual(try store.count(filter: .dictations), 1)
+        XCTAssertEqual(try store.entries(query: "AI-chat", filter: .conversations).count, 0)
+        XCTAssertEqual(try store.entries(query: "AI-chat", filter: .all).map(\.id), ["hud"])
+        XCTAssertEqual(TranscriptSourceStyle.label(for: "mic.mac"), "Dictaat")
+        XCTAssertEqual(TranscriptSourceStyle.label(for: "mic.ios"), "Microfoon")
+    }
+
     func testFilterCombinedWithSearch() throws {
         let store = try makeStore()
         try store.add(entry(id: "m", text: "notulen microfoon", source: "mic"))

@@ -196,7 +196,7 @@ private struct HomeContent: View {
 
     @State private var isDropTargeted = false
 
-    /// De 10 recentste opnames, één keer opgehaald per wijziging.
+    /// De 10 recentste gesprekken/opnames, zonder de korte HUD-dictaten.
     ///
     /// Bevinding 2026-08-04: dit was een computed property, en deze view
     /// observeert `dictation` — die publiceert tijdens een opname 10× per
@@ -448,7 +448,7 @@ private struct HomeContent: View {
     private var recentSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Recent")
+                Text("Recente gesprekken")
                     .font(ThemeFont.ui(15, weight: .semibold))
                     .foregroundStyle(Theme.text)
                 Spacer()
@@ -484,7 +484,7 @@ private struct HomeContent: View {
         HStack(spacing: 10) {
             Image(systemName: "waveform")
                 .foregroundStyle(Theme.textTertiary)
-            Text("Nog geen transcripties. Start een opname om te beginnen.")
+            Text("Nog geen gesprekken of opnames.")
                 .font(ThemeFont.ui(12))
                 .foregroundStyle(Theme.textSecondary)
             Spacer(minLength: 0)
@@ -494,10 +494,10 @@ private struct HomeContent: View {
         .themeCard()
     }
 
-    /// Haalt de 10 recentste opnames op. Zelfde query als voorheen, alleen niet
-    /// meer bij elke body-pass (bevinding 2026-08-04).
+    /// De HUD-dictaten hebben hun eigen keuze in Geschiedenis; laat ze het
+    /// overzicht van gesprekken op Home niet verdringen.
     private func refreshRecents() {
-        recentEntries = (try? history.recent(10)) ?? []
+        recentEntries = (try? history.entries(filter: .conversations, limit: 10)) ?? []
         hasLoadedRecents = true
     }
 }

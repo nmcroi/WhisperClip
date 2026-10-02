@@ -19,7 +19,7 @@ struct HistoryListView: View {
 
     @State private var rawQuery = ""
     @State private var debouncedQuery = ""
-    @State private var filter: HistoryFilter = .all
+    @State private var filter: HistoryFilter = .conversations
     @State private var durationFilter: DurationFilter = .any
     @State private var deviceFilter: DeviceFilter = .any
     @State private var speakerFilter: SpeakerFilter = .any
@@ -143,7 +143,7 @@ struct HistoryListView: View {
             debouncedQuery = value
         }
         .onChange(of: navigation.pendingTranscriptID) { _, id in
-            if let id { select(id); navigation.pendingTranscriptID = nil }
+            if let id { selectPendingTranscript(id) }
         }
         // Eén query per echte wijziging: zoektekst, filters of sortering
         // (samengebald in `criteria`), of een mutatie in de store.
@@ -153,14 +153,23 @@ struct HistoryListView: View {
         .onChange(of: store.revision) { _, _ in refreshEntries() }
         .onDisappear { refreshTask?.cancel() }
         .onAppear {
-            refreshEntries()
+            // Every visit starts with conversations, even if SwiftUI preserves
+            // this view's state while the main window is closed and reopened.
+            filter = .conversations
             if let id = navigation.pendingTranscriptID {
-                select(id)
-                navigation.pendingTranscriptID = nil
+                selectPendingTranscript(id)
             } else if selection.isEmpty {
                 selectFirstAfterRefresh = true
             }
+            refreshEntries()
         }
+    }
+
+    private func selectPendingTranscript(_ id: String) {
+        filter = (try? store.record(id: id))?.source == "mic.mac" ? .dictations : .conversations
+        select(id)
+        selectFirstAfterRefresh = false
+        navigation.pendingTranscriptID = nil
     }
 
     // MARK: - List pane
@@ -322,6 +331,12 @@ struct HistoryListView: View {
     private var advancedControls: some View {
         HStack(spacing: 8) {
             Menu {
+                Picker("Bron", selection: $filter) {
+                    ForEach(HistoryFilter.allCases, id: \.self) { option in
+                        Text(label(for: option)).tag(option)
+                    }
+                }
+                Divider()
                 Picker("Apparaat", selection: $deviceFilter) {
                     ForEach(DeviceFilter.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
@@ -340,6 +355,7 @@ struct HistoryListView: View {
                 if hasAdvancedFilters {
                     Divider()
                     Button("Wis extra filters") {
+                        if filter == .mic || filter == .file { filter = .conversations }
                         deviceFilter = .any
                         durationFilter = .any
                         speakerFilter = .any
@@ -379,7 +395,8 @@ struct HistoryListView: View {
     }
 
     private var hasAdvancedFilters: Bool {
-        deviceFilter != .any || durationFilter != .any || speakerFilter != .any || titleFilter != .any
+        filter == .mic || filter == .file || deviceFilter != .any || durationFilter != .any
+            || speakerFilter != .any || titleFilter != .any
     }
 
     private var searchField: some View {
@@ -411,8 +428,8 @@ struct HistoryListView: View {
     }
 
     private var filterChips: some View {
-        HStack(spacing: 8) {
-            ForEach(HistoryFilter.allCases, id: \.self) { option in
+        HStack(spacing: 6) {
+            ForEach([HistoryFilter.conversations, .dictations, .plaud, .all], id: \.self) { option in
                 FilterChip(
                     label: label(for: option),
                     selected: filter == option
@@ -420,12 +437,14 @@ struct HistoryListView: View {
             }
             Spacer()
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.bottom, 10)
     }
 
     private func label(for filter: HistoryFilter) -> String {
         switch filter {
+        case .conversations: return "Gesprekken"
+        case .dictations: return "Dictaten"
         case .all: return "Alles"
         case .mic: return "Microfoon"
         case .file: return "Bestanden"
@@ -515,11 +534,12 @@ struct HistoryListView: View {
             Image(systemName: debouncedQuery.isEmpty ? "tray" : "magnifyingglass")
                 .font(.system(size: 26))
                 .foregroundStyle(Theme.textTertiary)
-            Text(debouncedQuery.isEmpty ? "Nog geen transcripties" : "Geen resultaten")
+            Text(debouncedQuery.isEmpty ? emptyTitle : "Geen resultaten")
                 .font(ThemeFont.ui(13, weight: .medium))
                 .foregroundStyle(Theme.textSecondary)
             if debouncedQuery.isEmpty {
-                Text("Start een opname om je eerste transcriptie te maken.")
+                Text(filter == .dictations ? "Start een dictaat om het hier terug te vinden."
+                     : "Nieuwe opnames verschijnen hier automatisch.")
                     .font(ThemeFont.ui(12))
                     .foregroundStyle(Theme.textTertiary)
                     .multilineTextAlignment(.center)
@@ -527,6 +547,15 @@ struct HistoryListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
+    }
+
+    private var emptyTitle: String {
+        switch filter {
+        case .conversations: "Nog geen gesprekken"
+        case .dictations: "Nog geen dictaten"
+        case .plaud: "Geen PLAUD-opnames"
+        default: "Nog geen transcripties"
+        }
     }
 
     // MARK: - Detail pane
@@ -728,9 +757,9 @@ private struct FilterChip: View {
     var body: some View {
         Button(action: action) {
             Text(label)
-                .font(ThemeFont.ui(12, weight: .medium))
+                .font(ThemeFont.ui(11, weight: .medium))
                 .foregroundStyle(selected ? Theme.onAccent : Theme.textSecondary)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 9)
                 .padding(.vertical, 5)
                 .background(selected ? Theme.accent : Theme.surface)
                 .clipShape(Capsule())

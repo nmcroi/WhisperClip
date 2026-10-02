@@ -4,6 +4,7 @@ import Foundation
 /// history UI. Centralizes the mic / file / captions / plaud distinction.
 public enum TranscriptSourceStyle {
     public static func icon(for source: String) -> String {
+        if source == "mic.mac" { return "text.bubble" }
         switch baseSource(source) {
         case "file": return "doc.text"
         case "captions": return "captions.bubble"
@@ -18,6 +19,7 @@ public enum TranscriptSourceStyle {
     }
 
     public static func label(for source: String) -> String {
+        if source == "mic.mac" { return "Dictaat" }
         switch baseSource(source) {
         case "file": return "Bestand"
         case "captions": return "Ondertitels"

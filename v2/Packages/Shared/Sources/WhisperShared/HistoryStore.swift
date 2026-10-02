@@ -3,9 +3,11 @@ import Foundation
 import GRDB
 import Observation
 
-/// The mic/file filter applied to history queries.
+/// Source and purpose filters applied to history queries.
 public enum HistoryFilter: String, CaseIterable, Sendable {
     case all
+    case conversations
+    case dictations
     case mic
     case file
     case plaud
@@ -853,7 +855,7 @@ public final class HistoryStore: ObservableObject {
     /// to a source, with paging.
     /// - Parameters:
     ///   - query: FTS5 search text; `nil`/empty returns all. Matched as prefix.
-    ///   - filter: `.all`, `.mic`, or `.file`.
+    ///   - filter: Source or purpose filter; `.conversations` omits Mac HUD dictations.
     public func entries(
         query: String? = nil,
         filter: HistoryFilter = .all,
@@ -1208,6 +1210,15 @@ public final class HistoryStore: ObservableObject {
         switch filter {
         case .all:
             break
+        case .conversations:
+            // Mac HUD dictations have a distinct source. Older plain `mic`
+            // entries can originate on either platform and must not be guessed
+            // into the HUD category.
+            conditions.append("t.source <> ?")
+            _ = args.append(contentsOf: StatementArguments(["mic.mac"]))
+        case .dictations:
+            conditions.append("t.source = ?")
+            _ = args.append(contentsOf: StatementArguments(["mic.mac"]))
         case .mic:
             conditions.append("(t.source = ? OR t.source LIKE ?)")
             _ = args.append(contentsOf: StatementArguments(["mic", "mic.%"]))
