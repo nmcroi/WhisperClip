@@ -80,6 +80,7 @@ enum LaunchHealth {
     /// installeert de crash-handlers.
     static func recordLaunch() {
         startedAt = isoNow()
+        appendLog("Appstart \(appVersion) (\(appBuild)), pid=\(getpid())")
 
         let fm = FileManager.default
         let markerAanwezig = fm.fileExists(atPath: markerURL.path)

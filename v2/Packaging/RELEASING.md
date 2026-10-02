@@ -1,6 +1,14 @@
 # Whisper Clipboard — releasen
 
-## Actuele route voor werk-Mac (18 september 2026)
+## Actuele route voor werk-Mac (2 oktober 2026)
+
+De route is op 2 oktober voltooid voor 2.0.8 (14): de gecontroleerde DMG staat
+in `../../Releases/WhisperClip-2.0.8.dmg`. De Apple Developer Program License
+Agreement en Free Apps Agreement waren bij accountinspectie actief; de nieuwe
+notarisatieaanvragen voor app en DMG zijn geaccepteerd. Zie `RELEASE_2.0.8.md`.
+De CloudKit-productieschema's `Transcript` en `Note` zijn dezelfde dag vanuit
+Development uitgerold. Oudere alinea's verderop beschrijven de historische
+eenmalige inrichting en zijn geen actuele openstaande checklist.
 
 `package_work_mac.py` verpakt een vooraf gebouwde Release-app met Developer ID,
 een geldig distributieprofiel voor alle apparaten en Production-CloudKit-rechten.
@@ -12,8 +20,17 @@ bestaand apparaat zonder controle en backup.
   daarna de Info.plist van de daadwerkelijke Release-app.
 - Bouw `WhisperClipboard`, configuratie Release. De lokale Xcode-signingoverride
   geldt alleen voor Debug.
-- Geef `NOTARY_KEY_PATH`, `NOTARY_KEY_ID`, `NOTARY_ISSUER` via de omgeving door.
-  Credentials niet opnemen in scripts, rapporten of DMG.
+- Geef een reeds opgeslagen `NOTARY_KEYCHAIN_PROFILE` **of** `NOTARY_KEY_PATH`,
+  `NOTARY_KEY_ID` en `NOTARY_ISSUER` via de omgeving door. Credentials niet
+  opnemen in scripts, rapporten of DMG. Zonder deze gegevens stopt de tool
+  voordat er een release-map wordt aangemaakt.
+- Een geldige sleutel is niet voldoende als Apple voor het team nieuwe
+  accountvoorwaarden verlangt. `notarytool` meldt dan HTTP 403 met
+  `A required agreement is missing or has expired`. Alleen de Account Holder
+  kan die voorwaarden na lezing accepteren; controleer de Apple Developer-
+  account en App Store Connect > Business > Agreements. Herhaal daarna de
+  pakketstap met een nieuwe outputmap. Meld een ondertekende app zonder
+  notarisatieticket nooit als installatieklare distributieversie.
 - Aanroep: `python3 Packaging/package_work_mac.py --app /pad/WhisperClip.app
   --output Packaging/dist/unieke-release-map --profile /pad/distributie.provisionprofile
   --identity 'Developer ID Application: …' --team TEAMID` (op één regel).
@@ -89,19 +106,18 @@ database in je eigen iCloud (container `iCloud.nl.nielscroiset.whisperclipboard`
 De code degradeert netjes: zonder entitlement/account blijft sync slapend
 ("iCloud niet beschikbaar"), dus ad-hoc dev-builds en CI crashen nooit.
 
-**Update 24 juli 2026, bijgesteld 8 augustus 2026:** de iOS-crash die de sync
+**Historische status 24 juli 2026, bijgesteld 8 augustus 2026; achterhaald op
+2 oktober 2026:** de iOS-crash die de sync
 eerder liet uitschakelen kwam door een onbetrouwbare entitlement-check (las het
 provisioning-profiel in plaats van de echte, ondertekende grant). Dat is
-gerepareerd: beide platforms lezen nu dezelfde, betrouwbare check, dus aanzetten
-laat de app niet meer crashen. De toggle staat op iOS nog wél uit in Release, en
-in Debug standaard uit maar bedienbaar. Dat is met opzet, want het CloudKit-
-schema is nog niet naar Production uitgerold (stap 5 hieronder). Zodra die stap
-gedaan is, kan de Release-rem in `AppModel.init()` eruit.
-De portal-stappen hieronder (1 tot en met 6) zijn de enige nog openstaande,
-eenmalige stappen die alleen jij kunt doen, daarna werkt echte cross-device-sync.
+gerepareerd: beide platforms lezen nu dezelfde, betrouwbare check. Deze
+historische status beschrijft de toenmalige Release-rem en het ontbrekende
+Production-schema. De huidige iPhone-bron 2.0.3 (9) heeft die rem verwijderd,
+en `Transcript` plus `Note` zijn op 2 oktober naar Production uitgerold. De
+hieronder beschreven portalinrichting is inmiddels aanwezig; echte iPhone-naar-
+Mac-sync moet nog na de toestelupdate worden gecontroleerd.
 
-Om sync in de **échte** release aan te zetten, moet dit eenmalig in de portal
-klaarstaan (dit kan ik niet automatiseren — doe je zelf):
+Historische stappen voor de eenmalige portalinrichting:
 
 1. **CloudKit-container aanmaken.** Developer-portal ▸ Certificates, IDs &
    Profiles ▸ Identifiers ▸ (filter op iCloud Containers) ▸ "+" ▸

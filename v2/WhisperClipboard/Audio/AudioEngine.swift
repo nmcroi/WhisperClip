@@ -1,6 +1,8 @@
 import AppKit
 import AVFoundation
+import AudioToolbox
 import Combine
+import CoreAudio
 import Core
 import Foundation
 import WhisperShared
@@ -55,7 +57,12 @@ final class AudioLevelMeter: ObservableObject {
 final class AudioEngine {
     let levelMeter = AudioLevelMeter()
 
-    private let engine = AVAudioEngine()
+    private var engine = AVAudioEngine()
+    /// Read when a capture starts (also for Notulist), so changing Settings
+    /// never silently changes the source of an ongoing recording.
+    var preferredInputUIDProvider: (() -> String)?
+    private var configuredInputUID: String?
+    private var sessionInputUID: String?
     private var converter: AVAudioConverter?
     private var outputFormat: AVAudioFormat?
     private var continuation: AsyncStream<AudioBufferBox>.Continuation?
@@ -168,8 +175,18 @@ final class AudioEngine {
     func warmUp() {
         guard !isRunning else { return }
         let started = DispatchTime.now().uptimeNanoseconds
-        _ = engine.inputNode.outputFormat(forBus: 0)
-        engine.prepare()
+        do {
+            try prepareInputDevice(preferredUID: preferredInputUIDProvider?() ?? "")
+            try catchingObjCException {
+                _ = engine.inputNode.outputFormat(forBus: 0)
+                engine.prepare()
+            }
+        } catch {
+            LaunchHealth.note("AudioEngine: klaarzetten mislukt: \(error.localizedDescription); nieuwe engine aangemaakt")
+            engine = AVAudioEngine()
+            configuredInputUID = nil
+            return
+        }
         let ms = Double(DispatchTime.now().uptimeNanoseconds - started) / 1_000_000
         if ms > 100 {
             NSLog("AudioEngine: klaarzetten kostte %.0f ms (nu vooraf, niet meer bij de eerste opname)", ms)
@@ -201,28 +218,111 @@ final class AudioEngine {
     /// Die exceptie vloog op 23 september 2026 door een Swift-async-taak heen en
     /// liet de concurrency-runtime kapot achter: zes seconden later crashte de
     /// app in `swift_task_isCurrentExecutor`, en dat is de crashfamilie van
-    /// 2.0.2 tot 2.0.5. Wijkt het hardwareformaat af, dan resetten we de engine
-    /// zodat de node zich opnieuw op de hardware instelt.
-    private func tapFormatAfterHardwareCheck() -> AVAudioFormat {
-        let node = engine.inputNode
-        let hardware = node.inputFormat(forBus: 0)
-        var client = node.outputFormat(forBus: 0)
-        let differs = hardware.sampleRate > 0
-            && (hardware.sampleRate != client.sampleRate || hardware.channelCount != client.channelCount)
-        if differs {
+    /// 2.0.2 tot 2.0.5. `reset()` wist alleen de verwerkingsstaat van audionodes;
+    /// een verbinding met een oud clientformaat blijft bestaan. Maak daarom een nieuwe engine
+    /// aan en installeer nooit een tap zolang hardware en client verschillen.
+    private func tapFormatAfterHardwareCheck(preferredUID: String) throws -> AVAudioFormat {
+        var (hardware, client) = try readInputFormats()
+        if Self.formatsDiffer(hardware, client) {
             LaunchHealth.note(
-                "AudioEngine: invoerformaat gewisseld (hardware \(Int(hardware.sampleRate)) Hz/\(hardware.channelCount) ch, "
-                + "client \(Int(client.sampleRate)) Hz/\(client.channelCount) ch), engine gereset."
+                "AudioEngine: formaatverschil bij input \(Self.defaultInputDeviceID()) "
+                + "(hardware \(Self.describe(hardware)), client \(Self.describe(client))); nieuwe engine aangemaakt"
             )
-            engine.reset()
-            client = engine.inputNode.outputFormat(forBus: 0)
+            engine.stop()
+            engine = AVAudioEngine()
+            configuredInputUID = nil
+            try prepareInputDevice(preferredUID: preferredUID)
+            (hardware, client) = try readInputFormats()
+        }
+        guard hardware.sampleRate > 0, hardware.channelCount > 0,
+              client.sampleRate > 0, client.channelCount > 0,
+              !Self.formatsDiffer(hardware, client) else {
+            LaunchHealth.note(
+                "AudioEngine: onbruikbaar invoerformaat bij input \(Self.defaultInputDeviceID()) "
+                + "(hardware \(Self.describe(hardware)), client \(Self.describe(client))); geen tap geïnstalleerd"
+            )
+            throw AudioEngineError.engineStartFailed("Het microfoonformaat is nog niet stabiel. Probeer het opnieuw.")
         }
         return client
     }
 
+    private func readInputFormats() throws -> (AVAudioFormat, AVAudioFormat) {
+        do {
+            return try catchingObjCException {
+                let node = engine.inputNode
+                return (node.inputFormat(forBus: 0), node.outputFormat(forBus: 0))
+            }
+        } catch {
+            LaunchHealth.note("AudioEngine: invoerformaat lezen mislukt: \(error.localizedDescription)")
+            throw AudioEngineError.engineStartFailed("Het microfoonformaat kon niet worden gelezen. Probeer het opnieuw.")
+        }
+    }
+
+    private static func formatsDiffer(_ hardware: AVAudioFormat, _ client: AVAudioFormat) -> Bool {
+        hardware.sampleRate != client.sampleRate || hardware.channelCount != client.channelCount
+    }
+
+    private static func describe(_ format: AVAudioFormat) -> String {
+        "\(Int(format.sampleRate)) Hz/\(format.channelCount) ch"
+    }
+
+    private static func defaultInputDeviceID() -> String {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var device = AudioObjectID(0)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device) == noErr else {
+            return "onbekend"
+        }
+        return String(device)
+    }
+
+    private func prepareInputDevice(preferredUID uid: String) throws {
+        // Recreate the graph when switching between an explicit source and the
+        // system default. AVAudioEngine.reset() retains the old I/O connection.
+        if let configuredInputUID, configuredInputUID != uid {
+            engine.stop()
+            engine = AVAudioEngine()
+            self.configuredInputUID = nil
+        }
+        guard !uid.isEmpty else {
+            configuredInputUID = ""
+            return
+        }
+        guard let device = MicrophoneDevices.device(uid: uid) else {
+            throw AudioEngineError.engineStartFailed("De gekozen microfoon is niet aangesloten. Kies een andere in Instellingen.")
+        }
+        guard let unit = engine.inputNode.audioUnit else {
+            throw AudioEngineError.engineStartFailed("De gekozen microfoon kon niet worden geopend.")
+        }
+        var current = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let readStatus = AudioUnitGetProperty(unit, kAudioOutputUnitProperty_CurrentDevice,
+                                               kAudioUnitScope_Global, 0, &current, &size)
+        if readStatus != noErr || current != device.audioObjectID {
+            var requested = device.audioObjectID
+            let setStatus = AudioUnitSetProperty(unit, kAudioOutputUnitProperty_CurrentDevice,
+                                                  kAudioUnitScope_Global, 0, &requested,
+                                                  UInt32(MemoryLayout<AudioDeviceID>.size))
+            guard setStatus == noErr else {
+                throw AudioEngineError.engineStartFailed("De gekozen microfoon kon niet worden ingesteld (CoreAudio \(setStatus)).")
+            }
+            size = UInt32(MemoryLayout<AudioDeviceID>.size)
+            guard AudioUnitGetProperty(unit, kAudioOutputUnitProperty_CurrentDevice,
+                                       kAudioUnitScope_Global, 0, &current, &size) == noErr,
+                  current == device.audioObjectID else {
+                throw AudioEngineError.engineStartFailed("De gekozen microfoon werd niet actief. Probeer het opnieuw.")
+            }
+        }
+        configuredInputUID = uid
+    }
+
     /// Installeert de tap en start de engine achter het ObjC-vangnet. Een
-    /// NSException wordt hier een gewone Swift-fout; de engine wordt gereset
-    /// zodat een volgende poging schoon begint.
+    /// NSException wordt hier een gewone Swift-fout; daarna wordt een nieuwe
+    /// engine aangemaakt zodat een volgende poging niet dezelfde grafiek erft.
     private func installTapAndStart(
         on inputNode: AVAudioInputNode,
         format: AVAudioFormat,
@@ -237,7 +337,9 @@ final class AudioEngine {
         } catch let objc as ObjCExceptionError {
             LaunchHealth.note("AudioEngine: ObjC-exceptie opgevangen bij starten: \(objc.name): \(objc.reason)")
             inputNode.removeTap(onBus: 0)
-            engine.reset()
+            engine.stop()
+            engine = AVAudioEngine()
+            configuredInputUID = nil
             throw AudioEngineError.engineStartFailed(
                 "De microfoon is gewisseld of niet beschikbaar. Probeer het opnieuw. (\(objc.reason))"
             )
@@ -248,8 +350,10 @@ final class AudioEngine {
     }
 
     private func startCapture(convertingTo format: AVAudioFormat?) throws -> AsyncStream<AudioBufferBox> {
+        let preferredUID = preferredInputUIDProvider?() ?? ""
+        try prepareInputDevice(preferredUID: preferredUID)
+        let nativeFormat = try tapFormatAfterHardwareCheck(preferredUID: preferredUID)
         let inputNode = engine.inputNode
-        let nativeFormat = tapFormatAfterHardwareCheck()
 
         outputFormat = format
         if let format, format != nativeFormat {
@@ -289,6 +393,7 @@ final class AudioEngine {
         }
 
         isRunning = true
+        sessionInputUID = preferredUID
         isPaused = false
         self.tapHandler = tapHandler
         self.nativeFormat = nativeFormat
@@ -333,10 +438,16 @@ final class AudioEngine {
     /// bouwen zo nodig de converter opnieuw, zodat een gewijzigd formaat via het
     /// bestaande foutpad (`false`) wordt afgehandeld in plaats van met een crash.
     func resume() -> Bool {
-        guard isRunning, isPaused, let tapHandler, let previousFormat = nativeFormat else { return false }
+        guard isRunning, isPaused, let tapHandler, let previousFormat = nativeFormat,
+              let sessionInputUID else { return false }
 
+        let currentFormat: AVAudioFormat
+        do {
+            try prepareInputDevice(preferredUID: sessionInputUID)
+            currentFormat = try tapFormatAfterHardwareCheck(preferredUID: sessionInputUID)
+        }
+        catch { return false }
         let inputNode = engine.inputNode
-        let currentFormat = tapFormatAfterHardwareCheck()
         // Een verdwenen invoerapparaat levert een leeg formaat op; daar kan geen
         // tap op en installTap zou er alsnog op exploderen.
         guard currentFormat.channelCount > 0, currentFormat.sampleRate > 0 else { return false }
@@ -364,6 +475,7 @@ final class AudioEngine {
         }
         nativeFormat = currentFormat
         isPaused = false
+        installCaptureObservers()
         stopwatch.resume(at: Self.nowUptime())
         // Nieuw incidentvenster: de watchdog mag weer melden.
         interruptionReported = false
@@ -394,6 +506,7 @@ final class AudioEngine {
         engine.stop()
         tapHandler = nil
         nativeFormat = nil
+        sessionInputUID = nil
         stopwatch.stopAndReset()
         levelMeter.reset()
         if finishStream {

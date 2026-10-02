@@ -15,6 +15,15 @@ import Foundation
         #expect(AppSettings().language == "nl")
     }
 
+    @Test func microphoneChoiceMigratesAndRoundTrips() throws {
+        let old = try JSONDecoder().decode(AppSettings.self, from: Data("{}".utf8))
+        #expect(old.preferredMicrophoneUID.isEmpty)
+        var settings = old
+        settings.preferredMicrophoneUID = "test-device-uid"
+        let restored = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(restored.preferredMicrophoneUID == "test-device-uid")
+    }
+
     /// Persisted settings survive a JSON round-trip, and an explicit engine
     /// choice is preserved (not silently reset to the default).
     @Test func engineRoundTripsThroughCoding() throws {

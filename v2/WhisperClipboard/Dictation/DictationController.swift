@@ -87,6 +87,7 @@ final class DictationController: ObservableObject {
 
     /// The frontmost app captured when the current run started.
     private var capturedInsertionTarget: InsertionTarget?
+    private var diagnosticRunID: String?
     /// The insertion outcome of the most recent completed run (drives the HUD line).
     @Published private(set) var lastInsertionOutcome: InsertionOutcome?
 
@@ -270,6 +271,11 @@ final class DictationController: ObservableObject {
 
         let token = UUID()
         sessionToken = token
+        diagnosticRunID = token.uuidString
+        LaunchHealth.note(
+            "Dictaat \(token.uuidString): start; doel=\(capturedInsertionTarget?.bundleId ?? "onbekend")/"
+            + "\(capturedInsertionTarget?.processIdentifier ?? 0), direct invoegen=\(settingsProvider().directInsertion)"
+        )
         Task { await beginSession(token: token) }
     }
 
@@ -351,6 +357,7 @@ final class DictationController: ObservableObject {
         // er wordt opgenomen.
         phase = .recording
         LaunchHealth.setPhase(.recording)
+        LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): microfoon actief")
         onStateChange(.recording)
 
         Notifications.post("Opname gestart")
@@ -380,6 +387,7 @@ final class DictationController: ObservableObject {
         sessionToken = UUID()
 
         retainAtStop = keepAudio
+        LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): stop; opgenomen=\(Int(audioEngine.elapsed)) s")
         latency.markStop()
         phase = .transcribing
         LaunchHealth.setPhase(.transcribing)
@@ -486,6 +494,7 @@ final class DictationController: ObservableObject {
         LaunchHealth.setPhase(.inserting)
         let outcome = processed.isEmpty ? nil : insertionHandler?(processed, capturedInsertionTarget)
         lastInsertionOutcome = outcome
+        LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): invoegresultaat=\(String(describing: outcome))")
         capturedInsertionTarget = nil
         switch outcome {
         case .inserted:

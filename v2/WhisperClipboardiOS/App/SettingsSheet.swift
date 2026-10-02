@@ -331,7 +331,6 @@ struct SettingsSheet: View {
             Section {
                 Toggle("Synchroniseren via iCloud", isOn: $app.icloudSyncEnabled)
                     .tint(Theme.accent)
-                    .disabled(!Self.iCloudControlsEnabled)
                 if let sync = app.historySync {
                     Text(String(
                         format: L10n.string( "Status: %@", locale: app.interfaceLanguage.locale),
@@ -395,14 +394,6 @@ struct SettingsSheet: View {
         .settingsPageStyle()
         .navigationTitle("Privacy en over WhisperClip")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private static var iCloudControlsEnabled: Bool {
-        #if DEBUG || WHISPERCLIP_ICLOUD_DEVELOPMENT
-        true
-        #else
-        false
-        #endif
     }
 
     private var syncRequiresApproval: Bool {

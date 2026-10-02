@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import WhisperShared
 
@@ -33,6 +34,15 @@ struct SyncNowButton: View {
     var body: some View {
         Button {
             guard !isSyncing else { return }
+            if case .requiresApproval = historySync.status {
+                // A manual sync cannot proceed until this database variant is
+                // linked to the current iCloud account. Take the user to the
+                // existing review/merge control instead of briefly spinning and
+                // returning to an unchanged list.
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                NSApp.activate(ignoringOtherApps: true)
+                return
+            }
             result = nil
             isSyncing = true
             NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
@@ -87,7 +97,7 @@ struct SyncNowButton: View {
         .buttonStyle(.plain)
         .disabled(!isAvailable || isSyncing)
         .help(tooltip)
-        .accessibilityLabel("Synchroniseer met iCloud")
+        .accessibilityLabel(syncRequiresApproval ? "Koppel dit iCloud-account" : "Synchroniseer met iCloud")
         .accessibilityValue(accessibilityValue)
     }
 
@@ -101,6 +111,7 @@ struct SyncNowButton: View {
     }
 
     private var buttonLabel: String {
+        if syncRequiresApproval { return "Koppel iCloud-account" }
         if isSyncing { return "Synchroniseert…" }
         switch result {
         case .success: return "Bijgewerkt"
@@ -116,6 +127,11 @@ struct SyncNowButton: View {
         case .failure: return historySync.status.dutchLabel
         case nil: return historySync.status.dutchLabel
         }
+    }
+
+    private var syncRequiresApproval: Bool {
+        if case .requiresApproval = historySync.status { return true }
+        return false
     }
 
     /// Bij `disabled` staat de schakelaar uit, bij `unavailable` draagt deze

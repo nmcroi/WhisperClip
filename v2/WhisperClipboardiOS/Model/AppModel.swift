@@ -47,9 +47,8 @@ final class AppModel: ObservableObject {
     #endif
 
     /// Whether iCloud sync is enabled. Persisted in `UserDefaults` under
-    /// `ios.icloudSyncEnabled`; available in Debug and in the explicitly signed
-    /// Personal Development-CloudKit build. Ordinary Release builds stay off
-    /// while the Production schema is not live.
+    /// `ios.icloudSyncEnabled`; the signed Release build now uses Production
+    /// CloudKit while Debug retains its separate history and sync state.
     @Published var icloudSyncEnabled: Bool {
         didSet {
             guard icloudSyncEnabled != oldValue else { return }
@@ -249,17 +248,12 @@ final class AppModel: ObservableObject {
         // De entitlement-check in `HistorySyncEngine.hasCloudKitEntitlement` is
         // gerepareerd (leest niet meer het provisioning-profiel maar de echte,
         // ondertekende grant), dus aanzetten laat de app niet meer crashen.
-        // Debug mag expliciet tegen het Development-schema testen, maar begint
-        // altijd met de eerder gekozen (standaard uitgeschakelde) stand. Release
-        // blijft hard uit totdat het schema bewust naar Production is uitgerold.
-        #if DEBUG || WHISPERCLIP_ICLOUD_DEVELOPMENT
+        // Respect the user's saved choice in both build variants. A Release
+        // build uses the Production CloudKit entitlement and its own history.db;
+        // forcing this preference off at launch made the iPhone's newer Debug
+        // history impossible to sync with the Production Mac app.
         UserDefaults.standard.register(defaults: [Self.icloudSyncKey: false])
-        // A Development build must also respect an explicit opt-out after restart.
         let initialSyncEnabled = UserDefaults.standard.bool(forKey: Self.icloudSyncKey)
-        #else
-        UserDefaults.standard.set(false, forKey: Self.icloudSyncKey)
-        let initialSyncEnabled = false
-        #endif
         self.icloudSyncEnabled = initialSyncEnabled
         // Retention is unlimited for now (settings round adds a control). The DB
         // lives in this app's own sandbox, isolated from the Mac's copy.

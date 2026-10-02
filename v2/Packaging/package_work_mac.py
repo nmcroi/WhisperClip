@@ -15,7 +15,14 @@ import subprocess
 
 
 def run(*args):
-    return subprocess.run([str(a) for a in args], check=True, capture_output=True).stdout
+    try:
+        return subprocess.run([str(a) for a in args], check=True, capture_output=True).stdout
+    except subprocess.CalledProcessError as error:
+        # Keep key paths/arguments out of error messages. Apple's response is
+        # actionable (for example, a pending account agreement), while the
+        # default CalledProcessError only prints the entire command line.
+        detail = (error.stderr or error.stdout or b'').decode('utf-8', errors='replace').strip()
+        raise RuntimeError(f'{args[0]} failed: {detail or "exit status " + str(error.returncode)}') from None
 
 
 def main():
@@ -26,8 +33,17 @@ def main():
     parser.add_argument('--identity', required=True)
     parser.add_argument('--team', required=True)
     args = parser.parse_args()
-    auth = ['--key', os.environ['NOTARY_KEY_PATH'], '--key-id', os.environ['NOTARY_KEY_ID'],
-            '--issuer', os.environ['NOTARY_ISSUER']]
+    keychain_profile = os.environ.get('NOTARY_KEYCHAIN_PROFILE')
+    if keychain_profile:
+        auth = ['--keychain-profile', keychain_profile]
+    else:
+        missing = [name for name in ('NOTARY_KEY_PATH', 'NOTARY_KEY_ID', 'NOTARY_ISSUER')
+                   if not os.environ.get(name)]
+        if missing:
+            parser.error('Apple-notarisatie vereist NOTARY_KEYCHAIN_PROFILE of '
+                         'NOTARY_KEY_PATH, NOTARY_KEY_ID en NOTARY_ISSUER')
+        auth = ['--key', os.environ['NOTARY_KEY_PATH'], '--key-id', os.environ['NOTARY_KEY_ID'],
+                '--issuer', os.environ['NOTARY_ISSUER']]
     profile = plistlib.loads(run('security', 'cms', '-D', '-i', args.profile))
     assert profile.get('ProvisionsAllDevices'), 'Device-limited profile is not a distributable build'
     assert profile['ExpirationDate'] > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)

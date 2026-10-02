@@ -4,6 +4,7 @@ import Core
 import KeyboardShortcuts
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The "Algemeen" settings tab: global hotkey, hotkey behaviour, dictation
 /// language, and login-item registration.
@@ -14,6 +15,9 @@ struct GeneralSettingsView: View {
     @State private var loginItemError: String?
     @State private var showICloudMergeConfirmation = false
     @State private var launchHistory: [LaunchHistoryEntry] = []
+    @State private var microphones: [MicrophoneDevice] = []
+    @State private var systemMicrophoneName = ""
+    @State private var diagnosticMessage: String?
 
     var body: some View {
         ScrollView {
@@ -25,6 +29,8 @@ struct GeneralSettingsView: View {
                 hotkeySection
                 Divider().overlay(Theme.border)
                 languageSection
+                Divider().overlay(Theme.border)
+                microphoneSection
                 Divider().overlay(Theme.border)
                 captionsSection
                 Divider().overlay(Theme.border)
@@ -46,6 +52,7 @@ struct GeneralSettingsView: View {
         .onAppear {
             loginItemEnabled = SMAppService.mainApp.status == .enabled
             launchHistory = LaunchHealth.loadHistory()
+            refreshMicrophones()
         }
     }
 
@@ -151,6 +158,43 @@ struct GeneralSettingsView: View {
                 .foregroundStyle(Theme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    // MARK: - Live captions
+
+    private var microphoneSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Microfoon")
+                .font(ThemeFont.ui(15, weight: .semibold))
+                .foregroundStyle(Theme.text)
+
+            Picker("Opnamebron", selection: $environment.settings.preferredMicrophoneUID) {
+                Text(systemMicrophoneName.isEmpty ? "Systeemstandaard" : "Systeemstandaard — \(systemMicrophoneName)")
+                    .tag("")
+                ForEach(microphones) { device in
+                    Text(device.name).tag(device.id)
+                }
+                if !environment.settings.preferredMicrophoneUID.isEmpty,
+                   !microphones.contains(where: { $0.id == environment.settings.preferredMicrophoneUID }) {
+                    Text("Gekozen microfoon niet aangesloten").tag(environment.settings.preferredMicrophoneUID)
+                }
+            }
+            .frame(maxWidth: 340, alignment: .leading)
+            .accessibilityLabel("Microfoon voor nieuwe opnames")
+
+            ActionButton(title: "Microfoons vernieuwen", systemImage: "arrow.clockwise", role: .secondary, size: .compact) {
+                refreshMicrophones()
+            }
+            Text("Deze keuze geldt voor dicteren en Notulist vanaf de volgende opname. Een niet-aangesloten microfoon geeft een melding; WhisperClip schakelt dan niet ongemerkt over.")
+                .font(ThemeFont.ui(11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func refreshMicrophones() {
+        microphones = MicrophoneDevices.available()
+        systemMicrophoneName = MicrophoneDevices.systemDefault()?.name ?? ""
     }
 
     // MARK: - Live captions
@@ -427,6 +471,44 @@ struct GeneralSettingsView: View {
                 size: .compact
             ) {
                 NSWorkspace.shared.activateFileViewerSelecting([LaunchHealth.logsDirectory])
+            }
+
+            ActionButton(
+                title: "Exporteer diagnostiek",
+                systemImage: "square.and.arrow.up",
+                role: .secondary,
+                size: .compact
+            ) {
+                exportDiagnostics()
+            }
+            Text("Exporteert versie, systeeminformatie en geanonimiseerde opname-, invoeg- en crashsignalen. Geen audio, transcripties, sleutels of ruwe logs.")
+                .font(ThemeFont.ui(11))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let diagnosticMessage {
+                Text(diagnosticMessage)
+                    .font(ThemeFont.ui(11))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+    }
+
+    private func exportDiagnostics() {
+        diagnosticMessage = nil
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        panel.nameFieldStringValue = "WhisperClip-diagnostiek.txt"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                do {
+                    try await Task.detached(priority: .utility) {
+                        try DiagnosticsExporter.write(to: url)
+                    }.value
+                    diagnosticMessage = "Diagnostiek opgeslagen. Controleer het bestand voordat je het deelt."
+                } catch {
+                    diagnosticMessage = "Exporteren mislukt: \(error.localizedDescription)"
+                }
             }
         }
     }

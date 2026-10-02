@@ -28,6 +28,9 @@ public struct AppSettings: Codable, Equatable, Sendable {
 
     public var hotkeyMode: HotkeyMode
     public var language: String
+    /// macOS-only CoreAudio device UID. Empty follows the system default.
+    /// Kept in the shared settings format so old files decode unchanged.
+    public var preferredMicrophoneUID: String
     public var engine: Engine
     /// UI colour scheme (Systeem / Donker / Licht). Defaults to `.dark`.
     public var appearance: AppearanceMode
@@ -111,6 +114,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     public init(
         hotkeyMode: HotkeyMode = .toggle,
         language: String = "nl",
+        preferredMicrophoneUID: String = "",
         engine: Engine = .parakeet,
         appearance: AppearanceMode = .dark,
         cleanOutput: Bool = true,
@@ -139,6 +143,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     ) {
         self.hotkeyMode = hotkeyMode
         self.language = language
+        self.preferredMicrophoneUID = preferredMicrophoneUID
         self.engine = engine
         self.appearance = appearance
         self.cleanOutput = cleanOutput
@@ -170,7 +175,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
     // falls back to the default rather than failing the whole load. This lets new
     // fields (e.g. `insertionDeniedBundleIds`) be added without breaking existing files.
     private enum CodingKeys: String, CodingKey {
-        case hotkeyMode, language, engine, appearance, cleanOutput, replacements
+        case hotkeyMode, language, preferredMicrophoneUID, engine, appearance, cleanOutput, replacements
         case showAudioRetentionOption
         case directInsertion, insertionDeniedBundleIds, saveRecordings, saveCaptions
         case translateCaptionsToDutch
@@ -187,6 +192,7 @@ public struct AppSettings: Codable, Equatable, Sendable {
         let d = AppSettings()
         self.hotkeyMode = try c.decodeIfPresent(HotkeyMode.self, forKey: .hotkeyMode) ?? d.hotkeyMode
         self.language = try c.decodeIfPresent(String.self, forKey: .language) ?? d.language
+        self.preferredMicrophoneUID = try c.decodeIfPresent(String.self, forKey: .preferredMicrophoneUID) ?? d.preferredMicrophoneUID
         self.engine = try c.decodeIfPresent(Engine.self, forKey: .engine) ?? d.engine
         self.appearance = try c.decodeIfPresent(AppearanceMode.self, forKey: .appearance) ?? d.appearance
         self.cleanOutput = try c.decodeIfPresent(Bool.self, forKey: .cleanOutput) ?? d.cleanOutput

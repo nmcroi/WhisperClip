@@ -345,6 +345,8 @@ final class AppEnvironment: ObservableObject {
         // Now that stored properties exist, bind the closures to `self`.
         settingsRef = { [weak self] in self?.settings ?? AppSettings() }
         stateSink = { [weak self] state in self?.appState = state }
+        audioEngine.preferredInputUIDProvider = { [weak self] in self?.settings.preferredMicrophoneUID ?? "" }
+        meeting.audioEngine.preferredInputUIDProvider = { [weak self] in self?.settings.preferredMicrophoneUID ?? "" }
 
         // The AppKit overlays (HUD, caption overlay) live outside the SwiftUI
         // colour-scheme environment, so give them the chosen appearance directly;

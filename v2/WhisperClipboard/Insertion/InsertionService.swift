@@ -88,12 +88,21 @@ final class InsertionService {
         settings: AppSettings,
         target: InsertionTarget?
     ) -> InsertionOutcome {
+        let current = Self.currentFrontmost()
+        let accessibilityGranted = AccessibilityPermission.isGranted
         let decision = InsertionPolicy.decide(
             directInsertionEnabled: settings.directInsertion,
-            accessibilityGranted: AccessibilityPermission.isGranted,
+            accessibilityGranted: accessibilityGranted,
             capturedTarget: target,
-            currentFrontmost: Self.currentFrontmost(),
+            currentFrontmost: current,
             deniedBundleIds: settings.insertionDeniedBundleIds
+        )
+
+        // Alleen app-ID's en proces-ID's: geen venstertitel of transcriptinhoud.
+        LaunchHealth.note(
+            "Invoegen: keuze=\(decision), AX=\(accessibilityGranted), "
+            + "doel=\(target?.bundleId ?? "onbekend")/\(target?.processIdentifier ?? 0), "
+            + "actief=\(current?.bundleId ?? "onbekend")/\(current?.processIdentifier ?? 0)"
         )
 
         guard decision == .insert else {
@@ -110,6 +119,7 @@ final class InsertionService {
         // (b) Synthesize Cmd+V.
         guard synthesizer.sendPaste() else {
             // CGEvent failed: leave our text on the clipboard as the fallback.
+            LaunchHealth.note("Invoegen: Cmd+V-gebeurtenis kon niet worden verzonden")
             return .insertionFailed
         }
 
