@@ -2,6 +2,14 @@
 
 Bijgewerkt: 2 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
 
+## Actueel: macOS 2.0.11 (17), fragmentknoppen alleen in bewerkstand, 2 oktober
+
+In transcriptdetails staan de rode knoppen voor het verwijderen van een zin of spreekbeurt standaard niet meer naast iedere regel. Onder **Meer > Fragmenten verwijderen** worden ze tijdelijk zichtbaar, met een uitleg en een knop **Gereed**. De bestaande bevestiging voor tekst verwijderen of, indien aanwezig, tekst en audio bijsnijden blijft gelden. De gewone knop **Bewerk** blijft de volledige teksteditor; openen daarvan sluit de fragmentstand. De fragmentstand sluit ook bij een andere transcriptselectie. Er is geen hover teruggebracht. De iPhone-bron is niet gewijzigd en blijft 2.0.4 (10).
+
+Op macOS 27.0.1 met Xcode 27.0 slaagden 346 Mac-tests; vijf bestaande model-E2E-tests werden overgeslagen. De universele Release-build bevat arm64 en x86_64. De Developer ID-ondertekende en door Apple genotariseerde DMG staat in `../Releases/WhisperClip-2.0.11.dmg` (SHA-256 `a147591bf537bc3a36a2b38c826f52c52ff4182e62de5b2d8f631ba353eab320`). De DMG bevat Production-CloudKit, de juiste automatisch ingevulde versie in de installatie-uitleg en een bytegelijke backuphelper. Zie `Packaging/RELEASE_2.0.11.md`.
+
+De privé-Mac is na het normaal afronden van twee lopende opnames en een volledige backup bijgewerkt. Backup: `../device-backups/Niels-Mac/2026-10-02-230137-before-2011-fragment-controls/`. De geïnstalleerde app toont versie 2.0.11 (17), start en wordt door Gatekeeper geaccepteerd. Vóór en na start: Production 1.600 transcripties, Development 1.536 en beide 7 notities; beide databases zijn integer. Alle eerdere transcript-ID's en tekst en notitie-ID's zijn behouden; `settings.json` en voorkeuren zijn bytegelijk. De Home-weergave is in de draaiende app gezien. **De fragmentstand zelf is nog niet interactief gecontroleerd in een draaiende app**; de Mac-tests controleren deze visuele stand niet. Er is geen opname gemaakt met 2.0.11 en de werk-Mac is niet bijgewerkt of langdurig getest.
+
 ## Actueel: macOS 2.0.10 (16), HUD-dictaten apart in Geschiedenis, 2 oktober
 
 De Mac-geschiedenis opent nu op **Gesprekken**. De HUD-dictaten (`mic.mac`) staan onder **Dictaten**; **Alles** toont beide. PLAUD blijft direct bereikbaar, Microfoon en Bestanden via Filter > Bron. Home toont recente gesprekken/opnames zonder de HUD-dictaten. De bronnaam van een HUD-item is nu zichtbaar als Dictaat. Dit zijn uitsluitend weergavefilters: geen database- of CloudKit-migratie, geen verplaatsing en geen verwijdering van transcripties. Oudere bron `mic` blijft bij Gesprekken, omdat die niet betrouwbaar aan HUD of iPhone kan worden toegeschreven. Notulist (`meeting.mac`) blijft bij Gesprekken.

@@ -1,4 +1,4 @@
-WhisperClip 2.0.10 (16) — installeren op je werk-Mac
+WhisperClip {{VERSION}} ({{BUILD}}) — installeren op je werk-Mac
 
 Voor Macs met macOS 26 of nieuwer, ook macOS 27.
 
@@ -9,13 +9,16 @@ Voor Macs met macOS 26 of nieuwer, ook macOS 27.
    Volg een eventuele stopmelding; installeer in dat geval nog niet.
 3. Vervang de bestaande WhisperClip.app op DEZELFDE locatie met de app uit deze
    DMG. Maak geen tweede exemplaar en verwijder geen appgegevens.
-4. Open WhisperClip en controleer onder “Over WhisperClip” versie 2.0.10 (16).
+4. Open WhisperClip en controleer onder “Over WhisperClip” versie {{VERSION}} ({{BUILD}}).
    Controleer of geschiedenis en notities aanwezig zijn. Probeer daarna een
    kort dictaat en direct invoegen in een normaal tekstveld.
-5. Geschiedenis opent nu op Gesprekken. HUD-dictaten staan onder Dictaten;
+5. In een transcript staan de rode verwijderknoppen voortaan standaard uit.
+   Kies Meer > Fragmenten verwijderen als je een losse zin of spreekbeurt wilt
+   verwijderen. Er volgt altijd eerst een bevestiging; sluit de stand met Gereed.
+6. Geschiedenis opent op Gesprekken. HUD-dictaten staan onder Dictaten;
    Alles toont beide. Oudere opnames zonder herkenbare HUD-bron blijven bij
    Gesprekken. Er is geen opname of transcript verplaatst of verwijderd.
-6. In Instellingen > Algemeen kun je een microfoon kiezen; “Systeemstandaard”
+7. In Instellingen > Algemeen kun je een microfoon kiezen; “Systeemstandaard”
    blijft de beginwaarde. De keuze geldt voor de volgende opname, ook in
    Notulist. Probeer de komende dagen je gebruikelijke microfoon- en
    dockwissels. Bij opnieuw alleen-klembord of een crash: noteer het tijdstip

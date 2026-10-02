@@ -39,6 +39,7 @@ struct TranscriptDetailView: View {
     // Inline body editing.
     @State private var isEditingBody = false
     @State private var bodyDraft = ""
+    @State private var isTrimming = false
     @State private var aiExpanded = false
 
     // Speaker renaming: the raw label currently being edited (e.g. "Spreker 1").
@@ -76,6 +77,10 @@ struct TranscriptDetailView: View {
             titleDraft = entry.name.localizedCaseInsensitiveCompare("PLAUD-opname") == .orderedSame
                 ? ""
                 : entry.name
+        }
+        .onChange(of: entry.id) { _, _ in
+            isTrimming = false
+            pendingTrim = nil
         }
         // Bevinding 2026-08-03: bij het sluiten van dit paneel bestaat er geen view
         // meer die een alert kan tonen, dus escaleert een mislukte hernoeming hier.
@@ -235,6 +240,7 @@ struct TranscriptDetailView: View {
                 }
                 if canGroup && !isEditingBody {
                     Toggle("Toon tijdcodes", isOn: $showTimecodes)
+                    Toggle("Fragmenten verwijderen", isOn: $isTrimming)
                 }
                 Divider()
                 Button("Verwijder", role: .destructive) { confirmingDelete = true }
@@ -253,6 +259,9 @@ struct TranscriptDetailView: View {
 
     @ViewBuilder
     private var bodySection: some View {
+        if !isEditingBody && canGroup && isTrimming {
+            trimmingToolbar
+        }
         if isEditingBody {
             bodyEditor
         } else if canGroup, hasSpeakers {
@@ -262,6 +271,23 @@ struct TranscriptDetailView: View {
         } else {
             plainBody
         }
+    }
+
+    private var trimmingToolbar: some View {
+        HStack(spacing: 12) {
+            Text("Kies een zin of spreekbeurt om te verwijderen. Je krijgt eerst een bevestiging.")
+                .font(ThemeFont.ui(12))
+                .foregroundStyle(Theme.textSecondary)
+            Spacer(minLength: 0)
+            Button("Gereed") { isTrimming = false }
+                .buttonStyle(.plain)
+                .font(ThemeFont.ui(12, weight: .semibold))
+                .foregroundStyle(Theme.accentText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Theme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Metrics.radius, style: .continuous))
     }
 
     /// The raw flat text (used when body was hand-edited or has no segments).
@@ -425,7 +451,7 @@ struct TranscriptDetailView: View {
                     color: turn.speaker.map { Self.speakerColor(for: $0) } ?? Theme.textSecondary,
                     text: turn.text,
                     timecode: showTimecodes ? TranscriptFormatting.timecode(turn.start) : nil,
-                    onDelete: turns.count > 1
+                    onDelete: isTrimming && turns.count > 1
                         ? { pendingTrim = .turn(index) }
                         : nil
                 )
@@ -440,7 +466,7 @@ struct TranscriptDetailView: View {
                 TranscriptSentenceRow(
                     text: sentence.text,
                     timecode: showTimecodes ? TranscriptFormatting.timecode(sentence.start) : nil,
-                    onDelete: groupedSentences.count > 1
+                    onDelete: isTrimming && groupedSentences.count > 1
                         ? { pendingTrim = .sentence(index) }
                         : nil
                 )
@@ -524,6 +550,7 @@ struct TranscriptDetailView: View {
     // MARK: - Body editing
 
     private func beginBodyEdit() {
+        isTrimming = false
         bodyDraft = entry.text
         isEditingBody = true
     }
@@ -747,6 +774,7 @@ private struct TranscriptTurnRow: View {
                     }
                     .buttonStyle(.plain)
                     .help("Verwijder deze spreekbeurt")
+                    .accessibilityLabel("Verwijder deze spreekbeurt")
                 }
             }
             Text(text)
@@ -794,6 +822,7 @@ private struct TranscriptSentenceRow: View {
                 }
                 .buttonStyle(.plain)
                 .help("Verwijder deze zin")
+                .accessibilityLabel("Verwijder deze zin")
             }
         }
         .padding(.horizontal, 10)
