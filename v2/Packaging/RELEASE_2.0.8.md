@@ -2,6 +2,8 @@
 
 Status 2 oktober 2026: `../../Releases/WhisperClip-2.0.8.dmg` is klaar voor handmatige installatie op de werk-Mac. SHA-256: `2ed8666bf77f842c3887f57328448bb6c6d57a9cb7df49cfbe6edb95f222ae01`. De eerdere notarisatiefout HTTP 403 trad op vóór de nieuwe aanvraag; bij accountinspectie waren de Developer Program License Agreement en Free Apps Agreement actief. De nieuwe aanvraag voor app en DMG is door Apple geaccepteerd. De vorige 2.0.7 (13)-kandidaat bevat de onderstaande functies niet.
 
+Dezelfde DMG is inmiddels ook op Niels' privé-Mac geïnstalleerd. Zijn Production-geschiedenis, Development-geschiedenis, instellingen en iCloud-accountkoppeling zijn vooraf geback-upt; daarna zijn versie 2.0.8 (14), start, recente geschiedenis, oorspronkelijke Production-IDs/tekst, 7 notities, 65 iPhone-PLAUD-opnames, lege syncwachtrij, ondertekening, notarization en Gatekeeper gecontroleerd. Back-up: `../../device-backups/Niels-Mac/2026-10-02-211023-before-208-local-install/`. De werk-Mac is nog niet bijgewerkt of langdurig getest.
+
 ## Wijzigingen
 
 - Herstelt de audio-opstart na een hardware/client-formaatverschil door een nieuwe `AVAudioEngine` te maken en geen tap te installeren zolang de formaten afwijken. Voeg inhoudsvrije opname- en invoegdiagnostiek toe. Dit is nog niet langdurig op de werk-Mac bewezen; zie `../WORK_MAC_DIAGNOSIS_2026-10-02.md`.
