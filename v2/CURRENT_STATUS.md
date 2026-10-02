@@ -2,6 +2,12 @@
 
 Bijgewerkt: 2 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
 
+## Lokale Mac: HUD-invoegen en macOS-toestemming, 2 oktober
+
+Op de privé-Mac kopieerde 2.0.11 (17) HUD-dictaten alleen naar het klembord, hoewel **Direct invoegen** aan stond en WhisperClip in macOS 27.0.1 onder **Apparaatbeheer en gegevenstoegang** een ingeschakelde schakelaar had. Het app-log toonde voor de betreffende dictaten `AX=false` en `clipboardOnly(reason: noAccessibility)`; het vastgelegde en actieve doelvenster waren gelijk. Een gewone appherstart en het uit- en aanzetten van de schakelaar hielpen niet.
+
+Terwijl er geen opname liep, is uitsluitend de macOS-Toegankelijkheidsstatus voor bundle-ID `nl.nielscroiset.whisperclipboard` gereset met `tccutil reset Accessibility nl.nielscroiset.whisperclipboard`. Daarna is dezelfde geïnstalleerde app opnieuw gestart en via **Instellingen > Invoegen > Toestemming geven** is de systeembeslissing opnieuw opgevraagd. Twee daaropvolgende korte HUD-dictaten registreerden `AX=true`, `keuze=insert` en `invoegresultaat=inserted`, met hetzelfde vastgelegde en actieve doelproces (Codex respectievelijk Claude). Er is geen appcode, appbuild of gebruikersdatabase gewijzigd. De loguitkomst bewijst dat de plakgebeurtenis is gepost, maar **niet** dat de tekst visueel in beide invoervelden is gezien; dat vraagt nog een praktische bevestiging. Als het opnieuw optreedt, eerst de actuele AX-status en doelvensters in `~/Library/Logs/Whisper Clipboard/app.log` vaststellen; een blauwe macOS-schakelaar alleen is onvoldoende bewijs.
+
 ## Actueel: macOS 2.0.11 (17), fragmentknoppen alleen in bewerkstand, 2 oktober
 
 In transcriptdetails staan de rode knoppen voor het verwijderen van een zin of spreekbeurt standaard niet meer naast iedere regel. Onder **Meer > Fragmenten verwijderen** worden ze tijdelijk zichtbaar, met een uitleg en een knop **Gereed**. De bestaande bevestiging voor tekst verwijderen of, indien aanwezig, tekst en audio bijsnijden blijft gelden. De gewone knop **Bewerk** blijft de volledige teksteditor; openen daarvan sluit de fragmentstand. De fragmentstand sluit ook bij een andere transcriptselectie. Er is geen hover teruggebracht. De iPhone-bron is niet gewijzigd en blijft 2.0.4 (10).
