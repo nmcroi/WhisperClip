@@ -1,6 +1,12 @@
 # WhisperClip — actuele overdracht
 
-Bijgewerkt: 2 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
+Bijgewerkt: 6 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
+
+## Eerste installatie op een andere iPhone, 6 oktober
+
+Een aangesloten iPhone 15 Pro met iOS 26.4.2 is na bevestigde Ontwikkelaarsmodus gecontroleerd: WhisperClip was nog niet geïnstalleerd, dus er was geen appcontainer om te back-uppen. Een nieuwe iPhone-Release-build **2.0.5 (11)** is voor dit toestel gebouwd met Xcode 27.0 en Apple Development-ondertekening; de app en widget tonen hetzelfde versienummer, het provisioning profile bevat het toestel en is geldig tot 6 oktober 2027. De app gebruikt Production-CloudKit, net als de huidige gewone iPhone- en Mac-builds. De macOS-versie in `project.yml` is niet gewijzigd.
+
+De app is via `devicectl` geïnstalleerd. Vóór de eerste start is Parakeet via de kabel gekopieerd; alle 23 bestanden, 483.256.769 bytes, zijn teruggelezen en SHA-256-identiek aan de bron. De app startte en het proces bleef actief. De eigenaar maakte daarna een korte opname en bevestigde dat de herkende tekst verschijnt en klopt. De eerste verwerking duurde volgens hem lang, de tweede opname was sneller. Dat past bij een koude modelstart, maar er zijn geen tijden gemeten; blijvende snelheid bij langere opnames is niet gecontroleerd. iCloud-sync op dit toestel is niet praktisch bevestigd. Privé-toestelgegevens en installatiecontrole staan uitsluitend lokaal onder `../device-backups/`.
 
 ## Lokale Mac: HUD-invoegen en macOS-toestemming, 2 oktober
 

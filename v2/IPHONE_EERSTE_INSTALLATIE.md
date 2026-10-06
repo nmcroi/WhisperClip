@@ -1,12 +1,12 @@
 # Eerste installatie op een andere iPhone
 
-Werkrecept, bijgewerkt 19 september 2026. Gebaseerd op de bij Vincent vastgelegde kabelroute in `WhisperClip.md` in de ChiefOfStaff-projectmap. Voor een update van Vincent blijft uitsluitend `VINCENT_IPHONE_UPDATE.md` en zijn updatescript gelden.
+Werkrecept, bijgewerkt 6 oktober 2026. Gebaseerd op de bij Vincent vastgelegde kabelroute in `WhisperClip.md` in de ChiefOfStaff-projectmap. Voor een update van Vincent blijft uitsluitend `VINCENT_IPHONE_UPDATE.md` en zijn updatescript gelden.
 
 1. Identificeer het juiste toestel met `xcrun devicectl list devices`; nooit alleen aannemen dat de zichtbare iPhone die van de bezoeker is. Laat op de iPhone de computer vertrouwen.
 2. Ontwikkelaarsmodus inschakelen bij Instellingen → Privacy en beveiliging; herstarten en inschakelen bevestigen. Controleer `developerModeStatus: enabled`.
 3. Controleer met `device info apps` of WhisperClip al bestaat. Zo ja, eerst backup van Application Support en voorkeuren, integriteit/aantallen en de databasevariant controleren. Nooit app of container verwijderen. Een eerste installatie zonder bestaande app heeft geen oude WhisperClip-container om te back-uppen.
 4. Bouw voor de exacte toestel-ID met geldige Apple Development-signering. Projectdefaults schakelen iOS-signering uit; de opdracht moet expliciet `CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=... CODE_SIGN_IDENTITY='Apple Development' -allowProvisioningUpdates -allowProvisioningDeviceRegistration` doorgeven. Controleer daarna dat het embedded provisioning profile dit toestel bevat. Zo nodig toestelregistratie via Xcode oplossen; vertrouw geen buildmelding zonder profielcontrole.
-5. Iedere nieuwe geleverde binary krijgt een uniek buildnummer. Houd app en widgetversie gelijk. Gebruik bij bestaande data dezelfde Debug/Release-variant. Voor nieuwe persoonlijke installaties sluit Debug met `OTHER_SWIFT_FLAGS='$(inherited) -DWHISPERCLIP_ICLOUD_DEVELOPMENT'` aan bij de bestaande iPhone-builds. Kopieer geen persoonlijke voorkeuren/API-sleutels van Niels of Vincent.
+5. Iedere nieuwe geleverde binary krijgt een uniek buildnummer. Houd app en widgetversie gelijk. Gebruik bij bestaande data dezelfde Debug/Release-variant. Voor een nieuwe gewone installatie gebruik **Release met Production-CloudKit**: dat is sinds oktober de variant op Niels' iPhone en Mac en voorkomt dat een latere Release-update een andere geschiedenisdatabase opent. Gebruik Debug/Development alleen voor een bewust gescheiden testinstallatie en leg de latere gegevensmigratie dan expliciet vast. Kopieer geen persoonlijke voorkeuren/API-sleutels van anderen.
 6. Installeer de app, maar open deze nog niet. Kopieer Parakeet rechtstreeks via de kabel; zo is geen mogelijk haperende appdownload nodig:
 
 ```sh
