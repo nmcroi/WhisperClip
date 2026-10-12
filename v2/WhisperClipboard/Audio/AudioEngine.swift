@@ -138,6 +138,14 @@ final class AudioEngine {
     /// stil werden afgekapt.
     var onInterruption: ((InterruptionReason) -> Void)?
 
+    /// Herstel tijdens de opname (12 oktober 2026): maximaal drie keer per
+    /// sessie de engine opnieuw opbouwen en de tap terugzetten, in plaats van
+    /// de opname af te ronden zodra het apparaat even wegvalt.
+    private var recoveryAttempts = 0
+    private var isRecovering = false
+    private var firstBufferLogged = false
+    private static let maxRecoveryAttempts = 3
+
     private var configChangeObserver: NSObjectProtocol?
     private var willSleepObserver: NSObjectProtocol?
     private var didWakeObserver: NSObjectProtocol?
@@ -209,13 +217,58 @@ final class AudioEngine {
     /// converted buffers. Requests mic permission first.
     func start(convertingTo format: AVAudioFormat) async throws -> AsyncStream<AudioBufferBox> {
         try await Self.ensureMicrophonePermission()
-        return try startCapture(convertingTo: format)
+        return try await startWithRetry(convertingTo: format)
     }
 
     /// Starts capture yielding the input node's native format unchanged.
     func start() async throws -> AsyncStream<AudioBufferBox> {
         try await Self.ensureMicrophonePermission()
-        return try startCapture(convertingTo: nil)
+        return try await startWithRetry(convertingTo: nil)
+    }
+
+    /// Wacht tot het invoerformaat stilstaat en probeert bij een mislukte start
+    /// nog één keer. Een Bluetooth-microfoon (AirPods) wisselt op de Mac van
+    /// profiel zodra de microfoon aangaat en meldt dan even 24 kHz, daarna
+    /// weer 48 kHz; wie meteen een tap zet, raakt precies die wissel
+    /// (werk-Mac, 12 oktober 2026).
+    private func startWithRetry(convertingTo format: AVAudioFormat?) async throws -> AsyncStream<AudioBufferBox> {
+        let preferredUID = preferredInputUIDProvider?() ?? ""
+        try prepareInputDevice(preferredUID: preferredUID)
+        await waitForStableInputFormat(preferredUID: preferredUID)
+        do {
+            return try startCapture(convertingTo: format)
+        } catch {
+            LaunchHealth.note("AudioEngine: eerste start mislukt (\(error.localizedDescription)); nog één poging na stabilisatie")
+            await waitForStableInputFormat(preferredUID: preferredUID)
+            return try startCapture(convertingTo: format)
+        }
+    }
+
+    /// Leest het hardware- en clientformaat tot ze twee keer achter elkaar
+    /// gelijk en geldig zijn, hooguit anderhalve seconde. Verschillen ze, dan
+    /// wordt de engine vervangen zodat de invoernode zich opnieuw op de
+    /// hardware instelt.
+    private func waitForStableInputFormat(preferredUID: String, maxWait: Double = 1.5) async {
+        let deadline = Self.nowUptime() + maxWait
+        var previous: (Double, UInt32)?
+        while Self.nowUptime() < deadline {
+            if let (hardware, client) = try? readInputFormats() {
+                let valid = hardware.sampleRate > 0 && hardware.channelCount > 0 && !Self.formatsDiffer(hardware, client)
+                let key = (hardware.sampleRate, hardware.channelCount)
+                if valid, let previous, previous == key { return }
+                if valid {
+                    previous = key
+                } else {
+                    previous = nil
+                    engine.stop()
+                    engine = AVAudioEngine()
+                    configuredInputUID = nil
+                    try? prepareInputDevice(preferredUID: preferredUID)
+                }
+            }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        LaunchHealth.note("AudioEngine: invoerformaat na \(maxWait) s nog niet stabiel; start toch")
     }
 
 
@@ -407,6 +460,9 @@ final class AudioEngine {
         isRunning = true
         sessionInputUID = preferredUID
         isPaused = false
+        recoveryAttempts = 0
+        isRecovering = false
+        firstBufferLogged = false
         self.tapHandler = tapHandler
         self.nativeFormat = nativeFormat
         stopwatch.start(at: Self.nowUptime())
@@ -535,6 +591,10 @@ final class AudioEngine {
 
         // Levensteken voor de watchdog (bevinding 2026-08-03).
         lastBufferAt = Self.nowUptime()
+        if !firstBufferLogged {
+            firstBufferLogged = true
+            LaunchHealth.note("AudioEngine: eerste audiobuffer ontvangen (\(Int(buffer.format.sampleRate)) Hz, \(buffer.frameLength) frames)")
+        }
         levelMeter.update(rawLevel: Self.rms(of: buffer))
 
         if let converter, let outputFormat {
@@ -609,8 +669,63 @@ final class AudioEngine {
             LaunchHealth.note("AudioEngine: configuratiewijziging gemeld, engine draait nog; opname loopt door")
             return
         }
-        LaunchHealth.note("AudioEngine: configuratiewijziging gemeld en engine gestopt; opname wordt afgerond")
-        report(.configurationChanged)
+        LaunchHealth.note("AudioEngine: configuratiewijziging gemeld en engine gestopt; herstel wordt geprobeerd")
+        attemptRecovery(trigger: "configuratiewijziging", fallback: .configurationChanged)
+    }
+
+    /// Bouwt de engine opnieuw op en zet de tap terug, zonder de opname af te
+    /// ronden. Pas als dat drie keer in één sessie mislukt, gaat de melding naar
+    /// de controller en wordt alsnog afgerond met wat er is.
+    private func attemptRecovery(trigger: String, fallback: InterruptionReason) {
+        guard isRunning, !isPaused, !isRecovering else { return }
+        guard recoveryAttempts < Self.maxRecoveryAttempts else {
+            LaunchHealth.note("AudioEngine: herstel na \(trigger) niet meer geprobeerd (\(recoveryAttempts) pogingen); opname wordt afgerond")
+            report(fallback)
+            return
+        }
+        recoveryAttempts += 1
+        isRecovering = true
+        let attempt = recoveryAttempts
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.isRecovering = false }
+            let ok = await self.recoverCaptureInPlace()
+            LaunchHealth.note("AudioEngine: herstel na \(trigger): \(ok ? "gelukt" : "mislukt") (poging \(attempt))")
+            if !ok, self.isRunning, !self.isPaused {
+                self.report(fallback)
+            }
+        }
+    }
+
+    private func recoverCaptureInPlace() async -> Bool {
+        guard let tapHandler, let uid = sessionInputUID, let previousFormat = nativeFormat else { return false }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        engine = AVAudioEngine()
+        configuredInputUID = nil
+        guard (try? prepareInputDevice(preferredUID: uid)) != nil else { return false }
+        await waitForStableInputFormat(preferredUID: uid)
+        guard isRunning, !isPaused else { return false }
+        guard let currentFormat = try? tapFormatAfterHardwareCheck(preferredUID: uid) else { return false }
+        if currentFormat != previousFormat {
+            guard let outputFormat else { return false }
+            if currentFormat == outputFormat {
+                converter = nil
+            } else {
+                guard let rebuilt = AVAudioConverter(from: currentFormat, to: outputFormat) else { return false }
+                converter = rebuilt
+            }
+        }
+        do {
+            try installTapAndStart(on: engine.inputNode, format: currentFormat, handler: tapHandler)
+        } catch {
+            return false
+        }
+        nativeFormat = currentFormat
+        installCaptureObservers()
+        lastBufferAt = Self.nowUptime()
+        firstBufferLogged = false
+        return true
     }
 
     private func handleWillSleep() {
@@ -657,16 +772,20 @@ final class AudioEngine {
     private func checkCaptureAlive() {
         guard isRunning, !isPaused else { return }
 
+        guard !isRecovering else { return }
+
         // Verzoening: de sessievlag zei "opname loopt", maar de engine is weg.
         guard engine.isRunning else {
-            report(.engineStopped)
+            LaunchHealth.note("AudioEngine: engine blijkt gestopt; herstel wordt geprobeerd")
+            attemptRecovery(trigger: "engine gestopt", fallback: .engineStopped)
             return
         }
 
         let now = Self.nowUptime()
         let silence = now - (lastBufferAt ?? now)
         if silence >= Self.watchdogSilenceLimit {
-            report(.noBuffers(seconds: silence))
+            LaunchHealth.note("AudioEngine: \(Int(silence)) s geen audio ontvangen; herstel wordt geprobeerd")
+            attemptRecovery(trigger: "geen audio", fallback: .noBuffers(seconds: silence))
         }
     }
 
