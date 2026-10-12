@@ -33,6 +33,10 @@ final class RecordingHUDController {
     /// schakelaartje er gewoon niet.
     var directInsertionProvider: (() -> Bool)?
     var setDirectInsertion: ((Bool) -> Void)?
+    /// Microfoonkeuze in de HUD (12 oktober 2026).
+    var microphoneOptionsProvider: (() -> [(id: String, name: String)])?
+    var preferredMicrophoneProvider: (() -> String)?
+    var setPreferredMicrophone: ((String) -> Void)?
 
     init(controller: DictationController) {
         self.controller = controller
@@ -174,7 +178,10 @@ final class RecordingHUDController {
             levelMeter: controller.audioEngine.levelMeter,
             showLatency: showLatency,
             directInsertionProvider: directInsertionProvider,
-            setDirectInsertion: setDirectInsertion
+            setDirectInsertion: setDirectInsertion,
+            microphoneOptionsProvider: microphoneOptionsProvider,
+            preferredMicrophoneProvider: preferredMicrophoneProvider,
+            setPreferredMicrophone: setPreferredMicrophone
         )
         let hosting = NSHostingController(rootView: root)
         hosting.sizingOptions = [.preferredContentSize]

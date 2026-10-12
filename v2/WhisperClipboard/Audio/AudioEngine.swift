@@ -61,6 +61,18 @@ final class AudioEngine {
     /// Read when a capture starts (also for Notulist), so changing Settings
     /// never silently changes the source of an ongoing recording.
     var preferredInputUIDProvider: (() -> String)?
+
+    /// De naam van de microfoon die de lopende (of eerstvolgende) opname
+    /// gebruikt, voor de HUD. Niels wil tijdens het dicteren zien welke bron de
+    /// app pakt, want "niets ingesproken" bleek vaak een verkeerde of niet
+    /// aangesloten bron (12 oktober 2026).
+    func activeInputName() -> String {
+        let uid = sessionInputUID ?? preferredInputUIDProvider?() ?? ""
+        if !uid.isEmpty {
+            return MicrophoneDevices.device(uid: uid)?.name ?? "Gekozen microfoon niet aangesloten"
+        }
+        return MicrophoneDevices.systemDefault()?.name ?? "Systeemmicrofoon"
+    }
     private var configuredInputUID: String?
     private var sessionInputUID: String?
     private var converter: AVAudioConverter?

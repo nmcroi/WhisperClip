@@ -29,9 +29,24 @@ struct RecordingHUDView: View {
     /// instelling zelf leeft buiten deze view en publiceert hier niets naartoe.
     @State private var directInsertionOn = false
 
+    /// Microfoonkeuze in de HUD zelf: welke bron de opname gebruikt, en een
+    /// menu om voor de volgende opname een andere te kiezen. Nil = niet
+    /// gekoppeld, dan verschijnt de regel niet. Wens van Niels, 12 oktober 2026.
+    var microphoneOptionsProvider: (() -> [(id: String, name: String)])?
+    var preferredMicrophoneProvider: (() -> String)?
+    var setPreferredMicrophone: ((String) -> Void)?
+
+    /// Naam van de bron zoals de engine hem bij het begin van de sessie meldt,
+    /// en de keuze die de gebruiker tijdens de opname voor de volgende maakt.
+    @State private var activeMicrophoneName = ""
+    @State private var chosenForNext: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
+            if controller.phase == .recording || controller.phase == .paused || controller.phase == .preparing {
+                microphoneRow
+            }
             if controller.showAudioChoiceForSession, controller.phase == .recording || controller.phase == .paused {
                 AudioRetentionToggle(keep: $controller.keepAudio)
             }
@@ -164,6 +179,55 @@ struct RecordingHUDView: View {
             }
             .onAppear { directInsertionOn = provider() }
         }
+    }
+
+    /// "Microfoon: MacBook Pro-microfoon", met een menu om een andere bron te
+    /// kiezen. De keuze geldt vanaf de volgende opname; de lopende opname blijft
+    /// op zijn bron, anders zou midden in een zin het formaat kunnen wisselen.
+    @ViewBuilder
+    private var microphoneRow: some View {
+        if let options = microphoneOptionsProvider, let preferred = preferredMicrophoneProvider, let setter = setPreferredMicrophone {
+            HStack(spacing: 6) {
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.accentText)
+                Menu {
+                    Button("Systeemstandaard") { chosenForNext = ""; setter("") }
+                    Divider()
+                    ForEach(options(), id: \.id) { option in
+                        Button(option.name) { chosenForNext = option.id; setter(option.id) }
+                    }
+                } label: {
+                    Text(microphoneLabel(preferred: preferred(), options: options()))
+                        .font(ThemeFont.ui(11, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("De microfoon van deze opname. Kies hier een andere voor de volgende opname.")
+                Spacer()
+            }
+            .onAppear {
+                activeMicrophoneName = controller.audioEngine.activeInputName()
+                chosenForNext = nil
+            }
+            .onChange(of: controller.phase) { _, phase in
+                if phase == .recording { activeMicrophoneName = controller.audioEngine.activeInputName() }
+            }
+        }
+    }
+
+    private func microphoneLabel(preferred: String, options: [(id: String, name: String)]) -> String {
+        if let chosenForNext {
+            let naam = chosenForNext.isEmpty
+                ? "Systeemstandaard"
+                : options.first { $0.id == chosenForNext }?.name ?? "gekozen microfoon"
+            return "Volgende opname: \(naam)"
+        }
+        let actief = activeMicrophoneName.isEmpty ? controller.audioEngine.activeInputName() : activeMicrophoneName
+        return "Microfoon: \(actief)"
     }
 
     @ViewBuilder

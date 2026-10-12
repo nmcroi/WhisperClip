@@ -358,6 +358,16 @@ final class AppEnvironment: ObservableObject {
         hud.setDirectInsertion = { [weak self] aan in
             self?.settings.directInsertion = aan
         }
+        // Microfoon zichtbaar en te kiezen in de HUD zelf (12 oktober 2026).
+        hud.microphoneOptionsProvider = {
+            MicrophoneDevices.available().map { (id: $0.id, name: $0.name) }
+        }
+        hud.preferredMicrophoneProvider = { [weak self] in
+            self?.settings.preferredMicrophoneUID ?? ""
+        }
+        hud.setPreferredMicrophone = { [weak self] uid in
+            self?.settings.preferredMicrophoneUID = uid
+        }
         hud.appearanceProvider = { [weak self] in
             self?.settings.appearance.nsAppearance
         }
