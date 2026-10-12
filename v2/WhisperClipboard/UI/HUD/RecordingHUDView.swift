@@ -113,7 +113,7 @@ struct RecordingHUDView: View {
                 LevelBars(meter: levelMeter)
                 insertionToggle
                 PauseResumeButton(isPaused: false) { controller.pauseRecording() }
-                StopButton { controller.stop() }
+                StopButton { controller.stop(reason: "stopknop in de HUD") }
             }
         case .paused:
             HStack(spacing: 10) {
@@ -129,7 +129,7 @@ struct RecordingHUDView: View {
                     .foregroundStyle(Theme.textSecondary)
                 Spacer()
                 PauseResumeButton(isPaused: true) { controller.resumeRecording() }
-                StopButton { controller.stop() }
+                StopButton { controller.stop(reason: "stopknop in de HUD") }
             }
         case .transcribing:
             HStack(spacing: 10) {

@@ -164,7 +164,7 @@ final class DictationController: ObservableObject {
         Notifications.postCritical(
             "\(explanation) De opname is afgerond en wat er is opgenomen wordt bewaard."
         )
-        stop()
+        stop(reason: "onderbreking: \(reason)")
     }
 
     // MARK: - Public control (hotkey / menu)
@@ -177,7 +177,7 @@ final class DictationController: ObservableObject {
         case .recording, .paused:
             // De hotkey tijdens een pauze rondt gewoon af: de opname bevat dan
             // alles tot het pauzemoment.
-            stop()
+            stop(reason: "sneltoets")
         case .preparing:
             // Model laadt en de microfoon gaat open. Een tweede tik zou de
             // sessie halverwege afbreken; negeren is hier het veilige gedrag.
@@ -371,6 +371,16 @@ final class DictationController: ObservableObject {
 
     // MARK: - Stop
 
+    /// Waarom de laatste stop is aangevraagd, voor het log. Op de werk-Mac
+    /// stopte 2.0.12 de opname binnen een seconde na de start en het log zei
+    /// alleen "stop; opgenomen=0 s" (12 oktober 2026); nu staat de aanleiding erbij.
+    private var pendingStopReason = "sneltoets of stopknop"
+
+    func stop(reason: String) {
+        pendingStopReason = reason
+        stop()
+    }
+
     func stop() {
         guard debouncer.shouldAccept(now: nowSeconds()) else { return }
         performStop()
@@ -387,7 +397,8 @@ final class DictationController: ObservableObject {
         sessionToken = UUID()
 
         retainAtStop = keepAudio
-        LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): stop; opgenomen=\(Int(audioEngine.elapsed)) s")
+        LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): stop; reden=\(pendingStopReason); opgenomen=\(Int(audioEngine.elapsed)) s")
+        pendingStopReason = "sneltoets of stopknop"
         latency.markStop()
         phase = .transcribing
         LaunchHealth.setPhase(.transcribing)

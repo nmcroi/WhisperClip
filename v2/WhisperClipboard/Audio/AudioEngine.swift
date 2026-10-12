@@ -598,8 +598,18 @@ final class AudioEngine {
     /// stoppen en de tap kwijtraken; het formaat van de invoernode kan bovendien
     /// veranderd zijn, waardoor de converter niet meer klopt. We melden het en
     /// laten de aanroeper beslissen — die kan ``isEngineRunning`` raadplegen.
+    /// Een configuratiewijziging is op zichzelf geen reden om te stoppen: na
+    /// het herbouwen van de engine (formaatverschil) meldt AVAudioEngine er
+    /// vaak zelf een, terwijl de opname gewoon doorloopt. Op de werk-Mac
+    /// stopte daardoor elk dictaat na 0 seconden (12 oktober 2026). Draait de
+    /// engine nog, dan loggen we alleen; de watchdog vangt echte stilte op.
     private func handleConfigurationChange() {
         guard isRunning, !isPaused else { return }
+        if engine.isRunning {
+            LaunchHealth.note("AudioEngine: configuratiewijziging gemeld, engine draait nog; opname loopt door")
+            return
+        }
+        LaunchHealth.note("AudioEngine: configuratiewijziging gemeld en engine gestopt; opname wordt afgerond")
         report(.configurationChanged)
     }
 
@@ -620,6 +630,7 @@ final class AudioEngine {
     private func report(_ reason: InterruptionReason) {
         guard !interruptionReported else { return }
         interruptionReported = true
+        LaunchHealth.note("AudioEngine: onderbreking gemeld: \(reason)")
         onInterruption?(reason)
     }
 
