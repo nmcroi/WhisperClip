@@ -25,6 +25,24 @@ enum AudioEngineError: LocalizedError {
     }
 }
 
+/// Two consecutive, matching hardware/client readings are required before a tap.
+struct AudioInputStability {
+    private var previous: (Double, UInt32)?
+
+    mutating func observe(hardware: AVAudioFormat, client: AVAudioFormat) -> Bool {
+        guard hardware.sampleRate > 0, hardware.channelCount > 0,
+              hardware.sampleRate == client.sampleRate,
+              hardware.channelCount == client.channelCount else {
+            previous = nil
+            return false
+        }
+        let key = (hardware.sampleRate, hardware.channelCount)
+        let stable = previous.map { $0 == key } ?? false
+        previous = key
+        return stable
+    }
+}
+
 /// Publishes a smoothed microphone level (0…1) for the HUD meter.
 ///
 /// Updated on the main actor from each captured buffer. Uses exponential
@@ -144,6 +162,10 @@ final class AudioEngine {
     private var recoveryAttempts = 0
     private var isRecovering = false
     private var firstBufferLogged = false
+    private var isStarting = false
+    private var captureGeneration = UUID()
+    private var tapGeneration = UUID()
+    private var recoveryTask: Task<Void, Never>?
     private static let maxRecoveryAttempts = 3
 
     private var configChangeObserver: NSObjectProtocol?
@@ -193,7 +215,7 @@ final class AudioEngine {
     /// niets gestart: er wordt dus niets opgenomen en geen andere audio
     /// onderbroken.
     func warmUp() {
-        guard !isRunning else { return }
+        guard !isRunning, !isStarting else { return }
         let started = DispatchTime.now().uptimeNanoseconds
         do {
             try prepareInputDevice(preferredUID: preferredInputUIDProvider?() ?? "")
@@ -216,13 +238,11 @@ final class AudioEngine {
     /// Starts capture, converting each buffer to `format`, returning a stream of
     /// converted buffers. Requests mic permission first.
     func start(convertingTo format: AVAudioFormat) async throws -> AsyncStream<AudioBufferBox> {
-        try await Self.ensureMicrophonePermission()
         return try await startWithRetry(convertingTo: format)
     }
 
     /// Starts capture yielding the input node's native format unchanged.
     func start() async throws -> AsyncStream<AudioBufferBox> {
-        try await Self.ensureMicrophonePermission()
         return try await startWithRetry(convertingTo: nil)
     }
 
@@ -232,43 +252,58 @@ final class AudioEngine {
     /// weer 48 kHz; wie meteen een tap zet, raakt precies die wissel
     /// (werk-Mac, 12 oktober 2026).
     private func startWithRetry(convertingTo format: AVAudioFormat?) async throws -> AsyncStream<AudioBufferBox> {
-        let preferredUID = preferredInputUIDProvider?() ?? ""
-        try prepareInputDevice(preferredUID: preferredUID)
-        await waitForStableInputFormat(preferredUID: preferredUID)
-        do {
-            return try startCapture(convertingTo: format)
-        } catch {
-            LaunchHealth.note("AudioEngine: eerste start mislukt (\(error.localizedDescription)); nog één poging na stabilisatie")
-            await waitForStableInputFormat(preferredUID: preferredUID)
-            return try startCapture(convertingTo: format)
+        guard !isRunning, !isStarting else {
+            throw AudioEngineError.engineStartFailed("Er wordt al een opname gestart of uitgevoerd.")
         }
+        isStarting = true
+        let generation = UUID()
+        captureGeneration = generation
+        defer {
+            if captureGeneration == generation { isStarting = false }
+        }
+        try await Self.ensureMicrophonePermission()
+        try checkCaptureGeneration(generation)
+        // Freeze the selected source across awaits and retries.
+        let preferredUID = preferredInputUIDProvider?() ?? ""
+        for attempt in 1...2 {
+            try checkCaptureGeneration(generation)
+            engine.stop()
+            engine = AVAudioEngine()
+            configuredInputUID = nil
+            do {
+                try prepareInputDevice(preferredUID: preferredUID)
+                try await waitForStableInputFormat(generation: generation)
+                try checkCaptureGeneration(generation)
+                return try startCapture(convertingTo: format, preferredUID: preferredUID)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                LaunchHealth.note("AudioEngine: startpoging \(attempt) mislukt: \(error.localizedDescription)")
+                if attempt == 2 { throw error }
+            }
+        }
+        throw AudioEngineError.engineStartFailed("De microfoon kon niet worden gestart.")
     }
 
-    /// Leest het hardware- en clientformaat tot ze twee keer achter elkaar
-    /// gelijk en geldig zijn, hooguit anderhalve seconde. Verschillen ze, dan
-    /// wordt de engine vervangen zodat de invoernode zich opnieuw op de
-    /// hardware instelt.
-    private func waitForStableInputFormat(preferredUID: String, maxWait: Double = 1.5) async {
+    private func checkCaptureGeneration(_ generation: UUID) throws {
+        try Task.checkCancellation()
+        guard captureGeneration == generation else { throw CancellationError() }
+    }
+
+    /// Let the SAME engine settle. Recreating it every 100 ms resets Bluetooth
+    /// negotiation repeatedly. Never install a tap with a known format mismatch.
+    private func waitForStableInputFormat(generation: UUID, maxWait: Double = 3) async throws {
         let deadline = Self.nowUptime() + maxWait
-        var previous: (Double, UInt32)?
+        var stability = AudioInputStability()
         while Self.nowUptime() < deadline {
-            if let (hardware, client) = try? readInputFormats() {
-                let valid = hardware.sampleRate > 0 && hardware.channelCount > 0 && !Self.formatsDiffer(hardware, client)
-                let key = (hardware.sampleRate, hardware.channelCount)
-                if valid, let previous, previous == key { return }
-                if valid {
-                    previous = key
-                } else {
-                    previous = nil
-                    engine.stop()
-                    engine = AVAudioEngine()
-                    configuredInputUID = nil
-                    try? prepareInputDevice(preferredUID: preferredUID)
-                }
-            }
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            try checkCaptureGeneration(generation)
+            let (hardware, client) = try readInputFormats()
+            if stability.observe(hardware: hardware, client: client) { return }
+            try await Task.sleep(nanoseconds: 100_000_000)
         }
-        LaunchHealth.note("AudioEngine: invoerformaat na \(maxWait) s nog niet stabiel; start toch")
+        let (hardware, client) = try readInputFormats()
+        LaunchHealth.note("AudioEngine: invoerformaat na \(maxWait) s nog niet stabiel (hardware \(Self.describe(hardware)), client \(Self.describe(client))); geen tap geïnstalleerd")
+        throw AudioEngineError.engineStartFailed("Het microfoonformaat is nog niet stabiel. Probeer het opnieuw.")
     }
 
 
@@ -414,8 +449,7 @@ final class AudioEngine {
         }
     }
 
-    private func startCapture(convertingTo format: AVAudioFormat?) throws -> AsyncStream<AudioBufferBox> {
-        let preferredUID = preferredInputUIDProvider?() ?? ""
+    private func startCapture(convertingTo format: AVAudioFormat?, preferredUID: String) throws -> AsyncStream<AudioBufferBox> {
         try prepareInputDevice(preferredUID: preferredUID)
         let nativeFormat = try tapFormatAfterHardwareCheck(preferredUID: preferredUID)
         let inputNode = engine.inputNode
@@ -435,21 +469,7 @@ final class AudioEngine {
         )
         self.continuation = continuation
 
-        // CoreAudio invokes this block on its own realtime thread, never the
-        // main thread. Typing it explicitly as `@Sendable` (rather than a bare
-        // closure literal inside this `@MainActor` method) stops the compiler
-        // from inferring main-actor isolation for it — without this, Swift 6
-        // inserts a runtime isolation check that traps (SIGTRAP) the instant
-        // CoreAudio calls the tap off the main thread.
-        let tapHandler: @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void = { [weak self] buffer, _ in
-            // Copy out of the tap's reused buffer, then box it (AVAudioPCMBuffer
-            // isn't Sendable) before hopping actors.
-            guard let copied = buffer.deepCopy() else { return }
-            let boxed = AudioBufferBox(copied)
-            Task { @MainActor [weak self] in
-                self?.handle(buffer: boxed.buffer)
-            }
-        }
+        let tapHandler = makeTapHandler()
         do {
             try installTapAndStart(on: inputNode, format: nativeFormat, handler: tapHandler)
         } catch {
@@ -475,6 +495,28 @@ final class AudioEngine {
         return stream
     }
 
+    private func makeTapHandler() -> @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void {
+        // CoreAudio invokes this block on its own realtime thread, never the
+        // main thread. Typing it explicitly as `@Sendable` (rather than a bare
+        // closure literal inside this `@MainActor` method) stops the compiler
+        // from inferring main-actor isolation for it — without this, Swift 6
+        // inserts a runtime isolation check that traps (SIGTRAP) the instant
+        // CoreAudio calls the tap off the main thread.
+        let generation = UUID()
+        tapGeneration = generation
+        let handler: @Sendable (AVAudioPCMBuffer, AVAudioTime) -> Void = { [weak self] buffer, _ in
+            // Copy out of the tap's reused buffer, then box it (AVAudioPCMBuffer
+            // isn't Sendable) before hopping actors.
+            guard let copied = buffer.deepCopy() else { return }
+            let boxed = AudioBufferBox(copied)
+            Task { @MainActor [weak self] in
+                guard let self, self.tapGeneration == generation else { return }
+                self.handle(buffer: boxed.buffer)
+            }
+        }
+        return handler
+    }
+
     // MARK: - Pauze
 
     /// Pauzeert de opname: de tap gaat er ONMIDDELLIJK af, dus niets van ná dit
@@ -485,6 +527,10 @@ final class AudioEngine {
     /// automatisch achteraan (één opname, één transcript).
     func pause() {
         guard isRunning, !isPaused else { return }
+        captureGeneration = UUID()
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        isRecovering = false
         isPaused = true
         engine.inputNode.removeTap(onBus: 0)
         engine.pause()
@@ -506,7 +552,7 @@ final class AudioEngine {
     /// bouwen zo nodig de converter opnieuw, zodat een gewijzigd formaat via het
     /// bestaande foutpad (`false`) wordt afgehandeld in plaats van met een crash.
     func resume() -> Bool {
-        guard isRunning, isPaused, let tapHandler, let previousFormat = nativeFormat,
+        guard isRunning, isPaused, let previousFormat = nativeFormat,
               let sessionInputUID else { return false }
 
         let currentFormat: AVAudioFormat
@@ -536,11 +582,13 @@ final class AudioEngine {
             }
         }
 
+        let tapHandler = makeTapHandler()
         do {
             try installTapAndStart(on: inputNode, format: currentFormat, handler: tapHandler)
         } catch {
             return false
         }
+        self.tapHandler = tapHandler
         nativeFormat = currentFormat
         isPaused = false
         installCaptureObservers()
@@ -562,6 +610,12 @@ final class AudioEngine {
     }
 
     private func teardown(finishStream: Bool) {
+        captureGeneration = UUID()
+        tapGeneration = UUID()
+        isStarting = false
+        recoveryTask?.cancel()
+        recoveryTask = nil
+        isRecovering = false
         guard isRunning else { return }
         isRunning = false
         isPaused = false
@@ -613,12 +667,18 @@ final class AudioEngine {
     private func installCaptureObservers() {
         removeCaptureObservers()
 
+        let observedEngine = engine
+        let generation = captureGeneration
         configChangeObserver = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange,
             object: engine,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.handleConfigurationChange() }
+            Task { @MainActor [weak self] in
+                guard let self, self.captureGeneration == generation,
+                      self.engine === observedEngine else { return }
+                self.handleConfigurationChange()
+            }
         }
 
         let workspace = NSWorkspace.shared.notificationCenter
@@ -627,14 +687,20 @@ final class AudioEngine {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.handleWillSleep() }
+            Task { @MainActor [weak self] in
+                guard let self, self.captureGeneration == generation else { return }
+                self.handleWillSleep()
+            }
         }
         didWakeObserver = workspace.addObserver(
             forName: NSWorkspace.didWakeNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.handleDidWake() }
+            Task { @MainActor [weak self] in
+                guard let self, self.captureGeneration == generation else { return }
+                self.handleDidWake()
+            }
         }
     }
 
@@ -685,26 +751,51 @@ final class AudioEngine {
         }
         recoveryAttempts += 1
         isRecovering = true
-        let attempt = recoveryAttempts
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            defer { self.isRecovering = false }
-            let ok = await self.recoverCaptureInPlace()
-            LaunchHealth.note("AudioEngine: herstel na \(trigger): \(ok ? "gelukt" : "mislukt") (poging \(attempt))")
-            if !ok, self.isRunning, !self.isPaused {
-                self.report(fallback)
+        let generation = captureGeneration
+        recoveryTask = Task { @MainActor [weak self] in
+            guard let self, !Task.isCancelled,
+                  self.captureGeneration == generation else { return }
+            defer {
+                if self.captureGeneration == generation {
+                    self.isRecovering = false
+                    self.recoveryTask = nil
+                }
+            }
+            while self.isRunning, !self.isPaused {
+                let attempt = self.recoveryAttempts
+                let ok = await self.recoverCaptureInPlace(generation: generation)
+                guard !Task.isCancelled, self.captureGeneration == generation else { return }
+                LaunchHealth.note("AudioEngine: herstel na \(trigger): \(ok ? "gelukt" : "mislukt") (poging \(attempt))")
+                if ok { return }
+                guard self.isRunning, !self.isPaused else { return }
+                guard self.recoveryAttempts < Self.maxRecoveryAttempts else {
+                    self.report(fallback)
+                    return
+                }
+                self.recoveryAttempts += 1
             }
         }
     }
 
-    private func recoverCaptureInPlace() async -> Bool {
-        guard let tapHandler, let uid = sessionInputUID, let previousFormat = nativeFormat else { return false }
+    private func recoverCaptureInPlace(generation: UUID) async -> Bool {
+        guard !Task.isCancelled, captureGeneration == generation,
+              isRunning, !isPaused else { return false }
+        guard tapHandler != nil, let uid = sessionInputUID, let previousFormat = nativeFormat else { return false }
+        tapGeneration = UUID()
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         engine = AVAudioEngine()
         configuredInputUID = nil
-        guard (try? prepareInputDevice(preferredUID: uid)) != nil else { return false }
-        await waitForStableInputFormat(preferredUID: uid)
+        do {
+            try prepareInputDevice(preferredUID: uid)
+            try await waitForStableInputFormat(generation: generation)
+            try checkCaptureGeneration(generation)
+        } catch {
+            if !(error is CancellationError) {
+                LaunchHealth.note("AudioEngine: herstel mislukt: \(error.localizedDescription)")
+            }
+            return false
+        }
         guard isRunning, !isPaused else { return false }
         guard let currentFormat = try? tapFormatAfterHardwareCheck(preferredUID: uid) else { return false }
         if currentFormat != previousFormat {
@@ -716,11 +807,13 @@ final class AudioEngine {
                 converter = rebuilt
             }
         }
+        let tapHandler = makeTapHandler()
         do {
             try installTapAndStart(on: engine.inputNode, format: currentFormat, handler: tapHandler)
         } catch {
             return false
         }
+        self.tapHandler = tapHandler
         nativeFormat = currentFormat
         installCaptureObservers()
         lastBufferAt = Self.nowUptime()

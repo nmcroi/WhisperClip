@@ -298,8 +298,10 @@ final class DictationController: ObservableObject {
                 model: settings.engine == .appleSpeech ? "apple-speech" : "parakeet-tdt-0.6b-v3",
                 keepAudio: keepAudio)
             activeSessionID = recording.id
+            LaunchHealth.note("Dictaat \(token.uuidString): transcriptie-engine voorbereiden")
             try await engine.configureRecording(recording)
             try await engine.startStreaming(locale: locale)
+            LaunchHealth.note("Dictaat \(token.uuidString): transcriptie-engine gereed")
         } catch {
             await handleFailure(error)
             return
@@ -323,6 +325,7 @@ final class DictationController: ObservableObject {
         // Speaker recognition reads the finalized CAF through a memory map after capture.
         let stream: AsyncStream<AudioBufferBox>
         do {
+            LaunchHealth.note("Dictaat \(token.uuidString): microfoon openen")
             if let format {
                 stream = try await audioEngine.start(convertingTo: format)
             } else {
@@ -595,6 +598,13 @@ final class DictationController: ObservableObject {
     // MARK: - Failure
 
     private func handleFailure(_ error: Error) async {
+        // Log the category/code, never model errors that may contain user text.
+        let nsError = error as NSError
+        if let audioError = error as? AudioEngineError {
+            LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): start mislukt; \(audioError.localizedDescription)")
+        } else {
+            LaunchHealth.note("Dictaat \(diagnosticRunID ?? "onbekend"): start mislukt; fouttype=\(String(reflecting: type(of: error))), code=\(nsError.code)")
+        }
         // Invalidate the session so any concurrent beginSession() bails.
         sessionToken = UUID()
         partialsTask?.cancel(); partialsTask = nil

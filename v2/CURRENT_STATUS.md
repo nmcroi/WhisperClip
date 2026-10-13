@@ -1,6 +1,66 @@
 # WhisperClip — actuele overdracht
 
-Bijgewerkt: 6 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
+Bijgewerkt: 13 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
+
+
+## Werk-Mac: bronreparatie voor microfoonwissels, 13 oktober 2026
+
+Repository op de werk-Mac gekloond naar `~/Development/WhisperClip`, branch
+`werk/augustus-2026`, vanaf `0f50ba4` (2.0.14 / 20). De twee oudere overdrachten
+hieronder zijn historische resultaten. De geïnstalleerde `/Applications`-app
+is op deze Mac 2.0.14 (20).
+
+Het lokale log toont eerder `configurationChanged`, vervolgens geen buffers en
+opnieuw een opgevangen `format mismatch`. Op 13 oktober staan veel dictaten met
+alleen `start`; de oude foutafhandeling schreef geen startfout naar app.log.
+Dat maakt de precieze oorzaak van die starts nog niet aantoonbaar. Eén eerdere
+warm-up vermeldt een niet-aangesloten expliciet gekozen microfoon; er is geen
+stille terugval naar een andere bron toegevoegd. Geen ruwe logs, transcripties,
+apparaatnamen of gebruikersbackups in Git opgenomen.
+
+Bronwijzigingen (nog niet geleverd):
+
+- Stabilisatie leest dezelfde verse engine gedurende maximaal drie seconden,
+  met twee opeenvolgende geldige hardware/client-formaatparen. Niet bij iedere
+  mismatch de engine vervangen. Na timeout geen tap installeren; maximaal twee
+  startpogingen, elk met een verse engine en een vastgelegde microfoonkeuze.
+- Start, herstel, configuratie-/slaapmeldingen en buffers zijn aan een generatie
+  gebonden. Stop/pauze annuleert een hersteltaak; een oude taak of buffer mag een
+  volgende opname niet veranderen. Warm-up en dubbele starts zijn tijdens een
+  lopende start uitgesloten.
+- Mislukt herstel wordt tot de bestaande limiet van drie pogingen herhaald,
+  met behoud van dezelfde stream; pas daarna de bestaande afrondroute gebruiken.
+- Dictaatlog vermeldt voortgang vóór/na het voorbereiden van de transcriptie-engine,
+  vóór openen van de microfoon en bij een startfout. Algemene model-fouttekst wordt
+  niet gelogd; alleen fouttype/code. Audiofouten bevatten de microfoonfoutmelding.
+- Twee regressietests voor Bluetooth-samplerate- en kanaalwissels toegevoegd aan
+  `AudioTapExceptionTests`.
+
+Verificatie op macOS 27.0.1, Command Line Tools / Swift 6.4:
+
+- Swift 6-typecheck van de echte `AudioEngine`, `MicrophoneDevices` en `LaunchHealth`
+  geslaagd met Apple-frameworks, het gecompileerde Core-package en een geselecteerde
+  WhisperShared-module uit de echte `AudioBufferBox`- en `AppSupport`-bron. Dit is
+  geen volledige appbuild. Alleen bestaande macOS-27-deprecationwaarschuwingen.
+- Beide nieuwe formaatstabilisatietestmethoden apart gecompileerd en uitgevoerd met
+  precondition-asserties; geslaagd. De XCTest-appsuite is nog niet uitgevoerd.
+- Syntaxcontrole van `DictationController` en `git diff --check` geslaagd.
+- Gevraagde Debug-build (`WhisperClipboard` in `v2/`) geblokkeerd: volledige Xcode
+  ontbreekt; actieve ontwikkelmap is `/Library/Developer/CommandLineTools`.
+  Gerichte Core-XCTest-run eveneens geblokkeerd door ontbrekende XCTest-module.
+
+**Nog nodig:** volledige Xcode beschikbaar maken, nieuwe Mac-versie/build kiezen
+in `project.yml` en het project regenereren vóór levering, Debug bouwen en gerichte
+Mac-tests uitvoeren. Daarna met backup installeren in `~/Applications`, met behoud
+van de bestaande `/Applications`-app en instellingen. Debug gebruikt `history-dev.db`
+en is geen productie-update; gebruikersdata niet migreren of wissen. Werkelijke
+opname, wissel van AirPods/dock en eerste buffer na herstel zijn nog niet getest.
+Geen nieuwe app gebouwd of geïnstalleerd; versie/build blijft daarom voorlopig
+2.0.14 (20) en mag niet opnieuw voor een gewijzigde geleverde binary worden gebruikt.
+
+Apple beschrijft dat een hardwareformaatwijziging de engine kan stoppen terwijl
+oude verbindingen behouden blijven:
+https://developer.apple.com/documentation/avfaudio/avaudioengineconfigurationchangenotification
 
 ## Eerste installatie op een andere iPhone, 6 oktober
 

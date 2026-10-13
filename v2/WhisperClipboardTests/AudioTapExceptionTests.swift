@@ -27,4 +27,27 @@ final class AudioTapExceptionTests: XCTestCase {
             XCTAssertTrue(objc?.reason.localizedCaseInsensitiveContains("format") ?? false, objc?.reason ?? "")
         }
     }
+    func testStableInputRequiresConsecutiveMatchingFormats() {
+        let bluetooth = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
+        let previous = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
+        var stability = AudioInputStability()
+        XCTAssertFalse(stability.observe(hardware: bluetooth, client: previous))
+        XCTAssertFalse(stability.observe(hardware: bluetooth, client: bluetooth))
+        XCTAssertTrue(stability.observe(hardware: bluetooth, client: bluetooth))
+    }
+
+    func testRouteChangesAndMismatchesResetStability() {
+        let mono = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1)!
+        let stereo = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2)!
+        let bluetooth = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
+        var stability = AudioInputStability()
+        XCTAssertFalse(stability.observe(hardware: mono, client: mono))
+        XCTAssertFalse(stability.observe(hardware: stereo, client: stereo))
+        XCTAssertFalse(stability.observe(hardware: stereo, client: mono))
+        XCTAssertFalse(stability.observe(hardware: stereo, client: stereo))
+        XCTAssertTrue(stability.observe(hardware: stereo, client: stereo))
+        XCTAssertFalse(stability.observe(hardware: bluetooth, client: bluetooth))
+        XCTAssertTrue(stability.observe(hardware: bluetooth, client: bluetooth))
+    }
+
 }
