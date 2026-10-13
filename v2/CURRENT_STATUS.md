@@ -3,6 +3,47 @@
 Bijgewerkt: 13 oktober 2026. Startpunt voor Claude, Codex en andere ontwikkelaars.
 
 
+
+## Werk-Mac: Debug 2.0.15 (21) gebouwd en geïnstalleerd, 13 oktober 2026
+
+De Xcode-blokkade uit de vorige overdracht is opgelost: Xcode 27.0 (27A266a)
+is beschikbaar in `/Applications/Xcode.app`. Gebouwd met expliciete
+`DEVELOPER_DIR`, zonder de systeeminstelling voor andere projecten te wijzigen.
+XcodeGen 2.46.0 geïnstalleerd en het project uit `project.yml` geregenereerd.
+Alleen de globale/Mac-versie verhoogd naar **2.0.15 (21)**; iPhone blijft
+2.0.5 (11).
+
+De bronreparatie uit `6a3f43a` is als **Debug / arm64 / ad-hoc** gebouwd en
+geïnstalleerd in `~/Applications/WhisperClip.app`. Info.plist bevat 2.0.15 (21)
+en bundle-ID `nl.nielscroiset.whisperclipboard`; strikte diepe codesign-verificatie
+slaagt. De testbundle is bij staging uitgesloten en de app daarna opnieuw ad-hoc
+ondertekend met de bestaande minimale Mac-entitlements. De app is expliciet vanaf
+deze locatie gestart; het procespad en `Appstart 2.0.15 (21)` bevestigen dit.
+Dit is een lokale Debug-installatie, geen genotariseerde distributierelease.
+
+Verificatie op macOS 27.0.1 met Xcode 27.0:
+
+- `xcodebuild` Debug-build, scheme `WhisperClipboard`: geslaagd.
+- `AudioTapExceptionTests` (3 tests, inclusief de twee nieuwe regressietests) en
+  `MicrophoneDevicesTests` (2 tests): alle **5 geslaagd, 0 fouten, 0 skips**.
+- Logs lokaal: `/private/tmp/whisperclip-debug-20261013-build.log` en
+  `/private/tmp/whisperclip-debug-20261013-tests.log`; resultaatbundle:
+  `/private/tmp/whisperclip-audio-20261013.xcresult`. Tijdelijke bestanden kunnen
+  verdwijnen; de volledige suite is niet uitgevoerd.
+- Volledige Application Support-map en voorkeuren vooraf lokaal geback-upt onder
+  `../device-backups/Work-Mac/*-before-2015-debug/` (buiten deze Git-repository).
+- Productiedatabase vóór/na appstart integer. Alle transcript- en notitierijen
+  zijn in beide richtingen met de back-up vergeleken en identiek. `settings.json`
+  is bytegelijk gebleven. Geen gegevensmigratie of verwijdering uitgevoerd.
+- `/Applications/WhisperClip.app` (2.0.14 / 20) behouden. Debug gebruikt de aparte
+  `history-dev.db`; dit is geen update van de productiegeschiedenis.
+
+**Praktijktest blijft open:** bij deze start logt warm-up dat de expliciet gekozen
+microfoon niet aangesloten is. Geen stille terugval of instellingenwijziging
+uitgevoerd. Eerst in Instellingen een aangesloten invoerbron of Systeemstandaard
+kiezen, dan een dictaat, AirPods/dock wisselen en nog een dictaat. Eerste buffer,
+herstel tijdens een echte wissel en transcriptresultaat zijn nog niet bewezen.
+
 ## Werk-Mac: bronreparatie voor microfoonwissels, 13 oktober 2026
 
 Repository op de werk-Mac gekloond naar `~/Development/WhisperClip`, branch
